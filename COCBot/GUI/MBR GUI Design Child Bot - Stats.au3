@@ -19,7 +19,7 @@ Global $btnResetStats = 0
 
 ; Gain
 Global $g_ahPicTHLevels[18], $g_hLblTHLevels = 0
-Global $g_ahPicLeague[$eLeagueCount] = [0, 0, 0, 0, 0, 0, 0, 0, 0], $g_hLblLeague = 0
+Global $g_ahPicLeague[$eLeagueCount] = [0, 0, 0, 0, 0, 0, 0, 0, 0], $g_hLblLeague = 0, $g_hPicLeagueBadge = 0
 Global $g_ahLblStatsStartedWith[$eLootCount] = [0, 0, 0, 0], $g_ahLblStatsGainPerHour[$eLootCount] = [0, 0, 0, 0]
 Global $g_ahLblStatsTotalGain[$eLootCount] = [0, 0, 0, 0], $g_ahLblStatsLastAttack[$eLootCount] = [0, 0, 0, 0]
 Global $g_ahLblStatsBonusLast[$eLootCount] = [0, 0, 0, 0], $g_ahLblStatsTop[$eLootCount] = [0, 0, 0, 0]
@@ -149,6 +149,9 @@ Func CreateGainSubTab()
 	$g_ahPicLeague[$eLeagueTitan] = _GUICtrlCreateIcon($g_sLibIconPath, $eTitan, $x - 2, $y - 5 + 15, 56, 56)
 	GUICtrlSetState(-1, $GUI_HIDE)
 	$g_ahPicLeague[$eLeagueLegend] = _GUICtrlCreateIcon($g_sLibIconPath, $eLegend, $x - 2, $y - 5 + 15, 56, 56)
+	GUICtrlSetState(-1, $GUI_HIDE)
+	; the real badge copied from the main screen (SaveLeagueBadge), shown instead of the icons above once it exists
+	$g_hPicLeagueBadge = GUICtrlCreatePic("", $x - 2, $y - 5 + 15, 56, 56)
 	GUICtrlSetState(-1, $GUI_HIDE)
 
 	GUICtrlCreateLabel(GetTranslatedFileIni("MBR GUI Design Child Bot - Stats", "LblLeague", "League"), $x + 3, $y, -1, -1, $SS_CENTER)

@@ -1,0 +1,1 @@
+The league badge shown in Bot > Stats and in the bottom bar of the Log tab is the real one: the bot copies the badge from the main screen at every village report (the Valkyrie, Witch, Golem... art with the tier number) instead of the trophy icon and the old Bronze / Silver / Gold set.

@@ -100,7 +100,8 @@ EndFunc   ;==>decodeSingleCoord
 
 Func RetrieveImglocProperty($key, $property)
 	; Get the property
-	Local $aValue = DllCall($g_hLibMyBot, "str", "GetProperty", "str", $key, "str", $property)
+	Local $aValue = CVInterceptDllCall("GetProperty", $key, $property, 0, 0) ; the keys of the bot's own OpenCV engine
+	If Not IsArray($aValue) Then $aValue = DllCall($g_hLibMyBot, "str", "GetProperty", "str", $key, "str", $property)
 	If @error Then _logErrorDLLCall($g_sLibMyBotPath, @error) ; check for error with DLL call
 	If UBound($aValue) = 0 Then
 		Return ""

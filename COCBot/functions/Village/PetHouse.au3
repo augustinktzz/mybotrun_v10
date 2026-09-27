@@ -103,6 +103,10 @@ Func PetHouse($test = False)
 		Local $iPetIndex = $i
 		DragPetHouse($iPetIndex, $iPage)
 
+		; start from the pet's true maximum (pets.csv of CoC 18.600), the cases below only ever lower it: the value
+		; is global and would otherwise stay at the cap of a lower Pet House level for the rest of the session
+		$g_ePetLevels[$i] = $g_aiPetMaxLevel[$i]
+
 		Switch $g_iTownHallLevel
 				Case 14
 					Switch $BuildingInfo[2]
@@ -277,6 +281,11 @@ Func PetHouse($test = False)
 							If $i > 9 Then ContinueLoop
 					EndSwitch
 			EndSwitch
+
+		; Levels 11 to 15 of the Unicorn, Frosty and Poison Lizard need Pet House 11 and Diggy's need Pet House 12
+		; (pets.csv of CoC 18.600): below that the pet stops at 10, whatever the Town Hall.
+		If ($i = $ePetUnicorn Or $i = $ePetFrosty Or $i = $ePetPoisonLizard) And Number($BuildingInfo[2]) < 11 Then $g_ePetLevels[$i] = 10
+		If $i = $ePetDiggy And Number($BuildingInfo[2]) < 12 Then $g_ePetLevels[$i] = 10
 
 		Switch $i
 			Case 0 To 3

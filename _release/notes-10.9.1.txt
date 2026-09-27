@@ -1,0 +1,1 @@
+Fix: the OpenCV interception is called by name from DllCallMyBot so the MiniGui and the other small executables, which do not embed the engine, build and run cleanly (10.9.0 compiled them with an unresolved reference).

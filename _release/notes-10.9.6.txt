@@ -1,0 +1,1 @@
+Discord Rich Presence: the "Join the server" button now opens the invite of your choice instead of a fixed link. The box next to the Link option takes any server invite (an invite pasted without https:// gets it added); an invalid one only hides the button, the status itself is still published.

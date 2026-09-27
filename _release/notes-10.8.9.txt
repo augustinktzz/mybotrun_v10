@@ -1,0 +1,1 @@
+Walls: the Wall line of the builder menu is now recognised whatever the scroll position (the list stops between two pixels and blurs the text: the bot compares the brightness of each column of the name instead of exact pixels, the debug log shows the match score of every page).

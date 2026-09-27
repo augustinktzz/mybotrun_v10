@@ -188,9 +188,9 @@ Func NotifyPushRaidEmbedToDiscord($sImagePath = "")
 		$sStars &= ($i <= $iStars ? ChrW(0x2B50) : ChrW(0x2606)) ; star / hollow star
 	Next
 	Local $sFields = _
-			'{"name":"Gold","value":' & __JsonStr(_NumberFormat($g_iStatsLastAttack[$eLootGold])) & ',"inline":true},' & _
-			'{"name":"Elixir","value":' & __JsonStr(_NumberFormat($g_iStatsLastAttack[$eLootElixir])) & ',"inline":true},' & _
-			'{"name":"Dark Elixir","value":' & __JsonStr(_NumberFormat($g_iStatsLastAttack[$eLootDarkElixir])) & ',"inline":true},' & _
+			'{"name":"Gold","value":' & __JsonStr(_NumberFormat($g_iStatsLastAttack[$eLootGold], True)) & ',"inline":true},' & _
+			'{"name":"Elixir","value":' & __JsonStr(_NumberFormat($g_iStatsLastAttack[$eLootElixir], True)) & ',"inline":true},' & _
+			'{"name":"Dark Elixir","value":' & __JsonStr(_NumberFormat($g_iStatsLastAttack[$eLootDarkElixir], True)) & ',"inline":true},' & _
 			'{"name":"Stars","value":' & __JsonStr($sStars) & ',"inline":true},' & _
 			'{"name":"Destruction","value":' & __JsonStr($g_sTotalDamage & " %") & ',"inline":true},' & _
 			'{"name":"League","value":' & __JsonStr(LeagueTierName($g_aiCurrentLoot[$eLootTrophy])) & ',"inline":true}'
@@ -211,6 +211,32 @@ Func NotifyPushRaidEmbedToDiscord($sImagePath = "")
 	EndIf
 	SetLog("Notify Discord: last raid card has been sent!", $COLOR_SUCCESS)
 EndFunc   ;==>NotifyPushRaidEmbedToDiscord
+
+; Builder base card. The builder base end of battle screen is not read by the bot, so the figures
+; come from the resource values of the builder base main screen taken before and after the attack
+; cycle: what the whole cycle brought in, which is what the builder base is run for anyway.
+Func NotifyPushBBRaidEmbedToDiscord($sImagePath = "")
+	If Not $g_bNotifyDiscordEnable Or $g_sNotifyDiscordWebhook = "" Then Return
+	Local $sFields = _
+			'{"name":"Attacks","value":' & __JsonStr($g_iBBRaidAttacks) & ',"inline":true},' & _
+			'{"name":"Gold","value":' & __JsonStr(($g_iBBRaidGold >= 0 ? "+" : "") & _NumberFormat($g_iBBRaidGold, True)) & ',"inline":true},' & _
+			'{"name":"Elixir","value":' & __JsonStr(($g_iBBRaidElixir >= 0 ? "+" : "") & _NumberFormat($g_iBBRaidElixir, True)) & ',"inline":true},' & _
+			'{"name":"Trophies","value":' & __JsonStr(($g_iBBRaidTrophy >= 0 ? "+" : "") & $g_iBBRaidTrophy & "  (" & _NumberFormat($g_aiCurrentLootBB[$eLootTrophyBB], True) & ")") & ',"inline":true},' & _
+			'{"name":"Storages","value":' & __JsonStr("G " & _NumberFormat($g_aiCurrentLootBB[$eLootGoldBB], True) & "   E " & _NumberFormat($g_aiCurrentLootBB[$eLootElixirBB], True)) & ',"inline":true}'
+	Local $sJson = '{"embeds":[{' & _
+			'"title":' & __JsonStr($g_sNotifyOrigin & " | Builder Base") & ',' & _
+			'"color":' & ($g_iBBRaidTrophy >= 0 ? 0x2ECC71 : 0xE67E22) & ',' & _
+			'"fields":[' & $sFields & '],' & _
+			($sImagePath <> "" And FileExists($sImagePath) ? '"image":{"url":"attachment://raidbb.jpg"},' : '') & _
+			'"footer":{"text":' & __JsonStr("MyBot " & $g_sBotVersion & "  -  " & _NowTime(4)) & '}' & _
+			'}]}'
+	If $sImagePath <> "" And FileExists($sImagePath) Then
+		__DiscordWebhookPostJson($sJson, $sImagePath, "raidbb.jpg")
+	Else
+		__DiscordWebhookPostJson($sJson)
+	EndIf
+	SetLog("Notify Discord: builder base card has been sent!", $COLOR_SUCCESS)
+EndFunc   ;==>NotifyPushBBRaidEmbedToDiscord
 
 ; ---- full log to Discord, in batches ----------------------------------------------------------
 ; Every user-level log line is queued by _SetLog(); the queue is posted as code blocks at most
@@ -819,6 +845,31 @@ Func NotifyPushMessageToBoth($Message, $Source = "")
 			If $g_bNotifyRemoteEnable Then NotifyPushToTelegram($g_sNotifyOrigin & " | " & GetTranslatedFileIni("MBR Func_Notify", "Request-Stop_Info_10", "Bot restarted"))
 		Case "OutOfSync"
 			If $g_bNotifyAlertOutOfSync Then NotifyPushToTelegram($g_sNotifyOrigin & " | " & GetTranslatedFileIni("MBR Func_Notify", "LOG_Info_05", "Restarted after Out of Sync Error") & "%0A" & GetTranslatedFileIni("MBR Func_Notify", "Stats_Info_06", "Attacking now") & "...")
+		Case "LastRaidBB"
+			If Not $g_bNotifyAlertBBRaid Then Return
+			Local $bDiscordCardBB = $g_bNotifyDiscordEnable And $g_sNotifyDiscordWebhook <> ""
+			Local $sRaidImageBB = ""
+			If $bDiscordCardBB Then ; only the card carries the picture, no point taking it otherwise
+				; the bot is back on the builder base main screen here, so the shot shows the storages
+				_CaptureRegion()
+				Local $sFileBB = "NotifyBB_" & @YEAR & "-" & @MON & "-" & @MDAY & "__" & @HOUR & "." & @MIN & ".jpg"
+				$hBitmap_Scaled = _GDIPlus_ImageResize($g_hBitmap, _GDIPlus_ImageGetWidth($g_hBitmap) / 2, _GDIPlus_ImageGetHeight($g_hBitmap) / 2)
+				_GDIPlus_ImageSaveToFile($hBitmap_Scaled, $g_sProfileLootsPath & $sFileBB)
+				_GDIPlus_ImageDispose($hBitmap_Scaled)
+				$sRaidImageBB = $g_sProfileLootsPath & $sFileBB
+				NotifyPushBBRaidEmbedToDiscord($sRaidImageBB)
+			EndIf
+			; No plus sign in the Telegram line: the message is pasted raw into the sendMessage URL and
+			; a "+" there is read as a space by Telegram. Negative values keep their own minus sign.
+			NotifyPushToTelegram($g_sNotifyOrigin & " | Builder Base" & _
+					"%0A" & "[Attacks]: " & $g_iBBRaidAttacks & _
+					"  [G]: " & _NumberFormat($g_iBBRaidGold, True) & _
+					"  [E]: " & _NumberFormat($g_iBBRaidElixir, True) & _
+					"%0A" & "[Trophies]: " & $g_iBBRaidTrophy & _
+					" of " & _NumberFormat($g_aiCurrentLootBB[$eLootTrophyBB], True), Not $bDiscordCardBB)
+			If _Sleep($DELAYPUSHMSG1) Then Return
+			If $sRaidImageBB <> "" Then FileDelete($sRaidImageBB)
+			SetLog("Notify: builder base report has been sent!", $COLOR_SUCCESS)
 		Case "LastRaid"
 			; Discord gets one embed card (loot, stars, %, league, screenshot) instead of the two plain
 			; Telegram messages, so the screenshot is prepared first and the Telegram pushes skip Discord.
@@ -850,11 +901,11 @@ Func NotifyPushMessageToBoth($Message, $Source = "")
 				$g_iStatsLastAttack[$eLootDarkElixir] = Round($g_iStatsLastAttack[$eLootDarkElixir], 1)
 
 				NotifyPushToTelegram($g_sNotifyOrigin & " | " & GetTranslatedFileIni("MBR Func_Notify", "Last-Raid_Info_02", "Last Raid txt") & _
-						"%0A" & "[" & GetTranslatedFileIni("MBR Func_Notify", "Stats-G_Info_01", "G") & "]: " & _NumberFormat($g_iStatsLastAttack[$eLootGold]) & _
-						"k  [" & GetTranslatedFileIni("MBR Func_Notify", "Stats-E_Info_01", "E") & "]: " & _NumberFormat($g_iStatsLastAttack[$eLootElixir]) & _
-						"k  [" & GetTranslatedFileIni("MBR Func_Notify", "Stats-DE_Info_01", "DE") & "]: " & _NumberFormat($g_iStatsLastAttack[$eLootDarkElixir]) & _
-						"k %0A[" & GetTranslatedFileIni("MBR Func_Notify", "Stats-Pct_Info_01", "%") & "]: " & $g_sTotalDamage & _
-						"  [" & GetTranslatedFileIni("MBR Func_Notify", "Stats-Star_Info_01", "*") & "]: " & $g_sStarsEarned & _
+						"%0A" & "[" & GetTranslatedFileIni("MBR Func_Notify", "Stats-G_Info_01", "G") & "]: " & _NumberFormat($g_iStatsLastAttack[$eLootGold], True) & _
+						"k  [" & GetTranslatedFileIni("MBR Func_Notify", "Stats-E_Info_01", "E") & "]: " & _NumberFormat($g_iStatsLastAttack[$eLootElixir], True) & _
+						"k  [" & GetTranslatedFileIni("MBR Func_Notify", "Stats-DE_Info_01", "DE") & "]: " & _NumberFormat($g_iStatsLastAttack[$eLootDarkElixir], True) & _
+						"k %0A[" & GetTranslatedFileIni("MBR Func_Notify", "Stats-Pct_Info_01", "Dmg") & "]: " & $g_sTotalDamage & _
+						"  [" & GetTranslatedFileIni("MBR Func_Notify", "Stats-Star_Info_01", "Stars") & "]: " & $g_sStarsEarned & _
 						"  [League]: " & LeagueTierName($g_aiCurrentLoot[$eLootTrophy]), Not $bDiscordCard)
 				If _Sleep($DELAYPUSHMSG1) Then Return
 				SetLog("Notify Telegram: Last Raid Text has been sent!", $COLOR_SUCCESS)

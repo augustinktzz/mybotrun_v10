@@ -25,7 +25,7 @@ Global $g_hChkCollectCartFirst = 0, $g_hTxtCollectGold = 0, $g_hTxtCollectElixir
 Global $g_hBtnLocateSpellfactory = 0, $g_hBtnLocateDarkSpellFactory = 0
 Global $g_hBtnLocateHeroHall = 0, $g_hBtnLocateLaboratory = 0, $g_hBtnLocatePetHouse = 0, $g_hBtnResetBuilding = 0, _
 		$g_hBtnLocateBlacksmith = 0, $g_hBtnLocateHeroHall = 0, $g_hBtnLocateHelperHut = 0
-Global $g_hChkTreasuryCollect = 0, $g_hTxtTreasuryGold = 0, $g_hTxtTreasuryElixir = 0, $g_hTxtTreasuryDark = 0, $g_hChkCollectAchievements = 0, $g_hChkFreeMagicItems = 0, $g_hChkCollectRewards = 0, $g_hChkSellRewards = 0
+Global $g_hChkTreasuryCollect = 0, $g_hTxtTreasuryGold = 0, $g_hTxtTreasuryElixir = 0, $g_hTxtTreasuryDark = 0, $g_hChkCollectAchievements = 0, $g_hChkFreeMagicItems = 0, $g_hChkCollectRewards = 0, $g_hChkSellRewards = 0, $g_hCmbPassRewardChoice = 0
 
 Global $g_alblBldBaseStats[3] = ["", "", ""]
 Global $g_hChkCollectBuilderBase = 0, $g_hChkStartClockTowerBoost = 0, $g_hChkCTBoostBlderBz = 0, $g_hChkCleanBBYard = 0
@@ -34,7 +34,7 @@ Global $g_hBtnDelDoubleCannonCoord = 0, $g_hBtnDelArcherTowerCoord = 0, $g_hBtnD
 Global $g_hChkBattleMachineUpgrade = 0, $g_hChkDoubleCannonUpgrade = 0, $g_hChkArcherTowerUpgrade = 0, $g_hChkMultiMortarUpgrade = 0
 Global $g_hChkBattleCopterUpgrade = 0, $g_hChkAnyDefUpgrade = 0
 Global $g_hChkBBSuggestedUpgrades = 0, $g_hChkBBSuggestedUpgradesIgnoreGold = 0, $g_hChkBBSuggestedUpgradesIgnoreElixir, $g_hChkBBSuggestedUpgradesIgnoreHall = 0
-Global $g_hChkPlacingNewBuildings = 0, $g_hChkBBSuggestedUpgradesIgnoreWall = 0
+Global $g_hChkPlacingNewBuildings = 0, $g_hChkBBSuggestedUpgradesIgnoreWall = 0, $g_hChkBBSaveWallBuilder = 0
 Global $g_ahPicBBLeague[$eBBLeagueCount] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], $g_hLblBBLeague1 = 0, $g_hLblBBLeague2 = 0, $g_hLblBBLeague3 = 0, $g_hLblBBLeague4 = 0, $g_hLblBBLeague5 = 0
 
 ;ClanGames Challenges
@@ -343,6 +343,11 @@ Func CreateMiscNormalVillageSubTab()
 	$g_hChkCollectRewards = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "ChkCollectRewards", "Collect Challenge Rewards"), $x + 265, $y + 4, -1, -1)
 
 	$y += 21
+	$g_hCmbPassRewardChoice = GUICtrlCreateCombo("", $x + 100, $y + 1, 185, 25, BitOR($CBS_DROPDOWNLIST, $CBS_AUTOHSCROLL))
+	GUICtrlSetData(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "CmbPassRewardChoice_Item_01", "Pass choice: resource first") & "|" & _
+			GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "CmbPassRewardChoice_Item_02", "Pass choice: magic item first") & "|" & _
+			GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "CmbPassRewardChoice_Item_03", "Pass choice: left option"), GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "CmbPassRewardChoice_Item_01", "Pass choice: resource first"))
+	_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "CmbPassRewardChoice_Info_01", "Some season pass rewards let you choose between two items. Take the gold / elixir / dark elixir one, the magic item one, or always the left one."))
 	$g_hChkSellRewards = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "ChkSellRewards", "Sell Extras"), $x + 295, $y + 4, -1, -1)
 	_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "ChkSellExtra_Info_01", "Check to automatically sell all extra magic item rewards for gems."))
 
@@ -613,6 +618,9 @@ Func CreateMiscBuilderBaseSubTab()
 	_GUICtrlCreateIcon($g_sLibIconPath, $g_sIcnMBisland, $x, $y - 5, 64, 64)
 	$g_hChkBBSuggestedUpgrades = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "ChkBBSuggestedUpgrades", "Suggested Upgrades"), $x + 70, $y + 25, -1, -1)
 	GUICtrlSetOnEvent(-1, "chkActivateBBSuggestedUpgrades")
+	$g_hChkBBSaveWallBuilder = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "ChkBBSaveWallBuilder", "Keep 1 builder for walls"), $x + 70, $y + 45, -1, -1)
+	_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "ChkBBSaveWallBuilder_Info_01", "Leave one Master Builder free for the wall suggestions: buildings, the Battle Machine, the Copter and new buildings are only started when two builders are free."))
+	GUICtrlSetState(-1, $GUI_DISABLE)
 
 	$g_hChkPlacingNewBuildings = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR GUI Design Child Village - Misc", "ChkPlacingNewBuildings", "Build 'New' tagged buildings"), $x + 200, $y - 10, -1, -1)
 	GUICtrlSetOnEvent(-1, "chkPlacingNewBuildings")

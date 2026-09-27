@@ -1,0 +1,1 @@
+﻿Attack report: the dark elixir looted is read again. The bot was testing a single pixel that no longer sits on the dark elixir drop of the CoC 18.600 end screen, so it took the "no dark elixir" branch every time and reported 0; the drop is now recognised by its purple icon, and the number is read with the same wide box as gold and elixir (the old one cut the first digit).

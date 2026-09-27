@@ -1,0 +1,1 @@
+Donations work in the 18.600 Social panel: the Donate button of a request is found by its colours wherever it sits in the chat, as the old image of it no longer matched. The rest of the donation flow (requested troops, capacity figures, donation window) kept its layout and is unchanged.

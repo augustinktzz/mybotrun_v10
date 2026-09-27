@@ -17,6 +17,9 @@ Global $g_sImgImgLocButtons = @ScriptDir & "\imgxml\imglocbuttons"
 Global Const $g_sImgGeneralCloseButton = @ScriptDir & "\imgxml\Windows\CloseButton\"
 #EndRegion Windows
 
+; the search Next button, only tried once its pixel has already been missed (VillageSearch)
+Global Const $g_sImgNextButton = @ScriptDir & "\imgxml\Attack\Search\NextButton\"
+
 #Region Obstacles
 Global Const $g_sImgChatTabPixel = @ScriptDir & "\imgxml\other\ChatTabPixel*"
 Global Const $g_sImgCocStopped = @ScriptDir & "\imgxml\other\CocStopped*"

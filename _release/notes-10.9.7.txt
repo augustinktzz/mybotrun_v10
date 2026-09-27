@@ -1,0 +1,3 @@
+Fix: the Discord status stayed silent when it could not start. With the option ticked but the Application ID box empty, or holding something that is not an ID, the bot said nothing at all and the profile simply never changed. It now writes one line in the log naming what is missing and where to fix it, once per run instead of at every check.
+Fix: the Discord status is now opened after the settings have been read, not before. Pasting the Application ID and pressing Start straight away connected only at the next check; the status is now up from the first second of the run.
+Fix: ticking "Discord status" while the bot is already running takes the Application ID and the invite as they are typed, so the status appears at once instead of waiting for the next settings save.

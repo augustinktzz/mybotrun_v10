@@ -1,0 +1,1 @@
+The spell tick boxes of Attack Plan > Dead Base / Active Base are visible with every attack type: they used to appear for Scripted attacks only, so the spells that Standard and SmartFarm now drop could not be ticked.

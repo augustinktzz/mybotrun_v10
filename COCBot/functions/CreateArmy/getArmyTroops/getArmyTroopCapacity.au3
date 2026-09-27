@@ -113,7 +113,17 @@ Func getArmyTroopCapacity($bOpenArmyWindow = False, $bCloseArmyWindow = False, $
 	EndIf
 	If _Sleep($DELAYCHECKARMYCAMP4) Then Return
 
-	If $g_bTotalCampForced = True Then $g_iTotalCampSpace = Number($g_iTotalCampForcedValue)
+	If $g_bTotalCampForced = True Then
+		If $tmpTotalCamp >= 10 And Mod($tmpTotalCamp, 5) = 0 And $tmpTotalCamp <> Number($g_iTotalCampForcedValue) Then
+			; the game cannot be wrong about its own camps, read the same twice above: a forced size that differs
+			; comes from another village (a profile copied from a bigger one) and would keep the army "half full"
+			; for ever. The forced value still serves when the read fails.
+			SetLog("Force total camp is " & $g_iTotalCampForcedValue & " but the game shows " & $tmpTotalCamp & ": using " & $tmpTotalCamp & " (Attack Plan > Train Army > Troops)", $COLOR_WARNING)
+			$g_iTotalCampSpace = $tmpTotalCamp
+		Else
+			$g_iTotalCampSpace = Number($g_iTotalCampForcedValue)
+		EndIf
+	EndIf
 
 	If $g_iTotalCampSpace > 0 Then
 		If $bSetLog Then SetLog("Total Army Camp Capacity: " & $g_CurrentCampUtilization & "/" & $g_iTotalCampSpace & " (" & Int($g_CurrentCampUtilization / $g_iTotalCampSpace * 100) & "%)")

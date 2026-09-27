@@ -419,6 +419,18 @@ Func _checkObstacles($bBuilderBase = False, $bRecursive = False) ;Checks if some
 			Return True
 		EndIf
 	EndIf
+	; The villager's "Return Home" button, bottom left of the Clan Wars page, the war map and the other pages the
+	; bot has no business on (a drag released on the War Button opens the first one). Read with the bot's own
+	; template, imgcv\own\ReturnHome, on that corner only.
+	If Not $bBuilderBase Then
+		Local $aHome = FindImageCV("own\ReturnHome", 0, 560 + $g_iBottomOffsetY, 160, $g_iGAME_HEIGHT, 0.80, 1)
+		If UBound($aHome) > 0 Then
+			SetLog("Return Home button found (" & $aHome[0][3] & " " & $aHome[0][2] & "), back to the village", $COLOR_INFO)
+			PureClick($aHome[0][0], $aHome[0][1], 1, 120, "#0138")
+			If _Sleep($DELAYCHECKOBSTACLES2) Then Return
+			Return True
+		EndIf
+	EndIf
 
 	Local $CSFoundCoords = decodeSingleCoord(FindImageInPlace2("CocStopped", $g_sImgCocStopped, 250, 328 + $g_iMidOffsetY, 618, 402 + $g_iMidOffsetY, True))
 	If UBound($CSFoundCoords) > 1 Then

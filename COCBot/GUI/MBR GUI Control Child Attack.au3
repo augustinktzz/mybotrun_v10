@@ -16,8 +16,9 @@
 
 Func cmbDBAlgorithm()
 	Local $iCmbValue = _GUICtrlComboBox_GetCurSel($g_hCmbDBAlgorithm)
-	; Algorithm Alltroops
-	_GUI_Value_STATE($iCmbValue = 1 ? "SHOW" : "HIDE", $g_aGroupAttackDBSpell & "#" & $groupIMGAttackDBSpell)
+	; The spell boxes used to show for Scripted attacks only, the one algorithm that could drop spells.
+	; Standard and SmartFarm drop them too since v10.5, so the boxes stay for every algorithm.
+	_GUI_Value_STATE("SHOW", $g_aGroupAttackDBSpell & "#" & $groupIMGAttackDBSpell)
 
 	If BitAND(GUICtrlGetState($g_hGUI_DEADBASE), $GUI_SHOW) And GUICtrlRead($g_hGUI_DEADBASE_TAB) = 1 Then ; fix ghosting during control applyConfig
 		Select
@@ -43,7 +44,7 @@ EndFunc   ;==>cmbDBAlgorithm
 
 Func cmbABAlgorithm()
 	Local $iCmbValue = _GUICtrlComboBox_GetCurSel($g_hcmbABAlgorithm)
-	_GUI_Value_STATE($iCmbValue = 1 ? "SHOW" : "HIDE", $groupAttackABSpell & "#" & $groupIMGAttackABSpell)
+	_GUI_Value_STATE("SHOW", $groupAttackABSpell & "#" & $groupIMGAttackABSpell) ; every algorithm drops spells since v10.5
 
 	If BitAND(GUICtrlGetState($g_hGUI_ACTIVEBASE), $GUI_SHOW) And GUICtrlRead($g_hGUI_ACTIVEBASE_TAB) = 1 Then ; fix ghosting during control applyConfig
 		Select
@@ -77,20 +78,30 @@ Func chkDBWardenAttack()
 EndFunc   ;==>chkDBWardenAttack
 
 Func chkABDropCC()
-	If GUICtrlRead($g_hChkABDropCC) = $GUI_CHECKED Then
+	chkABUseSiege()
+EndFunc   ;==>chkABDropCC
+
+Func chkDBDropCC()
+	chkDBUseSiege()
+EndFunc   ;==>chkDBDropCC
+
+; Which siege to bring only means something while one of the two slot options is on: the combo picks
+; the machine for "Use siege machine", and "Castle only" still needs the castle option.
+Func chkABUseSiege()
+	If GUICtrlRead($g_hChkABUseSiege) = $GUI_CHECKED Or GUICtrlRead($g_hChkABDropCC) = $GUI_CHECKED Then
 		GUICtrlSetState($g_hcmbABSiege, $GUI_ENABLE)
 	Else
 		GUICtrlSetState($g_hcmbABSiege, $GUI_DISABLE)
 	EndIf
-EndFunc   ;==>chkABDropCC
+EndFunc   ;==>chkABUseSiege
 
-Func chkDBDropCC()
-	If GUICtrlRead($g_hChkDBDropCC) = $GUI_CHECKED Then
+Func chkDBUseSiege()
+	If GUICtrlRead($g_hChkDBUseSiege) = $GUI_CHECKED Or GUICtrlRead($g_hChkDBDropCC) = $GUI_CHECKED Then
 		GUICtrlSetState($g_hcmbDBSiege, $GUI_ENABLE)
 	Else
 		GUICtrlSetState($g_hcmbDBSiege, $GUI_DISABLE)
 	EndIf
-EndFunc   ;==>chkDBDropCC
+EndFunc   ;==>chkDBUseSiege
 
 Func chkAttackNow()
 	If GUICtrlRead($g_hChkAttackNow) = $GUI_CHECKED Then

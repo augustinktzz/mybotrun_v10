@@ -1,0 +1,1 @@
+Walls: the builder menu fallback did not recognise the Wall line in the bot (it looked for it on the resource icon lines only); the whole name column of the menu is now scanned, every page is logged and a screenshot is kept in Temp\Debug\BuilderMenuNoWall when no Wall line is found.

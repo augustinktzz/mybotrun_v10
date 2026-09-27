@@ -38,7 +38,7 @@ $vf = Join-Path $R "MyBot.run.version.au3"
 Replace-InFile $vf '#pragma compile\(ProductVersion, [\d.]+\)' "#pragma compile(ProductVersion, $Version)" "UTF8"
 Replace-InFile $vf '#pragma compile\(FileVersion, [\d.]+\)' "#pragma compile(FileVersion, $Version)" "UTF8"
 Replace-InFile $vf 'Global \$g_sBotVersion = "v[\d.]+"' "Global `$g_sBotVersion = `"v$Version`"" "UTF8"
-Replace-InFile (Join-Path $R "LISEZMOI - MyBot v10.txt") '^MyBot v[\d.]+ - ' "MyBot v$Version - "
+Replace-InFile (Join-Path $R "README - MyBot v10.txt") '^MyBot v[\d.]+ - ' "MyBot v$Version - "
 Replace-InFile (Join-Path $R "Lancer MyBot v10.bat") 'MyBot v[\d.]+ \(MyBot\.run\.exe\)' "MyBot v$Version (MyBot.run.exe)"
 Write-Host "version -> v$Version" -ForegroundColor Green
 
@@ -58,8 +58,8 @@ if ($Notes) {
 
 # 3. compilation -------------------------------------------------------------------------------
 if (-not $NoBuild) {
-    & $Au3Check -q -d (Join-Path $R "MyBot.run.au3"); if ($LASTEXITCODE -ne 0) { throw "AU3Check a echoue" }
-    foreach ($s in @(@{in="MyBot.run.au3"; out="MyBot.run.exe"}, @{in="MyBot.run.MiniGui.au3"; out="MyBot.run.MiniGui.exe"}, @{in="MyBot.run.Watchdog.au3"; out="MyBot.run.Watchdog.exe"}, @{in="MyBot.run.Wmi.au3"; out="MyBot.run.Wmi.exe"})) {
+    foreach ($chk in @("MyBot.run.au3", "MyBot.run.MiniGui.au3", "MultiBot.au3")) { & $Au3Check -q -d (Join-Path $R $chk); if ($LASTEXITCODE -ne 0) { throw "AU3Check a echoue sur $chk" } }
+    foreach ($s in @(@{in="MyBot.run.au3"; out="MyBot.run.exe"}, @{in="MyBot.run.MiniGui.au3"; out="MyBot.run.MiniGui.exe"}, @{in="MyBot.run.Watchdog.au3"; out="MyBot.run.Watchdog.exe"}, @{in="MyBot.run.Wmi.au3"; out="MyBot.run.Wmi.exe"}, @{in="MultiBot.au3"; out="MultiBot.exe"})) {
         if (Get-Process -Name ($s.out -replace '\.exe$', '') -ErrorAction SilentlyContinue) { throw "$($s.out) est en cours d'execution : ferme le bot avant de publier" }
         $pr = Start-Process -FilePath $Aut2Exe -ArgumentList @("/in", "`"$R\$($s.in)`"", "/out", "`"$R\$($s.out)`"", "/x86", "/nopack") -Wait -PassThru -NoNewWindow
         if ($pr.ExitCode -ne 0) { throw "compilation de $($s.out) : exit $($pr.ExitCode)" }
@@ -69,7 +69,7 @@ if (-not $NoBuild) {
 
 # 4. zip -----------------------------------------------------------------------------------------
 New-Item -ItemType Directory -Path $Dist -Force | Out-Null
-$args = @($R, $Tmp, "/MIR", "/XD", "_backup_avant_fix_bs5", "_release", "Profiles", ".git", "/XF", "*.bak-*", "*.zip", "Lancer MyBot (corrige).bat", "/NFL", "/NDL", "/NJH", "/NJS", "/NP")
+$args = @($R, $Tmp, "/MIR", "/XD", "_backup_avant_fix_bs5", "_release", "_tools", "Profiles", ".git", "/XF", "*.bak-*", "*.zip", "Lancer MyBot (corrige).bat", "/NFL", "/NDL", "/NJH", "/NJS", "/NP")
 $p = Start-Process -FilePath "robocopy.exe" -ArgumentList $args -Wait -PassThru -NoNewWindow
 if ($p.ExitCode -ge 8) { throw "robocopy exit $($p.ExitCode)" }
 New-Item -ItemType Directory -Path "$Tmp\Profiles" -Force | Out-Null

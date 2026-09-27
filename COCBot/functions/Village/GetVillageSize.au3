@@ -181,18 +181,17 @@ Func GetVillageSize($DebugLog = Default, $sStonePrefix = Default, $sTreePrefix =
 	SetDeBugLog("Scenery routines completed (in " & Round(__TimerDiff($hTimer) / 1000, 2) & " seconds)", $COLOR_INFO)
 	$hTimer = __TimerInit()
 
+	; the directory is listed once and the file that matched last time is tried first, see __GVZFileList()
+	Local $sStoneDir = $sDirectory, $sStoneFilter = $sStonePrefix & "*.*"
 	If $scenery[0] = 0 Then
 		If $bIsOnMainBase Then SetDeBugLog("No Supported Sceneries Found!", $COLOR_ERROR)
 		SetDeBugLog("Searching ALL Stone files", $COLOR_INFO)
-		Local $aStoneFiles = _FileListToArray($sDirectory, $sStonePrefix & "*.*", $FLTA_FILES)
 	Else
 		SetDeBugLog("Loading Stone Scenery: " & $sScenery, $COLOR_INFO)
-		If IsCustomScenery($bIsOnMainBase, "Scenery", $sScenery) Then
-			Local $aStoneFiles = _FileListToArray($sDirectory2, $sStonePrefix & $sScenery & "*.*", $FLTA_FILES)
-		Else
-			Local $aStoneFiles = _FileListToArray($sDirectory, $sStonePrefix & $sScenery & "*.*", $FLTA_FILES)
-		EndIf
+		$sStoneFilter = $sStonePrefix & $sScenery & "*.*"
+		If IsCustomScenery($bIsOnMainBase, "Scenery", $sScenery) Then $sStoneDir = $sDirectory2
 	EndIf
+	Local $aStoneFiles = __GVZFileList($sStoneDir, $sStoneFilter)
 
 	If @error Then
 		SetDeBugLog("Error: Missing stone files (" & @error & ")", $COLOR_ERROR)
@@ -231,6 +230,7 @@ Func GetVillageSize($DebugLog = Default, $sStonePrefix = Default, $sTreePrefix =
 				$stone[3] = $y0 ; y ref. center of stone
 				$stone[4] = $d0 ; distance to village map in pixel
 				$stone[5] = $findImage
+				__GVZRemember($sStoneDir, $sStoneFilter, $findImage) ; tried first on the next call
 
 				Local $asStoneName = StringSplit($findImage, "-") ; get filename only
 				Local $asStoneScenery = StringRight($asStoneName[1], 2) ; get extension
@@ -252,18 +252,16 @@ Func GetVillageSize($DebugLog = Default, $sStonePrefix = Default, $sTreePrefix =
 	SetDeBugLog("Stone search (in " & Round(__TimerDiff($hTimer) / 1000, 2) & " seconds)", $COLOR_INFO)
 	$hTimer = __TimerInit()
 
+	Local $sTreeDir = $sDirectory, $sTreeFilter = $sTreePrefix & "*.*"
 	If $stone[0] = 0 Then
 		SetDeBugLog("Searching ALL tree files!", $COLOR_INFO)
-		Local $aTreeFiles = _FileListToArray($sDirectory, $sTreePrefix & "*.*", $FLTA_FILES)
 	ElseIf $asStoneScenery = "DS" Then
-		Local $aTreeFiles = _FileListToArray($sDirectory, $sTreePrefix & "D*.*", $FLTA_FILES)
+		$sTreeFilter = $sTreePrefix & "D*.*"
 	Else
-		If IsCustomScenery($bIsOnMainBase, "Scenery", $sScenery) Then
-			Local $aTreeFiles = _FileListToArray($sDirectory2, $sTreePrefix & $asStoneScenery & "*.*", $FLTA_FILES)
-		Else
-			Local $aTreeFiles = _FileListToArray($sDirectory, $sTreePrefix & $asStoneScenery & "*.*", $FLTA_FILES)
-		EndIf
+		$sTreeFilter = $sTreePrefix & $asStoneScenery & "*.*"
+		If IsCustomScenery($bIsOnMainBase, "Scenery", $sScenery) Then $sTreeDir = $sDirectory2
 	EndIf
+	Local $aTreeFiles = __GVZFileList($sTreeDir, $sTreeFilter)
 
 	If @error Then
 		SetDeBugLog("Error: Missing tree (" & @error & ")", $COLOR_ERROR)
@@ -302,6 +300,7 @@ Func GetVillageSize($DebugLog = Default, $sStonePrefix = Default, $sTreePrefix =
 				$tree[3] = $y0 ; y ref. center of tree
 				$tree[4] = $d0 ; distance to village map in pixel
 				$tree[5] = $findImage
+				__GVZRemember($sTreeDir, $sTreeFilter, $findImage) ; tried first on the next call
 
 				Local $asTreeName = StringSplit($findImage, "-") ; get filename only
 				Local $sTreeName = $asTreeName[1]
@@ -452,7 +451,7 @@ EndFunc   ;==>UpdateGlobalVillageOffset
 Func CenterVillage($iX, $iY, $iOffsetX, $iOffsetY)
 	Local $aScrollPos[2] = [0, 0]
 
-	If IsCoordSafe($iX, $iY) Then
+	If IsDragSafe($iX, $iY, $iOffsetX, $iOffsetY) Then
 		$aScrollPos[0] = $iX
 		$aScrollPos[1] = $iY
 	Else
@@ -468,13 +467,22 @@ Func CenterVillage($iX, $iY, $iOffsetX, $iOffsetY)
 	If _Sleep(150) Then Return
 EndFunc   ;==>CenterVillage
 
+; A drag that starts at ($x, $y) and is released at ($x - $iOffsetX, $y - $iOffsetY): both ends have to be clear,
+; a button fires on the release. A stone at (101,503) released at (80,495) landed on the War Button and opened
+; the Clan Wars page, twelve times in a day.
+Func IsDragSafe($x, $y, $iOffsetX, $iOffsetY)
+	If Not IsCoordSafe($x, $y) Then Return False
+	Return IsCoordSafe($x - $iOffsetX, $y - $iOffsetY)
+EndFunc   ;==>IsDragSafe
+
 Func IsCoordSafe($x, $y)
 	Local $bResult = True
 	Local $bIsOnMainBase = isOnMainVillage()
 
 	SetDeBugLog("Testing Coords : " & $x & "," & $y)
 
-	If $x < 82 And $y > 427 + $g_iBottomOffsetY And $bIsOnMainBase Then ; coordinates where the game will click on the War Button (safe margin)
+	; War Button: a drag released at x = 80 on that height opened the Clan Wars page, one released at 88 did not
+	If $x < 90 And $y > 427 + $g_iBottomOffsetY And $bIsOnMainBase Then ; coordinates where the game will click on the War Button (safe margin)
 		If $g_bDebugSetLog Then SetDebugLog("Too close to War Button")
 		$bResult = False
 	ElseIf $x < 72 And ($y > 270 + $g_iMidOffsetY And $y < 345 + $g_iMidOffsetY) Then ; coordinates where the game will click on the CHAT tab (safe margin)
@@ -513,3 +521,57 @@ Func IsCustomScenery($bIsOnMainBase = True, $bZone = "All", $bScenery = "")
 	EndSwitch
 	Return False
 EndFunc   ;==>IsCustomScenery
+
+; #FUNCTION# ====================================================================================================================
+; Name ..........: __GVZFileList / __GVZRemember
+; Description ...: Cache of the stone / tree image lists of GetVillageSize, with the last match first.
+; Remarks .......: This file is part of MyBot Copyright 2015-2025
+;                  MyBot is distributed under the terms of the GNU GPL
+;                  GetVillageSize walks the stone and tree images one by one until one matches, and it runs on every
+;                  ZoomOut(). The scenery of a village does not change between two cycles: the same file wins every
+;                  time, but it could sit at the end of the list. Measured on a real log: 0.22 s for the stone (first
+;                  file) against 0.74 s for the trees (fifth file), three searches per ZoomOut, 24 ZoomOut in one
+;                  session. So the directory is listed once and the winning file is moved to the front.
+;                  The list is only reordered, never shortened: when the scenery really changes, the scan simply
+;                  carries on through the other files as before. New template files need a bot restart to be seen.
+; ===============================================================================================================================
+
+Global $g_aGVZFileCache[0][3] ; key (directory|filter) | file list | file that matched last
+
+Func __GVZFileList($sDirectory, $sFilter)
+	Local $sKey = $sDirectory & "|" & $sFilter
+	For $i = 0 To UBound($g_aGVZFileCache) - 1
+		If $g_aGVZFileCache[$i][0] = $sKey Then Return SetError(0, 0, $g_aGVZFileCache[$i][1])
+	Next
+	Local $aFiles = _FileListToArray($sDirectory, $sFilter, $FLTA_FILES)
+	Local $iError = @error
+	If $iError Or Not IsArray($aFiles) Then Return SetError($iError ? $iError : 1, 0, 0)
+	Local $n = UBound($g_aGVZFileCache)
+	ReDim $g_aGVZFileCache[$n + 1][3]
+	$g_aGVZFileCache[$n][0] = $sKey
+	$g_aGVZFileCache[$n][1] = $aFiles
+	$g_aGVZFileCache[$n][2] = ""
+	Return SetError(0, 0, $aFiles)
+EndFunc   ;==>__GVZFileList
+
+Func __GVZRemember($sDirectory, $sFilter, $sFile)
+	Local $sKey = $sDirectory & "|" & $sFilter
+	For $i = 0 To UBound($g_aGVZFileCache) - 1
+		If $g_aGVZFileCache[$i][0] <> $sKey Then ContinueLoop
+		If $g_aGVZFileCache[$i][2] = $sFile Then Return ; already at the front
+		Local $aFiles = $g_aGVZFileCache[$i][1]
+		If Not IsArray($aFiles) Then Return
+		For $k = 1 To $aFiles[0]
+			If $aFiles[$k] <> $sFile Then ContinueLoop
+			If $k > 1 Then
+				$aFiles[$k] = $aFiles[1]
+				$aFiles[1] = $sFile
+				$g_aGVZFileCache[$i][1] = $aFiles
+				SetDebugLog("GVZ: " & $sFile & " moved first (was " & $k & " of " & $aFiles[0] & ")", $COLOR_DEBUG)
+			EndIf
+			$g_aGVZFileCache[$i][2] = $sFile
+			Return
+		Next
+		Return
+	Next
+EndFunc   ;==>__GVZRemember

@@ -1,0 +1,1 @@
+validation only: while this file exists the DLL still reads the text, the OpenCV result is only written to the debug log (CV ocr coc-ms: ...). Delete it to switch the font to the OpenCV engine.

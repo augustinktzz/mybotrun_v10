@@ -41,7 +41,8 @@ Func UpgradeWall()
 						If $MinWallGold Then
 							SetLog("Upgrading Wall using Gold", $COLOR_SUCCESS)
 							If imglocCheckWall() Then
-								If Not UpgradeWallGold($iWallCost) Then
+								$iWallCost = WallCostNow() ; the selected wall can be of another level than the combo
+								If Not __UpgradeWallStep(True, $iWallCost) Then
 									SetLog("Upgrade with Gold failed, skipping...", $COLOR_ERROR)
 									Return
 								EndIf
@@ -57,7 +58,8 @@ Func UpgradeWall()
 						If $MinWallElixir Then
 							SetLog("Upgrading Wall using Elixir", $COLOR_SUCCESS)
 							If imglocCheckWall() Then
-								If Not UpgradeWallElixir($iWallCost) Then
+								$iWallCost = WallCostNow() ; the selected wall can be of another level than the combo
+								If Not __UpgradeWallStep(False, $iWallCost) Then
 									SetLog("Upgrade with Elixier failed, skipping...", $COLOR_ERROR)
 									Return
 								EndIf
@@ -73,9 +75,10 @@ Func UpgradeWall()
 						If $MinWallElixir Then
 							SetLog("Upgrading Wall using Elixir", $COLOR_SUCCESS)
 							If imglocCheckWall() Then
-								If Not UpgradeWallElixir($iWallCost) Then
+								$iWallCost = WallCostNow() ; the selected wall can be of another level than the combo
+								If Not __UpgradeWallStep(False, $iWallCost) Then
 									SetLog("Upgrade with Elixir failed, attempt to upgrade using Gold", $COLOR_ERROR)
-									If Not UpgradeWallGold($iWallCost) Then
+									If Not __UpgradeWallStep(True, $iWallCost) Then
 										SetLog("Upgrade with Gold failed, skipping...", $COLOR_ERROR)
 										Return
 									EndIf
@@ -89,7 +92,8 @@ Func UpgradeWall()
 							SetLog("Elixir is below minimum, attempt to upgrade using Gold", $COLOR_ERROR)
 							If $MinWallGold Then
 								If imglocCheckWall() Then
-									If Not UpgradeWallGold($iWallCost) Then
+									$iWallCost = WallCostNow() ; the selected wall can be of another level than the combo
+									If Not __UpgradeWallStep(True, $iWallCost) Then
 										SetLog("Upgrade with Gold failed, skipping...", $COLOR_ERROR)
 										Return
 									EndIf
@@ -274,7 +278,7 @@ Func SkipWallUpgrade($iWallCost = $g_iWallCost) ; Dynamic Upgrades
 	If $g_iFreeBuilderCount > ($g_bUpgradeWallSaveBuilder ? 1 : 0) And $iUpgradeAction > 0 Then ; check if builder available for bldg upgrade, and upgrades enabled
 		; December 2024 : Add Warden Cost to Needed Elixir
 		If ($g_iWardenLevel <> -1) And ($g_iWardenLevel < $g_iMaxWardenLevel) And $g_bUpgradeWardenEnable And BitAND($g_iHeroUpgradingBit, $eHeroWarden) <> $eHeroWarden Then
-			Local $g_ExactWardenCost = ($g_afWardenUpgCost[$g_iWardenLevel] * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100)
+			Local $g_ExactWardenCost = (__UpgCostAt($g_afWardenUpgCost, $g_iWardenLevel) * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100)
 			$iUpgradesNeedElixir += Number($g_ExactWardenCost)
 			$iAvailBuilderCount -= 1
 		EndIf
@@ -336,19 +340,422 @@ Func SkipWallUpgrade($iWallCost = $g_iWallCost) ; Dynamic Upgrades
 EndFunc   ;==>SkipWallUpgrade
 
 Func SwitchToNextWallLevel() ; switches wall level to upgrade to next level
-	If $g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 4] = 0 And $g_iCmbUpgradeWallsLevel < Ubound($g_aiWallCost) - 1 Then
-		SetDebugLog("$g_aiWallsCurrentCount = " & $g_aiWallsCurrentCount)
+	If $g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 4] = 0 And $g_iCmbUpgradeWallsLevel < UBound($g_aiWallCost) - 1 Then
 		SetDebugLog("$g_iCmbUpgradeWallsLevel = " & $g_iCmbUpgradeWallsLevel)
-
-		EnableGuiControls()
-
-		_GUICtrlComboBox_SetCurSel($g_hCmbWalls, $g_iCmbUpgradeWallsLevel + 1)
-
-		cmbWalls()
-		SaveConfig()
-		DisableGuiControls()
-		Return True
+		Return WallSetWorkingLevel($g_iCmbUpgradeWallsLevel + 5) ; index + 1, as a level (index + 4)
 	EndIf
 	Return False
 EndFunc   ;==>SwitchToNextWallLevel
 
+
+; #FUNCTION# ====================================================================================================================
+; Name ..........: Wall Wizard ("Upgrade More") support, CoC 18.600
+; Description ...: Upgrades several walls of the same level in one go instead of one at a time.
+; Remarks .......: This file is part of MyBot Copyright 2015-2025
+;                  Selecting a wall you can pay for shows a fifth button on its bar:
+;                      Info | Select ROW | Upgrade More | Upgrade (gold) | Upgrade (elixir)
+;                  "Upgrade More" opens the wall wizard, titled "Wall (Level n)x 1", whose bar is
+;                      Remove Wall -1 | Add Wall +10 | Add Wall +1 | Upgrade (gold) | Upgrade (elixir)
+;                  Each "Add Wall" adds one more wall of the same level to the selection and the price becomes the
+;                  total. The game prints a label or a price in salmon red when the action is impossible: "Add Wall"
+;                  red means no more walls at that level, a red price means that resource cannot pay the selection.
+;                  Gold and elixir never add up, one selection is paid entirely with one of them.
+;                  Measured on a live 860x732 screen: buttons are 94 px apart on y 604, the price sits on y 566-584
+;                  and the button label on y 612-640. The bar is centred, so the buttons move when their number
+;                  changes; they are located from the gold coin and the elixir drop of the price lines.
+; ===============================================================================================================================
+
+Global Const $g_iWallBarY = 604, $g_iWallBarPitch = 94
+
+; Reads the wall button bar. True when a bar with an Upgrade button is on screen, and fills:
+;   $iGoldX / $iElixirX : x of the gold / elixir Upgrade button (-1 when absent)
+;   $bWizard            : True when the wall wizard is open (no blue Info button any more)
+;   $bUpgradeMore       : True when the bar carries the "Upgrade More" button (only when a wall is affordable)
+Func __WallBarRead(ByRef $iGoldX, ByRef $iElixirX, ByRef $bWizard, ByRef $bUpgradeMore)
+	$iGoldX = -1
+	$iElixirX = -1
+	$bWizard = False
+	$bUpgradeMore = False
+	_CaptureRegion(190, 560, 800, 645)
+	; rightmost gold blob of the price line: the Remove Wall badge is gold too when it is enabled
+	Local $iGoldLast = -1, $iGoldSum = 0, $iGoldCnt = 0, $iGoldPrev = -99
+	Local $iElixSum = 0, $iElixCnt = 0
+	For $x = 190 To 790
+		Local $iColGold = 0, $iColElix = 0
+		For $y = 565 To 600
+			Local $sCol = _GetPixelColor($x - 190, $y - 560, False)
+			If StringLen($sCol) <> 6 Then ContinueLoop
+			Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+			If $iR > 210 And $iG > 170 And $iG < 235 And $iB < 90 Then $iColGold += 1
+			If $iR > 150 And $iR < 230 And $iG < 110 And $iB > 150 Then $iColElix += 1
+		Next
+		If $iColGold > 0 Then
+			If $x - $iGoldPrev > 6 Then ; a new blob starts, drop the previous one and keep the rightmost
+				$iGoldSum = 0
+				$iGoldCnt = 0
+			EndIf
+			$iGoldSum += $x * $iColGold
+			$iGoldCnt += $iColGold
+			$iGoldPrev = $x
+			If $iGoldCnt >= 15 Then $iGoldLast = Int($iGoldSum / $iGoldCnt)
+		EndIf
+		If $iColElix > 0 Then
+			$iElixSum += $x * $iColElix
+			$iElixCnt += $iColElix
+		EndIf
+	Next
+	If $iElixCnt >= 15 Then $iElixirX = Int($iElixSum / $iElixCnt) - 32
+	If $iGoldLast > 0 Then $iGoldX = $iGoldLast - 33
+	If $iGoldX < 0 And $iElixirX > 0 Then $iGoldX = $iElixirX - $g_iWallBarPitch ; gold button is always left of the elixir one
+	If $iGoldX < 0 Then Return False
+
+	Local $iBlue = 0 ; blue "i" of the Info button, gone as soon as the wizard is open
+	For $y = 575 To 625 Step 2
+		For $x = 190 To 300 Step 2
+			Local $sCol = _GetPixelColor($x - 190, $y - 560, False)
+			If StringLen($sCol) <> 6 Then ContinueLoop
+			Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+			If $iB > 180 And $iB > $iR + 40 And $iG > 90 And $iG < 210 Then $iBlue += 1
+		Next
+	Next
+	$bWizard = ($iBlue < 50)
+	; the bar is centred: one more button pushes the Upgrade buttons 47 px to the right
+	If Not $bWizard Then $bUpgradeMore = ($iGoldX > (($iElixirX > 0) ? 500 : 453))
+	SetDebugLog("WallBar: gold x " & $iGoldX & ", elixir x " & $iElixirX & ", wizard " & ($bWizard ? "yes" : "no") & ", Upgrade More " & ($bUpgradeMore ? "yes" : "no") & " (blue " & $iBlue & ")", $COLOR_DEBUG)
+	Return True
+EndFunc   ;==>__WallBarRead
+
+; True when the text of the button at $iBtnX is printed in the salmon red the game uses for an impossible
+; action. $bPrice reads the price line above the button, otherwise the label under it.
+Func __WallTextIsRed($iBtnX, $bPrice = True)
+	Local $iTop = ($bPrice ? 566 : 612), $iBottom = ($bPrice ? 584 : 640)
+	_CaptureRegion($iBtnX - 40, $iTop, $iBtnX + 40, $iBottom)
+	Local $iRed = 0
+	For $y = 0 To $iBottom - $iTop
+		For $x = 0 To 80
+			Local $sCol = _GetPixelColor($x, $y, False)
+			If StringLen($sCol) <> 6 Then ContinueLoop
+			Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+			If $iR > 190 And $iG > 80 And $iG < 180 And $iB > 80 And $iB < 180 And $iR > $iG + 60 And Abs($iG - $iB) < 30 Then $iRed += 1
+		Next
+	Next
+	Return ($iRed >= 80)
+EndFunc   ;==>__WallTextIsRed
+
+; Total price printed above the Upgrade button at $iBtnX, 0 when it cannot be read.
+Func __WallWizardTotal($iBtnX)
+	Return Number(StringRegExpReplace(getCostsUpgrade($iBtnX - 45, 565), "[^0-9]", ""))
+EndFunc   ;==>__WallWizardTotal
+
+; Upgrades as many walls of the level currently selected as the resources allow, through the game's
+; "Upgrade More" wizard. $bUseGold picks the resource. In the builder base ($bBuilderBase) the price of
+; one wall is read from the bar and the builder base loot is used, there is no reserve to keep.
+; Returns the number of walls upgraded, 0 when the wizard was not used and the selection was left
+; untouched (the caller carries on with its single wall), -1 when the wizard was opened but nothing was
+; upgraded and the selection had to be dropped (the caller must select again).
+Func UpgradeWallMore($bUseGold, $iWallCost = $g_iWallCost, $bBuilderBase = False)
+	If Not $g_bRunState Then Return 0
+
+	Local $iGoldX, $iElixirX, $bWizard, $bUpgradeMore
+	If Not __WallBarRead($iGoldX, $iElixirX, $bWizard, $bUpgradeMore) Then Return 0
+	If $bWizard Then Return 0 ; a wizard left open from an earlier step, the caller selects again
+	If Not $bUpgradeMore Then
+		SetDebugLog("WallMore: no Upgrade More button on this wall", $COLOR_DEBUG)
+		Return 0
+	EndIf
+	Local $iBtnX = ($bUseGold ? $iGoldX : $iElixirX)
+	If $iBtnX < 0 Then Return 0
+
+	Local $iHave, $iKeep
+	If $bBuilderBase Then
+		$iWallCost = __WallWizardTotal($iBtnX) ; the bar of the selected wall shows the price of one
+		$iHave = ($bUseGold ? Number($g_aiCurrentLootBB[$eLootGoldBB]) : Number($g_aiCurrentLootBB[$eLootElixirBB]))
+		$iKeep = 0
+	Else
+		$iHave = ($bUseGold ? Number($g_aiCurrentLoot[$eLootGold]) : Number($g_aiCurrentLoot[$eLootElixir]))
+		$iKeep = ($bUseGold ? Number($g_iUpgradeWallMinGold) : Number($g_iUpgradeWallMinElixir))
+	EndIf
+	If $iWallCost < 1 Then Return 0
+	Local $iBudget = $iHave - $iKeep
+	Local $iWant = Int($iBudget / $iWallCost) ; as many walls as the resources allow once the reserve is kept
+	If $iWant < 2 Then Return 0 ; nothing to gain over the one wall at a time path
+
+	Click($iGoldX - $g_iWallBarPitch, $g_iWallBarY, 1, 120, "#0340") ; Upgrade More
+	If _Sleep(1200) Then Return 0
+	If Not __WallBarRead($iGoldX, $iElixirX, $bWizard, $bUpgradeMore) Then Return -1
+	If Not $bWizard Then
+		SetDebugLog("WallMore: the wizard did not open", $COLOR_DEBUG)
+		ClearScreen()
+		Return -1
+	EndIf
+
+	; the wizard opens on one wall; "Add Wall +10" while ten more fit in the budget, then "Add Wall +1".
+	; The game paints the label red when there is no wall of that level left to add.
+	Local $iBtnAddOne = $iGoldX - $g_iWallBarPitch
+	Local $iBtnAddTen = $iGoldX - 2 * $g_iWallBarPitch
+	Local $iBtnRemove = $iGoldX - 3 * $g_iWallBarPitch
+	Local $iAdded = 1
+	While $iAdded + 10 <= $iWant
+		If __WallTextIsRed($iBtnAddTen, False) Then ExitLoop
+		Click($iBtnAddTen, $g_iWallBarY, 1, 120, "#0345")
+		If _Sleep(500) Then Return -1
+		$iAdded += 10
+	WEnd
+	While $iAdded < $iWant
+		If __WallTextIsRed($iBtnAddOne, False) Then
+			SetDebugLog("WallMore: no more walls of that level to add (" & $iAdded & " selected)", $COLOR_DEBUG)
+			ExitLoop
+		EndIf
+		Click($iBtnAddOne, $g_iWallBarY, 1, 120, "#0341")
+		If _Sleep(500) Then Return -1
+		$iAdded += 1
+	WEnd
+
+	$iBtnX = ($bUseGold ? $iGoldX : $iElixirX)
+	If $iBtnX < 0 Then
+		ClearScreen()
+		Return -1
+	EndIf
+	; the game paints the price red when that resource cannot pay the selection: give walls back until it can
+	Local $iSafety = 0
+	While __WallTextIsRed($iBtnX, True) And $iAdded > 1 And $iSafety < 20
+		Click($iBtnRemove, $g_iWallBarY, 1, 120, "#0342")
+		If _Sleep(500) Then Return -1
+		$iAdded -= 1
+		$iSafety += 1
+	WEnd
+	If __WallTextIsRed($iBtnX, True) Then
+		SetLog("Wall upgrade: not enough " & ($bUseGold ? "gold" : "elixir") & " for a batch, one wall at a time", $COLOR_INFO)
+		ClearScreen()
+		Return -1
+	EndIf
+
+	; the total the game prints is the truth on how many walls are selected ("+10" may add fewer when the
+	; level runs out); it also has to leave the reserve alone
+	Local $iTotal = __WallWizardTotal($iBtnX)
+	$iSafety = 0
+	While $iTotal > $iBudget And $iTotal > $iWallCost And $iSafety < 20
+		Click($iBtnRemove, $g_iWallBarY, 1, 120, "#0342")
+		If _Sleep(500) Then Return -1
+		$iSafety += 1
+		$iTotal = __WallWizardTotal($iBtnX)
+	WEnd
+	If $iTotal <= 0 Or Mod($iTotal, $iWallCost) <> 0 Then
+		SetLog("Wall upgrade: the batch price (" & $iTotal & ") is not a multiple of " & $iWallCost & ", one wall at a time", $COLOR_INFO)
+		ClearScreen()
+		Return -1
+	EndIf
+	$iAdded = Int($iTotal / $iWallCost)
+	If $iTotal > $iBudget Or $iAdded < 2 Then ; only one wall left in the selection, the normal path does it just as well
+		ClearScreen()
+		Return -1
+	EndIf
+
+	SetLog("Upgrading " & $iAdded & ($bBuilderBase ? " builder base" : "") & " walls at once for " & _NumberFormat($iTotal) & " " & ($bUseGold ? "gold" : "elixir"), $COLOR_SUCCESS)
+	Click($iBtnX, $g_iWallBarY, 1, 120, "#0343")
+	If _Sleep($DELAYUPGRADEWALLGOLD2) Then Return -1
+
+	; several walls at once ask for a confirmation ("Upgrade Walls ... Okay")
+	Local $aOkay = FindGreenOkayButton(True)
+	If IsArray($aOkay) Then
+		ClickP($aOkay, 1, 120, "#0344")
+		If _Sleep($DELAYUPGRADEWALLGOLD3) Then Return -1
+	EndIf
+	If isGemOpen(True) Then
+		SetLog("Wall upgrade: the game asked for gems, batch cancelled", $COLOR_ERROR)
+		ClearScreen()
+		Return -1
+	EndIf
+	ClearScreen()
+
+	If $bBuilderBase Then Return $iAdded
+
+	If $bUseGold Then
+		$g_iNbrOfWallsUppedGold += $iAdded
+		$g_iCostGoldWall += $iTotal
+		PushMsg("UpgradeWithGold")
+	Else
+		$g_iNbrOfWallsUppedElixir += $iAdded
+		$g_iCostElixirWall += $iTotal
+		PushMsg("UpgradeWithElixir")
+	EndIf
+	$g_iNbrOfWallsUpped += $iAdded
+	UpdateStats()
+	Return $iAdded
+EndFunc   ;==>UpgradeWallMore
+
+; One upgrade step: a batch through the wizard when the option allows it, otherwise the single wall that
+; is already selected. False only when nothing could be upgraded at all.
+Func __UpgradeWallStep($bUseGold, $iWallCost = $g_iWallCost)
+	Local $iWalls = UpgradeWallMore($bUseGold, $iWallCost)
+	If $iWalls > 0 Then Return True
+	If $iWalls < 0 Then ; the wizard was opened and closed again, a wall has to be selected once more
+		If _Sleep($DELAYRESPOND) Then Return False
+		If Not imglocCheckWall() Then Return False
+	EndIf
+	Return ($bUseGold ? UpgradeWallGold($iWallCost) : UpgradeWallElixir($iWallCost))
+EndFunc   ;==>__UpgradeWallStep
+
+; #FUNCTION# ====================================================================================================================
+; Name ..........: BuilderMenuSelectWall
+; Description ...: Lets the game select a wall through the builder menu when the image search sees none.
+; Remarks .......: This file is part of MyBot Copyright 2015-2025
+;                  MyBot is distributed under the terms of the GNU GPL
+;                  The wall templates are straight runs; the last pieces of a level are corners, junctions and
+;                  bits hidden by buildings, which the search never returns. The builder menu (the builder
+;                  counter at the top) lists every upgrade left, walls included, as a "Wall xN" line with the
+;                  price of one and the resource icon (white price = affordable, red = not). Tapping the line
+;                  makes the game select a wall of that level and open its bar, from where the usual code works.
+;                  Measured on a live 860x732 screen: the panel spans x 305-578, y 70-410, one line every
+;                  28-29 px, the name starts on x 316 and the resource icon sits around x 487 on the line centre.
+; ===============================================================================================================================
+
+; the word "Wall" as the menu prints it: brightness of each of the 30 columns x 314-343, summed over the
+; 13 rows around the line centre (lum 100 -> 0, 255 -> 1). Column sums do not move when the list stops at
+; a fraction of a pixel and the text is blurred over two rows, a pixel-by-pixel mask did.
+Global Const $g_afWallMenuProfile[30] = [0.00, 0.15, 3.42, 5.24, 3.37, 3.18, 3.66, 4.28, 3.53, 3.45, 4.12, 5.39, 1.75, 0.76, 4.01, _
+		3.11, 2.46, 3.83, 5.45, 0.16, 0.07, 7.71, 0.25, 0.04, 7.70, 0.32, 0.00, 0.00, 0.00, 0.00]
+
+; Centre y of the "Wall" line on the page of the builder menu on screen, -1 when there is none. The whole
+; name column is read once, then every possible line centre is compared to the profile above (the Wall
+; line scores about 1, the closest other name about 43, so anything under 15 is it).
+Func __BuilderMenuFindWallLine()
+	Local $iTop = 80, $iBottom = 400, $iH = $iBottom - $iTop
+	_CaptureRegion(314, $iTop, 344, $iBottom)
+	Local $afCum[30][$iH + 1] ; cumulative brightness down each column
+	For $x = 0 To 29
+		$afCum[$x][0] = 0
+		For $y = 0 To $iH - 1
+			Local $sCol = _GetPixelColor($x, $y, False)
+			Local $fB = 0
+			If StringLen($sCol) = 6 Then
+				$fB = ((Dec(StringMid($sCol, 1, 2)) + Dec(StringMid($sCol, 3, 2)) + Dec(StringMid($sCol, 5, 2))) / 3 - 100) / 155
+				If $fB < 0 Then $fB = 0
+				If $fB > 1 Then $fB = 1
+			EndIf
+			$afCum[$x][$y + 1] = $afCum[$x][$y] + $fB
+		Next
+	Next
+	Local $fBest = 999, $iBestY = -1
+	For $iYc = $iTop + 6 To $iBottom - 7
+		Local $fD = 0
+		For $x = 0 To 29
+			$fD += Abs(($afCum[$x][$iYc + 6 - $iTop + 1] - $afCum[$x][$iYc - 6 - $iTop]) - $g_afWallMenuProfile[$x])
+			If $fD > 15 Then ExitLoop
+		Next
+		If $fD < $fBest Then
+			$fBest = $fD
+			$iBestY = $iYc
+		EndIf
+	Next
+	SetDebugLog("Builder menu: best Wall profile match " & Round($fBest, 1) & " at y " & $iBestY, $COLOR_DEBUG)
+	If $fBest < 15 Then Return $iBestY
+	Return -1
+EndFunc   ;==>__BuilderMenuFindWallLine
+
+; True when a wall of level $iLevel is selected on screen with its bar open. Scrolls the menu until its
+; Wall line shows up; without one there is no wall left to upgrade at any level.
+Func BuilderMenuSelectWall($iLevel)
+	If Not $g_bRunState Then Return False
+	If Not ClickMainBuilder() Then Return False ; opens the menu (toggles it back open when it was already there)
+	If _Sleep(500) Then Return False
+
+	Local $sLastPage = ""
+	For $iPage = 1 To 20
+		If Not $g_bRunState Then Return False
+		; the resource icons give the lines of the page: their layout tells when the list stops moving
+		Local $aRows = QuickMIS("CNX", $g_sImgResourceIcon, 410, 75, 565, 400)
+		Local $sPage = ""
+		If IsArray($aRows) Then
+			_ArraySort($aRows, 0, 0, 0, 2) ; by y
+			For $i = 0 To UBound($aRows) - 1
+				$sPage &= $aRows[$i][0] & Number($aRows[$i][2]) & ";"
+			Next
+		EndIf
+		Local $iWallY = __BuilderMenuFindWallLine()
+		SetDebugLog("Builder menu page " & $iPage & ": " & ($sPage = "" ? "no line" : $sPage) & " wall line y " & $iWallY, $COLOR_DEBUG)
+
+		If $iWallY > 0 Then
+			Local $sRes = "", $iRowX = 487
+			If IsArray($aRows) Then
+				For $i = 0 To UBound($aRows) - 1
+					If Abs(Number($aRows[$i][2]) - $iWallY) <= 10 Then
+						$sRes = ($aRows[$i][0] = "Elix" ? "elixir" : ($aRows[$i][0] = "Gold" ? "gold" : $aRows[$i][0]))
+						$iRowX = Number($aRows[$i][1])
+					EndIf
+				Next
+			EndIf
+			Local $bAffordable = QuickMIS("BC1", $g_sImgAUpgradeZero, $iRowX, $iWallY - 8, $iRowX + 100, $iWallY + 7)
+			SetLog("Builder menu: Wall line found" & ($sRes <> "" ? " (" & $sRes & ")" : "") & ($bAffordable ? "" : ", price in red") & ", letting the game pick one", $COLOR_INFO)
+			Click(400, $iWallY)
+			If _Sleep(1500) Then Return False
+			Local $aInfo = BuildingInfo(242, 475 + $g_iBottomOffsetY)
+			If $aInfo[0] >= 1 And StringInStr($aInfo[1], "Wall") Then
+				; the game picks the wall itself, so it can be of any level: the bot follows it instead of
+				; insisting on the level of the combo, otherwise walls are never upgraded on other levels
+				Local $iFound = Number($aInfo[2])
+				If $iFound <> $iLevel Then
+					If Not WallSetWorkingLevel($iFound) Then
+						SetLog("The builder menu offers level " & $aInfo[2] & " walls, which the bot cannot handle", $COLOR_ERROR)
+						ClearScreen()
+						Return False
+					EndIf
+					SetLog("Builder menu: a level " & $iFound & " wall was offered (searching level " & $iLevel & "), switching to level " & $iFound, $COLOR_INFO)
+				EndIf
+				SetLog("Wall level " & $iFound & " selected from the builder menu", $COLOR_SUCCESS)
+				; the menu stays open over the village: the builder counter closes it and the wall stays selected (measured live)
+				Click(435, 30)
+				If _Sleep(800) Then Return False
+				If IsBuilderMenuOpen() Then
+					Click(435, 30)
+					If _Sleep(800) Then Return False
+				EndIf
+				Return True
+			Else
+				SetDebugLog("Builder menu: the Wall line did not select a wall (" & $aInfo[1] & ")", $COLOR_DEBUG)
+			EndIf
+			ClearScreen()
+			Return False
+		EndIf
+
+		If $sPage <> "" And $sPage = $sLastPage Then ExitLoop ; the list did not move, its end is reached
+		$sLastPage = $sPage
+
+		; the Wall line is further down
+		ClickDrag(440, 380, 440, 120, 400)
+		If _Sleep(1200) Then Return False
+		If Not IsBuilderMenuOpen() Then ExitLoop
+	Next
+
+	SetLog("Builder menu: no Wall line, no wall left to upgrade", $COLOR_INFO)
+	SaveFailureImage("BuilderMenuNoWall")
+	ClearScreen()
+	Return False
+EndFunc   ;==>BuilderMenuSelectWall
+
+; Moves the wall level the bot works on to $iLevel: the combo of Village > Upgrade, the level used by the
+; searches and $g_iWallCost all follow. False when the level is outside the levels the bot knows (4 .. 18).
+; Used when the game itself picks a wall (builder menu), which can be of any level.
+Func WallSetWorkingLevel($iLevel)
+	Local $iIndex = Int($iLevel) - 4
+	If $iIndex < 0 Or $iIndex > UBound($g_aiWallCost) - 1 Then Return False
+	If $iIndex = $g_iCmbUpgradeWallsLevel Then Return True
+	; the globals first: the bot must follow the level even with no GUI (mini and GUI-less modes,
+	; where reading the combo would return -1 and index the cost table out of bounds)
+	$g_iCmbUpgradeWallsLevel = $iIndex
+	$g_iWallCost = $g_aiWallCost[$iIndex]
+	If $g_iGuiMode = 1 And $g_hCmbWalls <> 0 Then
+		EnableGuiControls()
+		_GUICtrlComboBox_SetCurSel($g_hCmbWalls, $iIndex)
+		cmbWalls() ; refreshes the cost label and the wall counters of the tab
+		DisableGuiControls()
+	EndIf
+	SaveConfig()
+	Return True
+EndFunc   ;==>WallSetWorkingLevel
+
+; The cost of one wall of the level the bot works on, discount included. Read again after every
+; imglocCheckWall(), the level can have changed (WallSetWorkingLevel).
+Func WallCostNow()
+	Return Int($g_iWallCost - ($g_iWallCost * Number($g_iBuilderBoostDiscount) / 100))
+EndFunc   ;==>WallCostNow

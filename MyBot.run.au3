@@ -706,6 +706,7 @@ Func runBot() ;Bot that runs everything in order
 			If RestartBot(False) Then Return
 		EndIf
 
+		DiscordRPCTick() ; refreshes the Discord profile status, rate limited to one update every 15 s
 		PrepareDonateCC()
 		If Not $g_bRunState Then Return
 		$g_bRestart = False

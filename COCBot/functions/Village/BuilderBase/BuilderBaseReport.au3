@@ -31,7 +31,7 @@ Func BuilderBaseReport($bBypass = False, $bSetLog = True)
 	getBuilderCount($bSetLog, True) ; update builder data
 	If _Sleep($DELAYRESPOND) Then Return
 
-	$g_aiCurrentLootBB[$eLootTrophyBB] = getTrophyMainScreen(67, 84)
+	$g_aiCurrentLootBB[$eLootTrophyBB] = BBReadTrophies()
 	$g_aiCurrentLootBB[$eLootGoldBB] = getResourcesMainScreen(705, 23)
 	$g_aiCurrentLootBB[$eLootElixirBB] = getResourcesMainScreen(705, 72)
 	If $bSetLog Then SetLog(" [G]: " & _NumberFormat($g_aiCurrentLootBB[$eLootGoldBB]) & " [E]: " & _NumberFormat($g_aiCurrentLootBB[$eLootElixirBB]) & " [T]: " & _NumberFormat($g_aiCurrentLootBB[$eLootTrophyBB]), $COLOR_SUCCESS)
@@ -44,6 +44,23 @@ Func BuilderBaseReport($bBypass = False, $bSetLog = True)
 
 	If ProfileSwitchAccountEnabled() Then SwitchAccountVariablesReload("Save")
 EndFunc   ;==>BuilderBaseReport
+
+; The builder base counters roll from 0 up to their value for a second or two after the base is shown,
+; and the trophies are the first thing read: one morning's log holds 0, 19, 915, 197, 1918 for a count
+; near 1 900, while gold and elixir, read a moment later, were right every time. The 4 digits sit at
+; x 74-103, y 88-98 in the 67-117 x 84-100 box, so the box is not at fault. Read until two reads in a
+; row agree, or give the last one after 3 seconds.
+Func BBReadTrophies()
+	Local $sLast = "", $sNow = ""
+	For $i = 1 To 8
+		$sNow = StringRegExpReplace(getTrophyMainScreen(67, 84), "[^0-9]", "")
+		If $sNow <> "" And $sNow = $sLast Then Return Number($sNow)
+		$sLast = $sNow
+		If _Sleep(400) Then Return Number($sNow)
+	Next
+	SetDebugLog("Builder base trophies did not settle, keeping the last read: " & $sNow, $COLOR_DEBUG)
+	Return Number($sNow)
+EndFunc   ;==>BBReadTrophies
 
 Func PicBBTrophies()
 	_GUI_Value_STATE("HIDE", $g_aGroupBBLeague)

@@ -1,0 +1,2 @@
+Walls: the "walls at once" setting is gone, the bot now always upgrades as many walls as the loot allows in one go through the game's Upgrade More wizard (the +10 button is used, the Min. Gold / Elixir to save is still kept). The builder base does the same with its wall suggestions.
+Builder base: with "Keep 1 builder for walls" ticked the bot said "The last free Master Builder is kept for walls" on every suggestion it opened; it now says it once and only takes the wall suggestions.

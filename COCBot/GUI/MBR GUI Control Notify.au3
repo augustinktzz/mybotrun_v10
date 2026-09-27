@@ -47,6 +47,7 @@ Func chkPBTGenabled()
 		GUICtrlSetState($g_hChkNotifyBOTUpdate, $GUI_ENABLE)
 		GUICtrlSetState($g_hChkNotifyAlertSmartWaitTime, $GUI_ENABLE)
 		GUICtrlSetState($g_hChkNotifyAlertLaboratoryIdle, $GUI_ENABLE)
+		GUICtrlSetState($g_hChkNotifyAlertBBRaid, $GUI_ENABLE)
 	Else
 		GUICtrlSetState($g_hTxtNotifyOrigin, $GUI_DISABLE)
 		GUICtrlSetState($g_hChkNotifyAlertMatchFound, $GUI_DISABLE)
@@ -65,6 +66,7 @@ Func chkPBTGenabled()
 		GUICtrlSetState($g_hChkNotifyBOTUpdate, $GUI_DISABLE)
 		GUICtrlSetState($g_hChkNotifyAlertSmartWaitTime, $GUI_DISABLE)
 		GUICtrlSetState($g_hChkNotifyAlertLaboratoryIdle, $GUI_DISABLE)
+		GUICtrlSetState($g_hChkNotifyAlertBBRaid, $GUI_DISABLE)
 	EndIf
 EndFunc   ;==>chkPBTGenabled
 
@@ -161,3 +163,41 @@ Func chkDiscordFullLog()
 		NotifyDiscordLogFlush(True) ; send what is queued, then stop
 	EndIf
 EndFunc   ;==>chkDiscordFullLog
+
+; Discord Rich Presence: the Application ID and the link button only make sense when the status is on.
+; Switching it off clears the status immediately, so nothing stays on the profile.
+Func chkDiscordRPCEnable()
+	$g_bDiscordRPCEnable = (GUICtrlRead($g_hChkDiscordRPCEnable) = $GUI_CHECKED)
+	GUICtrlSetState($g_hTxtDiscordRPCClientId, $g_bDiscordRPCEnable ? $GUI_ENABLE : $GUI_DISABLE)
+	GUICtrlSetState($g_hChkDiscordRPCButton, $g_bDiscordRPCEnable ? $GUI_ENABLE : $GUI_DISABLE)
+	chkDiscordRPCButton()
+	; whatever is already in the two boxes counts from now, whichever order the user filled them in
+	txtDiscordRPCClientId()
+	txtDiscordRPCButtonUrl()
+	$g_bDiscordRPCIdWarned = False
+	If Not $g_bDiscordRPCEnable Then DiscordRPCStop()
+EndFunc   ;==>chkDiscordRPCEnable
+
+; the invite box only matters when both the status and the button are on
+Func chkDiscordRPCButton()
+	$g_bDiscordRPCButton = (GUICtrlRead($g_hChkDiscordRPCButton) = $GUI_CHECKED)
+	GUICtrlSetState($g_hTxtDiscordRPCButtonUrl, ($g_bDiscordRPCEnable And $g_bDiscordRPCButton) ? $GUI_ENABLE : $GUI_DISABLE)
+	DiscordRPCRefresh() ; the button is not part of the two lines compared before a send
+EndFunc   ;==>chkDiscordRPCButton
+
+; The two boxes are read as they are typed (an input sends its event at every change), so the status follows a
+; pasted ID or invite at once: nothing depends on a config save or on the order the boxes are filled in.
+Func txtDiscordRPCClientId()
+	Local $sId = StringStripWS(GUICtrlRead($g_hTxtDiscordRPCClientId), 8)
+	If $sId = $g_sDiscordRPCClientId Then Return
+	$g_sDiscordRPCClientId = $sId
+	$g_bDiscordRPCIdWarned = False
+	DiscordRPCStop() ; the connection is tied to the application id: the next check opens it with the new one
+EndFunc   ;==>txtDiscordRPCClientId
+
+Func txtDiscordRPCButtonUrl()
+	Local $sUrl = StringStripWS(GUICtrlRead($g_hTxtDiscordRPCButtonUrl), 3)
+	If $sUrl = $g_sDiscordRPCButtonUrl Then Return
+	$g_sDiscordRPCButtonUrl = $sUrl
+	DiscordRPCRefresh()
+EndFunc   ;==>txtDiscordRPCButtonUrl

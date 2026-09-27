@@ -18,13 +18,15 @@ Global $g_hGUI_NOTIFY = 0, $g_hGUI_NOTIFY_TAB = 0, $g_hGUI_NOTIFY_TAB_ITEM2 = 0
 Global $g_hGrpNotify = 0
 ; Global $g_hChkNotifyPBEnable = 0, $g_hTxtNotifyPBToken = 0
 Global $g_hChkNotifyTGEnable = 0, $g_hTxtNotifyTGToken = 0, $g_hChkNotifyDiscordEnable = 0, $g_hTxtNotifyDiscordWebhook = 0
+Global $g_hChkDiscordRPCEnable = 0, $g_hTxtDiscordRPCClientId = 0, $g_hChkDiscordRPCButton = 0, $g_hTxtDiscordRPCButtonUrl = 0
 Global $g_hBtnNotifyTestTG = 0, $g_hBtnNotifyTestDiscord = 0, $g_hChkNotifyDiscordFullLog = 0
 Global $g_hChkNotifyRemote = 0, $g_hTxtNotifyOrigin = 0
 ; Global $g_hChkNotifyDeleteAllPBPushes = 0, $g_hBtnNotifyDeleteMessages = 0, $g_hChkNotifyDeleteOldPBPushes = 0, $g_hCmbNotifyPushHours = 0, _
 Global $g_hChkNotifyAlertMatchFound = 0, $g_hChkNotifyAlertLastRaidIMG = 0, $g_hChkNotifyAlertLastRaidTXT = 0, $g_hChkNotifyAlertCampFull = 0, _
 	   $g_hChkNotifyAlertUpgradeWall = 0, $g_hChkNotifyAlertOutOfSync = 0, $g_hChkNotifyAlertTakeBreak = 0, $g_hChkNotifyAlertBuilderIdle = 0, _
 	   $g_hChkNotifyAlertVillageStats = 0, $g_hChkNotifyAlertLastAttack = 0, $g_hChkNotifyAlertAnotherDevice = 0, $g_hChkNotifyAlertMaintenance = 0, _
-	   $g_hChkNotifyAlertBAN = 0, $g_hChkNotifyBOTUpdate = 0, $g_hChkNotifyAlertSmartWaitTime = 0, $g_hChkNotifyAlertLaboratoryIdle = 0
+	   $g_hChkNotifyAlertBAN = 0, $g_hChkNotifyBOTUpdate = 0, $g_hChkNotifyAlertSmartWaitTime = 0, $g_hChkNotifyAlertLaboratoryIdle = 0, _
+	   $g_hChkNotifyAlertBBRaid = 0
 
 Global $g_hChkNotifyOnlyHours = 0, $g_hChkNotifyOnlyWeekDays = 0, $g_hChkNotifyhours[24] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], _
 	   $g_hChkNotifyWeekdays[7] = [0, 0, 0, 0, 0, 0, 0]
@@ -75,6 +77,30 @@ Func CreateVillageNotify()
 		$g_hBtnNotifyTestDiscord = GUICtrlCreateButton(GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "BtnNotifyTest", "Test"), $x + 360, $y - 4, 50, 21)
 			GUICtrlSetOnEvent(-1, "btnNotifyTestDiscord")
 			_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "BtnNotifyTestDiscord_Info_01", "Send a test message to this webhook"))
+			GUICtrlSetState(-1, $GUI_DISABLE)
+
+	; Discord Rich Presence: the status shown on your own Discord profile, through the Discord application
+	$y += 22
+		$g_hChkDiscordRPCEnable = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkDiscordRPCEnable", "Discord status"), $x + 10, $y, 105, 19)
+			_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkDiscordRPCEnable_Info_01", "Shows on your Discord profile what the bot is doing (Rich Presence).") & @CRLF & _
+					GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkDiscordRPCEnable_Info_02", "Needs the Discord application running on this PC, and an Application ID") & @CRLF & _
+					GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkDiscordRPCEnable_Info_03", "created for free on discord.com/developers/applications.") & @CRLF & _
+					GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkDiscordRPCEnable_Info_04", "WARNING: this status is public, everyone seeing your profile knows the bot runs."))
+			GUICtrlSetOnEvent(-1, "chkDiscordRPCEnable")
+		$g_hTxtDiscordRPCClientId = GUICtrlCreateInput("", $x + 120, $y - 3, 120, 19)
+			_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "TxtDiscordRPCClientId_Info_01", "Application ID: discord.com/developers/applications > New Application >") & @CRLF & _
+					GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "TxtDiscordRPCClientId_Info_02", "copy the Application ID. Rich Presence > Art Assets: add a picture named") & @CRLF & _
+					GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "TxtDiscordRPCClientId_Info_03", "village, and two small ones named running and paused."))
+			GUICtrlSetOnEvent(-1, "txtDiscordRPCClientId") ; taken as typed, the status follows without a save
+			GUICtrlSetState(-1, $GUI_DISABLE)
+		$g_hChkDiscordRPCButton = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkDiscordRPCButton", "Link"), $x + 245, $y, 44, 19)
+			_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkDiscordRPCButton_Info_01", "Adds a Join the server button under the status, leading to the invite on the right."))
+			GUICtrlSetOnEvent(-1, "chkDiscordRPCButton")
+			GUICtrlSetState(-1, $GUI_DISABLE)
+		$g_hTxtDiscordRPCButtonUrl = GUICtrlCreateInput("", $x + 291, $y - 3, 119, 19)
+			_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "TxtDiscordRPCButtonUrl_Info_01", "Invite of the server the button opens, for example https://discord.gg/abcd1234") & @CRLF & _
+					GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "TxtDiscordRPCButtonUrl_Info_02", "(in Discord: right click on the server > Invite People > Copy). Leave empty to hide the button."))
+			GUICtrlSetOnEvent(-1, "txtDiscordRPCButtonUrl")
 			GUICtrlSetState(-1, $GUI_DISABLE)
 
 	$y += 25
@@ -151,7 +177,9 @@ Func CreateVillageNotify()
 			_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkNotifyAlertLaboratoryIdle_Info_01", "Send an Alert when the laboratory is idle."))
 			GUICtrlSetState(-1, $GUI_DISABLE)
 	$y += 20
-		; TODO
+		$g_hChkNotifyAlertBBRaid = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkNotifyAlertBBRaid", "Builder Base raid"), $x + 10, $y, -1, -1)
+			_GUICtrlSetTip(-1, GetTranslatedFileIni("MBR GUI Design Child Village - Notify", "ChkNotifyAlertBBRaid_Info_01", "Send a report at the end of each builder base attack cycle: attacks done, loot won and trophies."))
+			GUICtrlSetState(-1, $GUI_DISABLE)
 
 	$y += 30
 		$g_hChkNotifyOnlyHours = GUICtrlCreateCheckbox(GetTranslatedFileIni("MBR Global GUI Design", "Only_during_hours", "Only during these hours of each day"), $x + 70, $y )

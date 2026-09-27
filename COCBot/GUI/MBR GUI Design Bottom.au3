@@ -262,7 +262,7 @@ Func CreateBottomPanel()
 
 	;trophy / runtime
 	$g_hLblResultTrophyNow = GUICtrlCreateLabel("", $x + 13, $y + 2, 43, 15, $SS_RIGHT)
-	$g_hPicResultTrophyNow = GUICtrlCreateIcon($g_sLibIconPath, $eIcnTrophy, $x + 59, $y, 16, 16)
+	$g_hPicResultTrophyNow = GUICtrlCreatePic("", $x + 59, $y, 16, 16) ; the league badge copied from the screen (SaveLeagueBadge), trophies are gone since CoC 18.600
 	$g_hLblResultRuntimeNow = GUICtrlCreateLabel("00:00:00", $x + 13, $y + 2, 43, 15, $SS_RIGHT)
 	GUICtrlSetState(-1, $GUI_HIDE)
 	$g_hPicResultRuntimeNow = _GUICtrlCreateIcon($g_sLibIconPath, $eIcnHourGlass, $x + 57, $y, 16, 16)

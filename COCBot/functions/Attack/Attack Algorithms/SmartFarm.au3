@@ -659,11 +659,17 @@ Func AttackSmartFarm($Nside, $SIDESNAMES)
 	$g_bIsHeroesDropped = False
 	$g_aiDeployHeroesPosition[0] = -1
 	$g_aiDeployHeroesPosition[1] = -1
+	$g_aiSpellDropPoint[0] = -1
+	$g_aiSpellDropPoint[1] = -1
 
 	LaunchTroopSmartFarm($listInfoDeploy, $g_iClanCastleSlot, $g_iKingSlot, $g_iQueenSlot, $g_iPrinceSlot, $g_iWardenSlot, $g_iChampionSlot, $SIDESNAMES, $g_iDukeSlot)
 
 	If Not $g_bRunState Then Return
 
+	CheckHeroesHealth()
+
+	; the spells ticked in the attack plan go on the push, right after the heroes
+	DropAttackSpells()
 	CheckHeroesHealth()
 
 	If _Sleep($DELAYALGORITHM_ALLTROOPS4) Then Return

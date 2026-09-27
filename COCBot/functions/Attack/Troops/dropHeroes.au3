@@ -34,6 +34,12 @@ Func dropHeroes($iX, $iY, $iKingSlotNumber = -1, $iQueenSlotNumber = -1, $iPrinc
 	If $iChampionSlotNumber <> -1 And (($g_iMatchMode <> $DB And $g_iMatchMode <> $LB) Or BitAND($g_aiAttackUseHeroes[$g_iMatchMode], $eHeroChampion) = $eHeroChampion) Then $bDropChampion = True
 	If $iDukeSlotNumber <> -1 And (($g_iMatchMode <> $DB And $g_iMatchMode <> $LB) Or BitAND($g_aiAttackUseHeroes[$g_iMatchMode], $eHeroDuke) = $eHeroDuke) Then $bDropDuke = True
 
+	; the standard deploy never records where the heroes land, the spells need that point
+	If $bDropKing Or $bDropQueen Or $bDropPrince Or $bDropWarden Or $bDropChampion Or $bDropDuke Then
+		$g_aiSpellDropPoint[0] = $iX
+		$g_aiSpellDropPoint[1] = $iY
+	EndIf
+
 	For $i = 0 To UBound($g_aiCmbCustomHeroOrder) - 1
 		Switch $g_aiCmbCustomHeroOrder[$i]
 			Case 0

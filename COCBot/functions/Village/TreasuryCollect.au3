@@ -34,6 +34,7 @@ Func TreasuryCollect()
 	If _Sleep($DELAYCOLLECT3) Then Return
 	BuildingClick($g_aiClanCastlePos[0], $g_aiClanCastlePos[1], "#0250") ; select CC
 	If _Sleep($DELAYTREASURY2) Then Return
+	If Not __TreasurySelectedClanCastle() Then Return ; never work the button bar of another building (a wall shows Upgrade buttons there)
 
 	Local $bWindow = False
 	Local $aTreasuryButton = findButton("Treasury", Default, 1, True)
@@ -54,6 +55,7 @@ Func TreasuryCollect()
 					If _Sleep($DELAYRESPOND) Then Return
 					BuildingClick($g_aiClanCastlePos[0], $g_aiClanCastlePos[1], "#0250") ; reselect CC
 					If _Sleep($DELAYTREASURY2) Then Return
+					If Not __TreasurySelectedClanCastle() Then Return
 				EndIf
 				Click($aCand[$i][0], $aCand[$i][1], 1, 120, "#0330")
 				If _Sleep($DELAYTREASURY1) Then Return
@@ -102,7 +104,7 @@ Func TreasuryCollect()
 
 	If $bForceCollect Or $bLowStorage Then
 		Local $aCollectButton = findButton("Collect", Default, 1, True)
-		If Not (IsArray($aCollectButton) And UBound($aCollectButton, 1) = 2) Then $aCollectButton = FindGreenOkayButton() ; same green button, measured at 365-510 x 458-520
+		If Not (IsArray($aCollectButton) And UBound($aCollectButton, 1) = 2) Then $aCollectButton = FindGreenOkayButton(True) ; same green button, measured at 365-510 x 458-520
 		If IsArray($aCollectButton) And UBound($aCollectButton, 1) = 2 Then
 			ClickP($aCollectButton, 1, 130, "#0330")
 			If _Sleep($DELAYTREASURY2) Then Return
@@ -168,7 +170,7 @@ Func FindTreasuryButton()
 		If $iStart <> -1 Then $iBrown += $iColBrown
 		If $iStart <> -1 And ($x - $iLastGold > 16 Or $x > 730) Then ; cluster ends after a 16 px gap or at the end of the bar
 			Local $iWidth = $iLastGold - $iStart
-			If $iWidth >= 20 And $iWidth <= 90 And $iGold >= 6 Then ; the chest shows 13 gold columns, stray spots 1-3
+			If $iWidth >= 20 And $iWidth <= 90 And $iGold >= 6 And $iBrown >= 8 Then ; the chest shows 13 gold columns and ~30 brown samples; a gold price text has no brown
 				ReDim $aCand[UBound($aCand) + 1][3]
 				$aCand[UBound($aCand) - 1][0] = Int(($iStart + $iLastGold) / 2)
 				$aCand[UBound($aCand) - 1][1] = 605
@@ -202,3 +204,34 @@ Func __WaitTreasuryWindow()
 	WaitForClanMessage("Treasury")
 	Return _WaitForCheckPixel($aTreasuryWindow, $g_bCapturePixel, Default, "Wait treasury window:")
 EndFunc   ;==>__WaitTreasuryWindow
+
+; The saved Clan Castle point can land on the wall ring around the castle when the zoom or the
+; village offset drifts by a few pixels; the button bar of a wall then shows Upgrade buttons where
+; the Treasury is expected. The selection is therefore verified by the building name, and a few
+; nearby points are tried before giving up. Returns True with the Clan Castle selected.
+Func __TreasurySelectedClanCastle()
+	Local $aiTry[5][2] = [[0, 0], [0, -10], [10, 0], [-10, 0], [0, 10]]
+	For $i = 0 To UBound($aiTry) - 1
+		If $i > 0 Then
+			ClearScreen()
+			If _Sleep($DELAYRESPOND) Then Return False
+			BuildingClick($g_aiClanCastlePos[0] + $aiTry[$i][0], $g_aiClanCastlePos[1] + $aiTry[$i][1], "#0250")
+			If _Sleep($DELAYTREASURY2) Then Return False
+		EndIf
+		Local $sInfo = BuildingInfo(242, 475 + $g_iBottomOffsetY)
+		Local $sName = (IsArray($sInfo) And UBound($sInfo) > 1 ? $sInfo[1] : "")
+		If StringInStr($sName, "clan") > 0 Then
+			If $i > 0 Then
+				$g_aiClanCastlePos[0] += $aiTry[$i][0] ; keep the point that really hits the castle
+				$g_aiClanCastlePos[1] += $aiTry[$i][1]
+				SetLog("Clan Castle position corrected to " & $g_aiClanCastlePos[0] & "," & $g_aiClanCastlePos[1], $COLOR_INFO)
+			EndIf
+			Return True
+		EndIf
+		SetLog("Treasury: selected " & ($sName <> "" ? $sName : "nothing readable") & " instead of the Clan Castle at " & ($g_aiClanCastlePos[0] + $aiTry[$i][0]) & "," & ($g_aiClanCastlePos[1] + $aiTry[$i][1]), $COLOR_WARNING)
+	Next
+	SetLog("Treasury skipped: the Clan Castle is not where it was saved, locate it again (Village -> Misc -> Locate Clan Castle)", $COLOR_ERROR)
+	SaveFailureImage("TreasurySelect")
+	ClearScreen()
+	Return False
+EndFunc   ;==>__TreasurySelectedClanCastle

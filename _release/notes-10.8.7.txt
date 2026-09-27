@@ -1,0 +1,1 @@
+Walls: when the image search cannot see the walls any more (the last pieces of a level are corners and junctions the templates do not know), the bot opens the builder menu, scrolls to its "Wall" line and lets the game select a wall of that level, then upgrades as usual (Upgrade More batch). No Wall line in the menu means nothing is left to upgrade.

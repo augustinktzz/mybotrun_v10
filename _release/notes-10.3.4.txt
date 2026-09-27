@@ -1,0 +1,2 @@
+﻿Attack report: stars are read again on the CoC 18.600 end screen (the three big stars are sampled for their silver fill instead of three fixed pixels of the old layout); the Discord raid card, the Telegram text, the AttackLog and the stats get the right star count.
+Discord raid card and Telegram raid text: a loot of 0 (usually Dark Elixir) shows "0" instead of a blank; the Telegram labels are [Dmg] and [Stars] (the "%" label broke the message URL).

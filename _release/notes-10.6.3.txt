@@ -1,0 +1,2 @@
+The "Welcome Back Chief" window is closed again: the green check mark on each finished upgrade card was taken for the button, the search stopped there and the window stayed open.
+The Clan Castle request is sent again: the new "Send" button was found but its off-white label failed the check that tells a button from any other green shape.

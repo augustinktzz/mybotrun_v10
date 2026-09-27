@@ -384,9 +384,15 @@ Func algorithm_AllTroops() ;Attack Algorithm for all existing troops
 	$g_bIsHeroesDropped = False
 	$g_aiDeployHeroesPosition[0] = -1
 	$g_aiDeployHeroesPosition[1] = -1
+	$g_aiSpellDropPoint[0] = -1
+	$g_aiSpellDropPoint[1] = -1
 
 	LaunchTroop2($listInfoDeploy, $g_iClanCastleSlot, $g_iKingSlot, $g_iQueenSlot, $g_iPrinceSlot, $g_iWardenSlot, $g_iChampionSlot, $g_iDukeSlot)
 
+	CheckHeroesHealth()
+
+	; the spells ticked in the attack plan go on the push, right after the heroes
+	DropAttackSpells()
 	CheckHeroesHealth()
 
 	If _Sleep($DELAYALGORITHM_ALLTROOPS4) Then Return

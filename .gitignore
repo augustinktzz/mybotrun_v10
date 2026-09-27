@@ -162,3 +162,9 @@ lib/*.html
 SQLite_exportedData.csv
 build/au3Stripper/Au3Stripper.Log
 *.lnk
+
+# backups made while editing
+*.bak-*
+
+# the bot's own OpenCV templates (glyphs, walls, Return Home) are PNG files and part of the bot
+!imgcv/**/*.png

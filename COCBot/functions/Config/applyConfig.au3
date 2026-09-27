@@ -324,6 +324,7 @@ Func ApplyConfig_600_6($TypeReadSave)
 			GUICtrlSetData($g_hTxtTreasuryDark, $g_iTxtTreasuryDark)
 			GUICtrlSetState($g_hChkCollectRewards, $g_bChkCollectRewards ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetState($g_hChkSellRewards, $g_bChkSellRewards ? $GUI_CHECKED : $GUI_UNCHECKED)
+			_GUICtrlComboBox_SetCurSel($g_hCmbPassRewardChoice, $g_iPassRewardChoice)
 
 			GUICtrlSetState($g_hChkCollectBuilderBase, $g_bChkCollectBuilderBase ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetState($g_hChkCleanBBYard, $g_bChkCleanBBYard ? $GUI_CHECKED : $GUI_UNCHECKED)
@@ -335,6 +336,7 @@ Func ApplyConfig_600_6($TypeReadSave)
 			GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreElixir, $g_iChkBBSuggestedUpgradesIgnoreElixir = 1 ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreHall, $g_iChkBBSuggestedUpgradesIgnoreHall = 1 ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreWall, $g_iChkBBSuggestedUpgradesIgnoreWall = 1 ? $GUI_CHECKED : $GUI_UNCHECKED)
+			GUICtrlSetState($g_hChkBBSaveWallBuilder, $g_iChkBBSaveWallBuilder = 1 ? $GUI_CHECKED : $GUI_UNCHECKED)
 
 			GUICtrlSetState($g_hChkPlacingNewBuildings, $g_iChkPlacingNewBuildings = 1 ? $GUI_CHECKED : $GUI_UNCHECKED)
 
@@ -531,6 +533,7 @@ Func ApplyConfig_600_6($TypeReadSave)
 			$g_iTxtTreasuryDark = GUICtrlRead($g_hTxtTreasuryDark)
 			$g_bChkCollectRewards = (GUICtrlRead($g_hChkCollectRewards) = $GUI_CHECKED)
 			$g_bChkSellRewards = (GUICtrlRead($g_hChkSellRewards) = $GUI_CHECKED)
+			$g_iPassRewardChoice = _GUICtrlComboBox_GetCurSel($g_hCmbPassRewardChoice)
 
 			$g_bChkCollectBuilderBase = (GUICtrlRead($g_hChkCollectBuilderBase) = $GUI_CHECKED)
 			$g_bChkCleanBBYard = (GUICtrlRead($g_hChkCleanBBYard) = $GUI_CHECKED)
@@ -541,6 +544,7 @@ Func ApplyConfig_600_6($TypeReadSave)
 			$g_iChkBBSuggestedUpgradesIgnoreElixir = (GUICtrlRead($g_hChkBBSuggestedUpgradesIgnoreElixir) = $GUI_CHECKED) ? 1 : 0
 			$g_iChkBBSuggestedUpgradesIgnoreHall = (GUICtrlRead($g_hChkBBSuggestedUpgradesIgnoreHall) = $GUI_CHECKED) ? 1 : 0
 			$g_iChkBBSuggestedUpgradesIgnoreWall = (GUICtrlRead($g_hChkBBSuggestedUpgradesIgnoreWall) = $GUI_CHECKED) ? 1 : 0
+			$g_iChkBBSaveWallBuilder = (GUICtrlRead($g_hChkBBSaveWallBuilder) = $GUI_CHECKED) ? 1 : 0
 
 			$g_iChkPlacingNewBuildings = (GUICtrlRead($g_hChkPlacingNewBuildings) = $GUI_CHECKED) ? 1 : 0
 
@@ -1103,7 +1107,7 @@ Func ApplyConfig_600_17($TypeReadSave)
 			EndSwitch
 			GUICtrlSetState($g_hChkSaveWallBldr, $g_bUpgradeWallSaveBuilder ? $GUI_CHECKED : $GUI_UNCHECKED)
 			_GUICtrlComboBox_SetCurSel($g_hCmbWalls, $g_iCmbUpgradeWallsLevel)
-			For $i = 4 To 18
+			For $i = 4 To 19
 				GUICtrlSetData($g_ahWallsCurrentCount[$i], $g_aiWallsCurrentCount[$i])
 			Next
 			cmbWalls()
@@ -1121,7 +1125,7 @@ Func ApplyConfig_600_17($TypeReadSave)
 			EndIf
 			$g_bUpgradeWallSaveBuilder = (GUICtrlRead($g_hChkSaveWallBldr) = $GUI_CHECKED)
 			$g_iCmbUpgradeWallsLevel = _GUICtrlComboBox_GetCurSel($g_hCmbWalls)
-			For $i = 4 To 18
+			For $i = 4 To 19
 				$g_aiWallsCurrentCount[$i] = Number(GUICtrlRead($g_ahWallsCurrentCount[$i]))
 			Next
 	EndSwitch
@@ -1137,6 +1141,11 @@ Func ApplyConfig_600_18($TypeReadSave)
 			GUICtrlSetData($g_hTxtNotifyTGToken, $g_sNotifyTGToken)
 			GUICtrlSetState($g_hChkNotifyDiscordEnable, $g_bNotifyDiscordEnable ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetData($g_hTxtNotifyDiscordWebhook, $g_sNotifyDiscordWebhook)
+			GUICtrlSetState($g_hChkDiscordRPCEnable, $g_bDiscordRPCEnable ? $GUI_CHECKED : $GUI_UNCHECKED)
+			GUICtrlSetData($g_hTxtDiscordRPCClientId, $g_sDiscordRPCClientId)
+			GUICtrlSetState($g_hChkDiscordRPCButton, $g_bDiscordRPCButton ? $GUI_CHECKED : $GUI_UNCHECKED)
+			GUICtrlSetData($g_hTxtDiscordRPCButtonUrl, $g_sDiscordRPCButtonUrl)
+			chkDiscordRPCEnable()
 			GUICtrlSetState($g_hChkNotifyDiscordFullLog, $g_bNotifyDiscordFullLog ? $GUI_CHECKED : $GUI_UNCHECKED)
 			chkDiscordEnabled()
 			;Remote Control
@@ -1159,12 +1168,17 @@ Func ApplyConfig_600_18($TypeReadSave)
 			GUICtrlSetState($g_hChkNotifyBOTUpdate, $g_bNotifyAlertBOTUpdate ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetState($g_hChkNotifyAlertSmartWaitTime, $g_bNotifyAlertSmartWaitTime ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetState($g_hChkNotifyAlertLaboratoryIdle, $g_bNotifyAlertLaboratoryIdle ? $GUI_CHECKED : $GUI_UNCHECKED)
+			GUICtrlSetState($g_hChkNotifyAlertBBRaid, $g_bNotifyAlertBBRaid ? $GUI_CHECKED : $GUI_UNCHECKED)
 		Case "Save"
 			; Telegram
 			$g_bNotifyTGEnable = (GUICtrlRead($g_hChkNotifyTGEnable) = $GUI_CHECKED)
 			$g_sNotifyTGToken = GUICtrlRead($g_hTxtNotifyTGToken)
 			$g_bNotifyDiscordEnable = (GUICtrlRead($g_hChkNotifyDiscordEnable) = $GUI_CHECKED)
 			$g_sNotifyDiscordWebhook = StringStripWS(GUICtrlRead($g_hTxtNotifyDiscordWebhook), 3)
+			$g_bDiscordRPCEnable = (GUICtrlRead($g_hChkDiscordRPCEnable) = $GUI_CHECKED)
+			$g_sDiscordRPCClientId = StringStripWS(GUICtrlRead($g_hTxtDiscordRPCClientId), 8)
+			$g_bDiscordRPCButton = (GUICtrlRead($g_hChkDiscordRPCButton) = $GUI_CHECKED)
+			$g_sDiscordRPCButtonUrl = StringStripWS(GUICtrlRead($g_hTxtDiscordRPCButtonUrl), 3)
 			$g_bNotifyDiscordFullLog = (GUICtrlRead($g_hChkNotifyDiscordFullLog) = $GUI_CHECKED)
 			;Remote Control
 			$g_bNotifyRemoteEnable = (GUICtrlRead($g_hChkNotifyRemote) = $GUI_CHECKED)
@@ -1186,6 +1200,7 @@ Func ApplyConfig_600_18($TypeReadSave)
 			$g_bNotifyAlertBOTUpdate = (GUICtrlRead($g_hChkNotifyBOTUpdate) = $GUI_CHECKED)
 			$g_bNotifyAlertSmartWaitTime = (GUICtrlRead($g_hChkNotifyAlertSmartWaitTime) = $GUI_CHECKED)
 			$g_bNotifyAlertLaboratoryIdle = (GUICtrlRead($g_hChkNotifyAlertLaboratoryIdle) = $GUI_CHECKED)
+			$g_bNotifyAlertBBRaid = (GUICtrlRead($g_hChkNotifyAlertBBRaid) = $GUI_CHECKED)
 	EndSwitch
 EndFunc   ;==>ApplyConfig_600_18
 
@@ -1724,6 +1739,7 @@ Func ApplyConfig_600_29_DB($TypeReadSave)
 			$temp6 = GUICtrlRead($g_hChkDBDukeAttack) = $GUI_CHECKED ? $eHeroDuke : $eHeroNone
 			$g_aiAttackUseHeroes[$DB] = BitOR(Int($temp1), Int($temp2), Int($temp3), Int($temp4), Int($temp5), Int($temp6))
 			GUICtrlSetState($g_hChkDBDropCC, $g_abAttackDropCC[$DB] ? $GUI_CHECKED : $GUI_UNCHECKED)
+			GUICtrlSetState($g_hChkDBUseSiege, $g_abAttackUseSiegeMachine[$DB] ? $GUI_CHECKED : $GUI_UNCHECKED)
 			chkDBDropCC()
 			GUICtrlSetState($g_hChkDBLightSpell, $g_abAttackUseLightSpell[$DB] ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetState($g_hChkDBHealSpell, $g_abAttackUseHealSpell[$DB] ? $GUI_CHECKED : $GUI_UNCHECKED)
@@ -1754,6 +1770,7 @@ Func ApplyConfig_600_29_DB($TypeReadSave)
 			$temp6 = GUICtrlRead($g_hChkDBDukeAttack) = $GUI_CHECKED ? $eHeroDuke : $eHeroNone
 			$g_aiAttackUseHeroes[$DB] = BitOR(Int($temp1), Int($temp2), Int($temp3), Int($temp4), Int($temp5), Int($temp6))
 			$g_abAttackDropCC[$DB] = (GUICtrlRead($g_hChkDBDropCC) = $GUI_CHECKED)
+			$g_abAttackUseSiegeMachine[$DB] = (GUICtrlRead($g_hChkDBUseSiege) = $GUI_CHECKED)
 			$g_abAttackUseLightSpell[$DB] = (GUICtrlRead($g_hChkDBLightSpell) = $GUI_CHECKED)
 			$g_abAttackUseHealSpell[$DB] = (GUICtrlRead($g_hChkDBHealSpell) = $GUI_CHECKED)
 			$g_abAttackUseRageSpell[$DB] = (GUICtrlRead($g_hChkDBRageSpell) = $GUI_CHECKED)
@@ -1867,6 +1884,7 @@ Func ApplyConfig_600_29_LB($TypeReadSave)
 			$temp6 = GUICtrlRead($g_hChkABDukeAttack) = $GUI_CHECKED ? $eHeroDuke : $eHeroNone
 			$g_aiAttackUseHeroes[$LB] = BitOR(Int($temp1), Int($temp2), Int($temp3), Int($temp4), Int($temp5), Int($temp6))
 			GUICtrlSetState($g_hChkABDropCC, $g_abAttackDropCC[$LB] ? $GUI_CHECKED : $GUI_UNCHECKED)
+			GUICtrlSetState($g_hChkABUseSiege, $g_abAttackUseSiegeMachine[$LB] ? $GUI_CHECKED : $GUI_UNCHECKED)
 			chkABDropCC()
 			GUICtrlSetState($g_hChkABLightSpell, $g_abAttackUseLightSpell[$LB] ? $GUI_CHECKED : $GUI_UNCHECKED)
 			GUICtrlSetState($g_hChkABHealSpell, $g_abAttackUseHealSpell[$LB] ? $GUI_CHECKED : $GUI_UNCHECKED)
@@ -1897,6 +1915,7 @@ Func ApplyConfig_600_29_LB($TypeReadSave)
 			$temp6 = GUICtrlRead($g_hChkABDukeAttack) = $GUI_CHECKED ? $eHeroDuke : $eHeroNone
 			$g_aiAttackUseHeroes[$LB] = BitOR(Int($temp1), Int($temp2), Int($temp3), Int($temp4), Int($temp5), Int($temp6))
 			$g_abAttackDropCC[$LB] = (GUICtrlRead($g_hChkABDropCC) = $GUI_CHECKED)
+			$g_abAttackUseSiegeMachine[$LB] = (GUICtrlRead($g_hChkABUseSiege) = $GUI_CHECKED)
 			$g_abAttackUseLightSpell[$LB] = (GUICtrlRead($g_hChkABLightSpell) = $GUI_CHECKED)
 			$g_abAttackUseHealSpell[$LB] = (GUICtrlRead($g_hChkABHealSpell) = $GUI_CHECKED)
 			$g_abAttackUseRageSpell[$LB] = (GUICtrlRead($g_hChkABRageSpell) = $GUI_CHECKED)

@@ -18,10 +18,7 @@ Func BattleMachineUpgrade($test = False)
 		If Not $g_bBattleMachineUpgrade Then Return
 
 		; Master Builder is not available return
-		If $g_iFreeBuilderCountBB = 0 Then
-			SetDebugLog("No Master Builder available! [" & $g_iFreeBuilderCountBB & "/" & $g_iTotalBuilderCountBB & "]", $COLOR_INFO)
-			Return False
-		EndIf
+		If Not BBBuilderFreeForBuilding() Then Return False ; also keeps the last builder for walls when asked to
 	EndIf
 
 	SetLog("Upgrade Battle Machine")
@@ -83,8 +80,8 @@ Func BattleMachineUpgrade($test = False)
 
 	If _Sleep($DELAYUPGRADEHERO1) Then Return
 
-	If $g_aiCurrentLootBB[$eLootElixirBB] < ($g_afBattleMachineUpgCost[$aHeroLevel] * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
-		SetLog("Battle Machine Upg failed, require " & ($g_afBattleMachineUpgCost[$aHeroLevel] * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " elixir!", $COLOR_INFO)
+	If $g_aiCurrentLootBB[$eLootElixirBB] < (__UpgCostAt($g_afBattleMachineUpgCost, $aHeroLevel) * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
+		SetLog("Battle Machine Upg failed, require " & (__UpgCostAt($g_afBattleMachineUpgCost, $aHeroLevel) * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " elixir!", $COLOR_INFO)
 		ClearScreen("Defaut", False)
 		Return
 	EndIf

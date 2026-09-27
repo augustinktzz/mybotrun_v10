@@ -55,6 +55,11 @@ EndFunc   ;==>DllCallMyBotIsActive
 ; Public DllCall MyBot.run.dll function call
 Func DllCallMyBot($sFunc, $sType1 = Default, $vParam1 = Default, $sType2 = Default, $vParam2 = Default, $sType3 = Default, $vParam3 = Default, $sType4 = Default, $vParam4 = Default, $sType5 = Default, $vParam5 = Default _
 		, $sType6 = Default, $vParam6 = Default, $sType7 = Default, $vParam7 = Default, $sType8 = Default, $vParam8 = Default, $sType9 = Default, $vParam9 = Default, $sType10 = Default, $vParam10 = Default)
+	; the bot's own OpenCV engine answers the image searches whose templates have a PNG mirror in imgcv (see ImageSearchCVCompat.au3)
+	; called by name, built at run time: the MiniGui and the other small executables include this file without the engine
+	Local $sCVIntercept = "CVIntercept" & "DllCall"
+	Local $aCVResult = Call($sCVIntercept, $sFunc, $vParam1, $vParam2, $vParam3, $vParam4, $vParam5, $vParam6, $vParam7)
+	If Not @error And IsArray($aCVResult) Then Return SetError(0, 0, $aCVResult)
 	$g_bLibMyBotActive = True
 	Local $aResult
 	Local $sFileOrFolder = Default

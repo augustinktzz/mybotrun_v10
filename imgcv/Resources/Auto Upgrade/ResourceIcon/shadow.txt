@@ -1,0 +1,1 @@
+validation only: while this file exists the DLL still answers, the OpenCV result is only written to the debug log (CV shadow ...). Delete it to switch the folder to the OpenCV engine.

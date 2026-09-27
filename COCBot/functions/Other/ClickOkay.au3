@@ -19,7 +19,7 @@ Func ClickOkay($FeatureName = "Okay", $bCheckOneTime = False)
 	If _Sleep($DELAYSPECIALCLICK1) Then Return False ; Wait for Okay button window
 	While 1 ; Wait for window with Okay Button
 		$aiOkayButton = findButton("Okay", Default, 1, True)
-		If Not (IsArray($aiOkayButton) And UBound($aiOkayButton, 1) = 2) Then $aiOkayButton = FindGreenOkayButton() ; the templates miss the redrawn CoC 18.600 button
+		If Not (IsArray($aiOkayButton) And UBound($aiOkayButton, 1) = 2) Then $aiOkayButton = FindGreenOkayButton(True) ; the templates miss the redrawn CoC 18.600 button
 		If IsArray($aiOkayButton) And UBound($aiOkayButton, 1) = 2 Then
 			PureClick($aiOkayButton[0], $aiOkayButton[1], 2, 100, "#0117") ; Click Okay Button
 			ExitLoop
@@ -51,58 +51,83 @@ EndFunc   ;==>ClickOkay
 ;                  high), the lower half a darker green (0x6DBC1F), the label white. Popups are centred, so the
 ;                  scan covers the middle of the screen only, and a run narrower than a button is ignored.
 ; ===============================================================================================================================
-Func FindGreenOkayButton()
+; $bAllowPair: a green button with an orange Cancel on its left is a decision (quit the game, spend
+; gems, surrender...). Callers that mean to confirm one pass True; checkObstacles, which closes
+; whatever is in the way, keeps the default and leaves such a window alone. "Confirm Exit", which
+; the Android back key raises on the main screen, is exactly that layout and its Okay quits CoC.
+Func FindGreenOkayButton($bAllowPair = False)
 	_CaptureRegion()
 
-	Local $iX0 = -1, $iY0 = -1
+	; Every lime pixel is a candidate, not only the first one: the "Welcome Back Chief" window shows a
+	; green check mark on each finished upgrade card, above the button, and stopping at that 1 px hit
+	; used to leave the window open. A run that is not a button is skipped and the scan goes on.
+	Local $iSkipUntilX = -1, $iSkipY = -1
 	For $y = 300 To 700 Step 6
 		For $x = 250 To 610 Step 6
-			If __IsLimeButton(_GetPixelColor($x, $y, False)) Then
-				$iX0 = $x
-				$iY0 = $y
-				ExitLoop 2
+			If $y = $iSkipY And $x <= $iSkipUntilX Then ContinueLoop
+			If Not __IsLimeButton(_GetPixelColor($x, $y, False)) Then ContinueLoop
+
+			; horizontal run through this lime pixel
+			Local $iXL = $x, $iXR = $x
+			While $iXL > 0 And __IsLimeButton(_GetPixelColor($iXL - 1, $y, False))
+				$iXL -= 1
+			WEnd
+			While $iXR < $g_iGAME_WIDTH - 1 And __IsLimeButton(_GetPixelColor($iXR + 1, $y, False))
+				$iXR += 1
+			WEnd
+			$iSkipUntilX = $iXR ; whatever this run is, do not test it again on this row
+			$iSkipY = $y
+			Local $iWidth = $iXR - $iXL + 1
+			If $iWidth < 100 Or $iWidth > 240 Then
+				SetDebugLog("FindGreenOkayButton: lime run of " & $iWidth & " px at " & $iXL & "," & $y & " is not a button", $COLOR_DEBUG)
+				ContinueLoop
 			EndIf
+			Local $iXC = Int(($iXL + $iXR) / 2)
+
+			; top edge of the lime band, the label sits about 30 px below it
+			Local $iYT = $y
+			While $iYT > 0 And __IsLimeButton(_GetPixelColor($iXC, $iYT - 1, False))
+				$iYT -= 1
+			WEnd
+
+			; the light label, sampled across the middle of the button. "Okay" is pure white but the "Send"
+			; of the reinforcement request is EFEFEF / E8EBE0, which a 240 floor rejected outright.
+			Local $iWhite = 0
+			For $yy = $iYT + 15 To $iYT + 50 Step 2
+				For $xx = $iXC - 40 To $iXC + 40 Step 3
+					Local $sCol = _GetPixelColor($xx, $yy, False)
+					If StringLen($sCol) = 6 And Dec(StringMid($sCol, 1, 2)) > 215 And Dec(StringMid($sCol, 3, 2)) > 215 And Dec(StringMid($sCol, 5, 2)) > 215 Then $iWhite += 1
+				Next
+			Next
+			If $iWhite < 8 Then
+				SetDebugLog("FindGreenOkayButton: green band at " & $iXC & "," & $iYT & " carries no label (" & $iWhite & " white samples)", $COLOR_DEBUG)
+				ContinueLoop
+			EndIf
+
+			; orange Cancel twin on the same row, to the left: 0xFFC670 on "Confirm Exit", 0xEFBE73 on
+			; the reinforcement request, both about 180 px wide and 40 px left of the green one
+			If Not $bAllowPair Then
+				Local $iOrange = 0
+				For $xx = $iXL - 250 To $iXL - 15 Step 3
+					If $xx < 0 Then ContinueLoop
+					Local $sCol = _GetPixelColor($xx, $iYT + 4, False)
+					If StringLen($sCol) <> 6 Then ContinueLoop
+					Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+					If $iR > 220 And $iG > 170 And $iG < 215 And $iB > 90 And $iB < 130 And $iR > $iG + 30 Then $iOrange += 1
+				Next
+				If $iOrange >= 25 Then
+					SetLog("A Cancel / Okay choice is on screen, not confirming it blindly", $COLOR_INFO)
+					SaveFailureImage("DecisionWindow")
+					ContinueLoop
+				EndIf
+			EndIf
+
+			Local $aButton[2] = [$iXC, $iYT + 30]
+			SetDebugLog("FindGreenOkayButton: button at " & $aButton[0] & "," & $aButton[1] & " (" & $iWidth & " px wide)", $COLOR_DEBUG)
+			Return $aButton
 		Next
 	Next
-	If $iX0 = -1 Then Return 0
-
-	; horizontal run through the first lime pixel
-	Local $iXL = $iX0, $iXR = $iX0
-	While $iXL > 0 And __IsLimeButton(_GetPixelColor($iXL - 1, $iY0, False))
-		$iXL -= 1
-	WEnd
-	While $iXR < $g_iGAME_WIDTH - 1 And __IsLimeButton(_GetPixelColor($iXR + 1, $iY0, False))
-		$iXR += 1
-	WEnd
-	Local $iWidth = $iXR - $iXL + 1
-	If $iWidth < 100 Or $iWidth > 240 Then
-		SetDebugLog("FindGreenOkayButton: lime run of " & $iWidth & " px at " & $iXL & "," & $iY0 & " is not a button", $COLOR_DEBUG)
-		Return 0
-	EndIf
-	Local $iXC = Int(($iXL + $iXR) / 2)
-
-	; top edge of the lime band, the label sits about 30 px below it
-	Local $iYT = $iY0
-	While $iYT > 0 And __IsLimeButton(_GetPixelColor($iXC, $iYT - 1, False))
-		$iYT -= 1
-	WEnd
-
-	; the white label, sampled across the middle of the button
-	Local $iWhite = 0
-	For $y = $iYT + 15 To $iYT + 50 Step 2
-		For $x = $iXC - 40 To $iXC + 40 Step 3
-			Local $sCol = _GetPixelColor($x, $y, False)
-			If StringLen($sCol) = 6 And Dec(StringMid($sCol, 1, 2)) > 240 And Dec(StringMid($sCol, 3, 2)) > 240 And Dec(StringMid($sCol, 5, 2)) > 240 Then $iWhite += 1
-		Next
-	Next
-	If $iWhite < 8 Then
-		SetDebugLog("FindGreenOkayButton: green band at " & $iXC & "," & $iYT & " carries no label (" & $iWhite & " white samples)", $COLOR_DEBUG)
-		Return 0
-	EndIf
-
-	Local $aButton[2] = [$iXC, $iYT + 30]
-	SetDebugLog("FindGreenOkayButton: button at " & $aButton[0] & "," & $aButton[1] & " (" & $iWidth & " px wide)", $COLOR_DEBUG)
-	Return $aButton
+	Return 0
 EndFunc   ;==>FindGreenOkayButton
 
 ; lime gradient of the upper half of the green buttons, 0xD4F480 down to 0xC6EB60

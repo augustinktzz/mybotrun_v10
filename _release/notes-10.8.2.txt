@@ -1,0 +1,1 @@
+Builder Base trophies are read correctly (Village > Misc > Builder Base and the builder base report): the count was read while the counter was still rolling after arriving on the base, which gave 19 or 915 for 1 900 and the wrong league. The bot now waits for the counter to settle.

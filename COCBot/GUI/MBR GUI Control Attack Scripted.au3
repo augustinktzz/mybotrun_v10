@@ -313,6 +313,7 @@ Func ApplyScriptDB()
 		Local $aMachine = _ArrayMaxIndex($aiCSVSieges)
 		_GUICtrlComboBox_SetCurSel($g_hCmbDBSiege, $aMachine + 1)
 		GUICtrlSetState($g_hChkDBDropCC, $GUI_CHECKED)
+		GUICtrlSetState($g_hChkDBUseSiege, $GUI_CHECKED) ; the plan asks for a siege, so turn its option on
 		GUICtrlSetState($g_hCmbDBSiege, $GUI_ENABLE)
 		SetLog("CSV 'Sieges' settings applied", $COLOR_SUCCESS)
 	EndIf

@@ -1,0 +1,1 @@
+﻿Treasury: the bot now checks that the building it selected really is the Clan Castle (a few pixels of village drift used to select the wall next to it, whose bar shows Upgrade buttons where the chest is expected) and tries nearby points, keeping the one that works; the chest is also required to show its dark frame, so a gold price can no longer pass for it.

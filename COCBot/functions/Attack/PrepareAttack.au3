@@ -362,8 +362,12 @@ Func IsUnitUsed($iMatchMode, $iTroopIndex)
 					If (BitAND($g_aiAttackUseHeroes[$iMatchMode], $eHeroChampion) = $eHeroChampion) Then Return True
 				Case $eDuke
 					If (BitAND($g_aiAttackUseHeroes[$iMatchMode], $eHeroDuke) = $eHeroDuke) Then Return True
-				Case $eCastle, $eWallW, $eBattleB, $eStoneS, $eSiegeB, $eLogL, $eFlameF, $eBattleD, $eTroopL
+				Case $eCastle
 					If $g_abAttackDropCC[$iMatchMode] Then Return True
+				Case $eWallW, $eBattleB, $eStoneS, $eSiegeB, $eLogL, $eFlameF, $eBattleD, $eTroopL
+					; the siege machine has its own switch: the castle can be worth dropping while the
+					; machine is kept for a war, and the other way round
+					If $g_abAttackUseSiegeMachine[$iMatchMode] Then Return True
 				Case $eLSpell
 					If $g_abAttackUseLightSpell[$iMatchMode] Or $g_bSmartZapEnable Then Return True
 				Case $eHSpell

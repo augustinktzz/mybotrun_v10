@@ -53,6 +53,14 @@ Func DoAttackBB()
 	$iStartSlotMem = 0
 	$iStartSlotMem2 = 0
 
+	; Snapshot of the builder base storages before the cycle: the builder base end of battle screen is
+	; never read, so the report sent at the end is the difference between these values and the ones
+	; read once the cycle is over.
+	Local $iGoldBefore = 0, $iElixirBefore = 0, $iTrophyBefore = 0, $bHaveBefore = False
+	If $g_bNotifyAlertBBRaid And NotifyEnabled() Then
+		$bHaveBefore = __BBLootSnapshot($iGoldBefore, $iElixirBefore, $iTrophyBefore)
+	EndIf
+
 	If $g_iBBAttackCount = 0 Then
 		While PrepareAttackBB($AttackCount)
 			If Not $g_bRunState Then Return
@@ -123,10 +131,40 @@ Func DoAttackBB()
 	EndIf
 	If Not $g_bRunState Then Return
 	If $AttackCount > 0 Then SetLog("BB Attack Cycle Done", $COLOR_SUCCESS1)
+	; without the "before" reading the difference would be the whole storage, not what the cycle brought
+	If $AttackCount > 0 And $bHaveBefore And $g_bNotifyAlertBBRaid And NotifyEnabled() Then
+		Local $iGoldAfter = 0, $iElixirAfter = 0, $iTrophyAfter = 0
+		If __BBLootSnapshot($iGoldAfter, $iElixirAfter, $iTrophyAfter) Then
+			$g_iBBRaidAttacks = $AttackCount
+			$g_iBBRaidGold = $iGoldAfter - $iGoldBefore
+			$g_iBBRaidElixir = $iElixirAfter - $iElixirBefore
+			$g_iBBRaidTrophy = $iTrophyAfter - $iTrophyBefore
+			SetLog("Builder base cycle: " & $AttackCount & " attack(s), [G]: " & _NumberFormat($g_iBBRaidGold, True) & " [E]: " & _NumberFormat($g_iBBRaidElixir, True) & " [T]: " & $g_iBBRaidTrophy, $COLOR_SUCCESS)
+			PushMsg("LastRaidBB")
+		EndIf
+	EndIf
 	ZoomOut()
 	$iStartSlotMem = 0
 	$iStartSlotMem2 = 0
 EndFunc   ;==>DoAttackBB
+
+; Reads gold, elixir and trophies off the builder base main screen, the same three reads
+; BuilderBaseReport() does, without the builder count and the stats refresh it also carries.
+; Returns False when the bot is not on the builder base, so the caller can skip the report.
+Func __BBLootSnapshot(ByRef $iGold, ByRef $iElixir, ByRef $iTrophy)
+	If Not isOnBuilderBase(True) Then ; fresh capture, the OCR reads below rely on it
+		SetDebugLog("Builder base snapshot skipped, not on the builder base", $COLOR_DEBUG)
+		Return False
+	EndIf
+	$iTrophy = BBReadTrophies() ; waits for the rolling counter to settle
+	$iGold = Number(getResourcesMainScreen(705, 23))
+	$iElixir = Number(getResourcesMainScreen(705, 72))
+	$g_aiCurrentLootBB[$eLootTrophyBB] = $iTrophy
+	$g_aiCurrentLootBB[$eLootGoldBB] = $iGold
+	$g_aiCurrentLootBB[$eLootElixirBB] = $iElixir
+	SetDebugLog("Builder base snapshot: [G]: " & $iGold & " [E]: " & $iElixir & " [T]: " & $iTrophy, $COLOR_DEBUG)
+	Return True
+EndFunc   ;==>__BBLootSnapshot
 
 Func ClickFindNowButton()
 	Local $bRet = False
@@ -491,8 +529,8 @@ Func DeployBBTroop($sName, $x, $y, $iAmount, $ai_AttackDropPoints)
 				If WaitforPixel(24, 552 + $g_iBottomOffsetY, 30, 554 + $g_iBottomOffsetY, Hex($g_DeployColor[$z], 6), 30, 5) Then ;BM with Capacity
 					$g_DeployedMachine = True
 					SetLog($sName & " Deployed", $COLOR_SUCCESS)
-					PureClickP($aBMPos) ; Activate Ability
-					SetLog("Activate " & $sName & " Ability", $COLOR_SUCCESS)
+					; the ability used to be fired right here, on a machine at full health; CheckBMLoop() now
+					; fires it once the health bar of the slot is down to $g_iBBMachineAbilityHealth percent
 					ExitLoop
 				EndIf
 				If $z = 1 And $g_bDebugImageSave Then SaveDebugImage("AttackBar")
@@ -518,6 +556,29 @@ Func GetMachinePos()
 	Return 0
 EndFunc   ;==>GetMachinePos
 
+; Health of the deployed Battle Machine / Copter as a percentage, read on the bar above its slot at
+; the bottom left of the battle screen. Measured frame by frame on a live battle: the bar runs from
+; x 23 to 72 on y 621-626, green (0x73F60B) at full, orange (0xCA8708) near half, red (0xFF3817)
+; below, and the empty part is dark purple (0x2D197F). Returns -1 when no bar is there (machine not
+; deployed, or a different screen), which the caller treats as "activate as before".
+Func BBMachineHealth()
+	_CaptureRegion(20, 620, 76, 627)
+	Local $iFilled = 0, $iEmpty = 0
+	For $x = 23 To 72
+		Local $sCol = _GetPixelColor($x - 20, 3, False) ; row y 623
+		If StringLen($sCol) <> 6 Then ContinueLoop
+		Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+		If $iB > $iG + 30 And $iR < 160 And $iG < 80 Then
+			$iEmpty += 1 ; purple background of the bar, 0x2D197F, turning magenta 0x5A1874 next to a red fill
+		ElseIf ($iB < 60 And $iR + $iG > 200) Or ($iG > 200 And $iG > $iR And $iG > $iB + 60) Then
+			$iFilled += 1 ; green, orange or red fill, or the pale green flash of the heal
+		EndIf
+	Next
+	; white or beige rows (end of battle screen, village) match neither and give -1
+	If $iFilled + $iEmpty < 30 Then Return -1 ; not the bar
+	Return Int($iFilled * 100 / 50)
+EndFunc   ;==>BBMachineHealth
+
 Func CheckBMLoop($aBMPos = $g_aMachinePos)
 	Local $count = 0, $loopcount = 0
 	Local $BMDeadX = 71, $BMDeadColor
@@ -541,8 +602,14 @@ Func CheckBMLoop($aBMPos = $g_aMachinePos)
 			If StringInStr($g_iQuickMISName, "Wait") Then
 				ExitLoop
 			ElseIf StringInStr($g_iQuickMISName, "Ability") Then
+				; ready: hold it until the machine is low, the hammer heals it and a full machine wastes that
+				Local $iHealth = BBMachineHealth()
+				If $iHealth > $g_iBBMachineAbilityHealth Then
+					SetDebugLog($MachineName & " ability ready, health " & $iHealth & "%, holding it", $COLOR_DEBUG)
+					ExitLoop
+				EndIf
 				PureClickP($aBMPos)
-				SetLog("Activate " & $MachineName & " Ability", $COLOR_SUCCESS)
+				SetLog("Activate " & $MachineName & " Ability" & ($iHealth >= 0 ? " at " & $iHealth & "% health" : ""), $COLOR_SUCCESS)
 				ExitLoop
 			EndIf
 		EndIf

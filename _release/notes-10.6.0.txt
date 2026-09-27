@@ -1,0 +1,1 @@
+New "Use siege machine" tick box in Attack Plan > Dead Base and Active Base, next to the heroes: the bot deploys whichever siege machine your Clan Castle carries, and unticking it keeps the machine for a war while the castle troops are still dropped. On by default.

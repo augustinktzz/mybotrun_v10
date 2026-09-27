@@ -16,7 +16,12 @@
 ; ===============================================================================================================================
 Func dropCC($iX, $iY, $iCCSlot) ;Drop clan castle
 
-	Local $test = ($g_iMatchMode <> $DB And $g_iMatchMode <> $LB) Or $g_abAttackDropCC[$g_iMatchMode]
+	; That one slot holds either the clan castle troops or the siege machine that carries them, and the
+	; two have their own switch in the attack plan, so the right one has to be read here.
+	Local $iSlotUnit = ($iCCSlot >= 0 And $iCCSlot < UBound($g_avAttackTroops, 1)) ? Number($g_avAttackTroops[$iCCSlot][0]) : -1
+	Local $bIsSiege = ($iSlotUnit >= $eWallW And $iSlotUnit <= $eTroopL)
+	Local $test = ($g_iMatchMode <> $DB And $g_iMatchMode <> $LB) Or ($bIsSiege ? $g_abAttackUseSiegeMachine[$g_iMatchMode] : $g_abAttackDropCC[$g_iMatchMode])
+	If $iCCSlot <> -1 And Not $test Then SetDebugLog(($bIsSiege ? "Siege machine" : "Clan castle") & " not enabled for this attack, slot left alone", $COLOR_DEBUG)
 
 	If $iCCSlot <> -1 And $test Then
 		If $g_bPlannedDropCCHoursEnable = True Then
@@ -36,6 +41,7 @@ Func dropCC($iX, $iY, $iCCSlot) ;Drop clan castle
 					SelectDropTroop($iCCSlot)
 					If _Sleep($DELAYDROPCC1) Then Return
 					AttackClick($iX, $iY, 1, 50, 0, "#0087")
+					__RememberSpellDropPoint($iX, $iY)
 				Else
 					SetLog("No Dropping Siege/Clan Castle, donated  (" & $g_iTroopsDonated & ") / received (" & $g_iTroopsReceived & ") < " & $g_iCCDonated & "/" & $g_iCCReceived, $COLOR_INFO)
 				EndIf
@@ -45,6 +51,7 @@ Func dropCC($iX, $iY, $iCCSlot) ;Drop clan castle
 					SelectDropTroop($iCCSlot)
 					If _Sleep($DELAYDROPCC1) Then Return
 					AttackClick($iX, $iY, 1, 50, 0, "#0089")
+					__RememberSpellDropPoint($iX, $iY)
 				Else
 					SetLog("No Dropping Siege/Clan Castle, donated  (" & $g_iTroopsDonated & ") / received (" & $g_iTroopsReceived & ") < " & $g_iCCDonated & "/" & $g_iCCReceived, $COLOR_INFO)
 				EndIf
@@ -54,7 +61,17 @@ Func dropCC($iX, $iY, $iCCSlot) ;Drop clan castle
 			SelectDropTroop($iCCSlot)
 			If _Sleep($DELAYDROPCC1) Then Return
 			AttackClick($iX, $iY, 1, 50, 0, "#0091")
+			__RememberSpellDropPoint($iX, $iY)
 		EndIf
 	EndIf
 
 EndFunc   ;==>dropCC
+
+; The spells of the attack plan follow the heroes; when no hero is dropped the clan castle
+; troops are the push, so their landing point is kept as a fallback (dropHeroes overwrites it).
+Func __RememberSpellDropPoint($iX, $iY)
+	If $g_aiSpellDropPoint[0] = -1 Then
+		$g_aiSpellDropPoint[0] = $iX
+		$g_aiSpellDropPoint[1] = $iY
+	EndIf
+EndFunc   ;==>__RememberSpellDropPoint

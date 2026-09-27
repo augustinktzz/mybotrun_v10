@@ -884,7 +884,7 @@ EndFunc   ;==>ArmyHeroStatus
 
 Func HiddenSlotstatus()
 
-	If $g_iTownHallLevel < 7 Then
+	If $g_iTownHallLevel < 4 Then ; Hero Hall from TH4 (game data)
 		SetDebugLog("Townhall Lvl " & $g_iTownHallLevel & " has no Hero Hall", $COLOR_DEBUG)
 		Return
 	EndIf
@@ -1881,7 +1881,7 @@ Func CheckHeroOrder()
 EndFunc   ;==>CheckHeroOrder
 
 Func HeroHallValuesCheck()
-	If $g_iTownHallLevel > 6 Then
+	If $g_iTownHallLevel > 3 Then ; Hero Hall from TH4 (game data)
 		If $g_aiHeroHallPos[1] = "" Or $g_aiHeroHallPos[1] = -1 Or $g_aiHeroHallPos[2] = -1 Then
 			Local $BackToMain = False
 			If IsMainGrayed() Then

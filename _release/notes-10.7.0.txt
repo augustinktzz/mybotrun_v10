@@ -1,0 +1,2 @@
+Season pass rewards are claimed: with Village > Misc > "Collect Challenge Rewards" on, the bot opens the pass, claims every green card it sees, scrolls the track back to reach the ones behind the current progress, and closes it.
+New "Pass choice" list next to that option for rewards that offer two items: take the resource (gold, elixir, dark elixir), the magic item, or always the left one.

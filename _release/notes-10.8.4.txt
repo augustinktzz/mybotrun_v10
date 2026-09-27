@@ -1,0 +1,1 @@
+Builder Base: the Battle Machine and Battle Copter ability is no longer fired the instant it is ready, on a machine at full health. The bot reads the health bar above the machine's slot and fires the ability once it is down to 40 percent, where the hammer's heal is worth something.

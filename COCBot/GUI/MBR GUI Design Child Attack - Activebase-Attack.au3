@@ -27,6 +27,7 @@ Global $g_hPicABLightSpell = 0, $g_hPicABHealSpell = 0, $g_hPicABRageSpell = 0, 
 
 Global $g_hCmbABSiege = 0, $g_hCmbABWardenMode = 0, $g_hChkABChampionAttack = 0, $g_hPicABChampionAttack = 0
 Global $g_hChkABDukeAttack = 0, $g_hPicABDukeAttack = 0
+Global $g_hChkABUseSiege = 0, $g_hPicABUseSiege = 0
 Global $g_hChkABPrinceAttack = 0, $g_hPicABPrinceAttack = 0
 
 Func CreateAttackSearchActiveBaseAttack()
@@ -114,7 +115,18 @@ Func CreateAttackSearchActiveBaseAttack()
 	_GUICtrlSetTip(-1, $sTxtTip)
 	$g_hChkABDukeAttack = GUICtrlCreateCheckbox("", $x + 27, $y, 17, 17)
 	_GUICtrlSetTip(-1, $sTxtTip)
-	$x -= 46
+
+	$x += 46
+	$g_hPicABUseSiege = _GUICtrlCreateIcon($g_sLibIconPath, $eIcnWallW, $x, $y, 24, 24)
+	; the English text is repeated here instead of the usual -1: these two keys are new, and -1 on a key
+	; that is not in English.ini yet shows "-3" in the tooltip until some other panel has written it
+	$sTxtTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Attack", "Chk-Use-Siege_Info_01", "Deploy the siege machine loaded in your Clan Castle, whichever one it is.") & @CRLF & _
+			GetTranslatedFileIni("MBR GUI Design Child Attack - Attack", "Chk-Use-Siege_Info_02", "Untick to keep it for a war: the castle troops are still dropped.")
+	_GUICtrlSetTip(-1, $sTxtTip)
+	$g_hChkABUseSiege = GUICtrlCreateCheckbox("", $x + 27, $y, 17, 17)
+	_GUICtrlSetTip(-1, $sTxtTip)
+	GUICtrlSetOnEvent(-1, "chkABUseSiege")
+	$x -= 92
 
 	$y += 27
 	$g_hPicABDropCC = _GUICtrlCreateIcon($g_sLibIconPath, $eIcnCC, $x, $y, 24, 24)

@@ -21,6 +21,7 @@ Func chkActivateBBSuggestedUpgrades()
 		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreHall, $GUI_ENABLE)
 		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreWall, $GUI_ENABLE)
 		GUICtrlSetState($g_hChkPlacingNewBuildings, $GUI_ENABLE)
+		GUICtrlSetState($g_hChkBBSaveWallBuilder, $GUI_ENABLE)
 		chkActivateBBSuggestedUpgradesGold()
 		chkActivateBBSuggestedUpgradesElixir()
 	Else
@@ -29,6 +30,7 @@ Func chkActivateBBSuggestedUpgrades()
 		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreHall, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
 		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreWall, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
 		GUICtrlSetState($g_hChkPlacingNewBuildings, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
+		GUICtrlSetState($g_hChkBBSaveWallBuilder, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
 	EndIf
 EndFunc   ;==>chkActivateBBSuggestedUpgrades
 
@@ -55,13 +57,70 @@ Func chkPlacingNewBuildings()
 EndFunc   ;==>chkPlacingNewBuildings
 
 ; MAIN CODE
+; --------------------------------------------------------------------------------------------------------------------
+; Reading the suggestion lines of the builder base
+; The window lists the suggested upgrades, one row each: the name on the left, the price with its resource icon on the
+; right. Only the first rows are visible and the wall rows come last, so with the last builder kept for walls the bot
+; used to open every building of the first rows, find no wall, and wait for the next cycle - 167 times in a day,
+; without a single wall upgraded. The name is now read before anything is clicked, and the list is scrolled.
+; The name is read with the font of the builder menu (lib\listSymbols_coc-buildermenu-name.xml). When nothing can be
+; read the bot falls back to what it did before, opening the row to see what it is.
+; --------------------------------------------------------------------------------------------------------------------
+; Measured on a live 860 x 732 builder base: the rows are 28.6 px apart, the name starts at x 381 and never runs
+; past x 492, the price and its resource icon sit at x 535-630 on the very same line as the name.
+Global Const $g_iBBSuggestTop = 102, $g_iBBSuggestBottom = 405 ; the band the resource icons are searched in
+Global Const $g_iBBSuggestNameX = 376, $g_iBBSuggestNameW = 150 ; the name, level with its icon
+Global Const $g_iBBSuggestMaxScroll = 3
+Global $g_sBBSuggestLastName = ""
+
+; 1 = that row is a wall, 0 = it is not, -1 = the name could not be read
+Func __BBSuggestLineIsWall($iIconY)
+	Local $iY = $iIconY - 10
+	If $iY < $g_iBBSuggestTop Then $iY = $g_iBBSuggestTop
+	Local $sName = StringStripWS(getOcrAndCapture("coc-buildermenu-name", $g_iBBSuggestNameX, $iY, $g_iBBSuggestNameW, 20, False), 3)
+	$g_sBBSuggestLastName = $sName
+	If StringLen($sName) < 3 Then Return -1
+	If StringInStr($sName, "Suggest") Or StringInStr($sName, "upgrade") Then Return -1 ; the header, not a row
+	Return (StringInStr($sName, "Wall") > 0) ? 1 : 0
+EndFunc   ;==>__BBSuggestLineIsWall
+
+; True when one of the rows on screen is a wall. False only when the names could be read and none of them is one,
+; so a font or a coordinate that does not work never makes the bot scroll past what it is looking for.
+Func __BBSuggestHasWall(ByRef $aLine)
+	If Not IsArray($aLine) Or UBound($aLine) = 0 Then Return False
+	Local $bReadSomething = False
+	For $i = 0 To UBound($aLine) - 1
+		Local $iIsWall = __BBSuggestLineIsWall($aLine[$i][2])
+		If $iIsWall = 1 Then Return True
+		If $iIsWall = 0 Then $bReadSomething = True
+	Next
+	Return Not $bReadSomething ; nothing readable: behave as if a wall could be there
+EndFunc   ;==>__BBSuggestHasWall
+
+; Drags the list up by about one screen. True when it really moved, which is told by the name of the first row.
+Func __BBSuggestScroll()
+	Local $sBefore = $g_sBBSuggestLastName
+	Local $aFirst = QuickMIS("CNX", $g_sImgAutoUpgradeBB, 490, $g_iBBSuggestTop, 630, $g_iBBSuggestTop + 60)
+	If IsArray($aFirst) And UBound($aFirst) > 0 Then
+		__BBSuggestLineIsWall($aFirst[0][2])
+		$sBefore = $g_sBBSuggestLastName
+	EndIf
+	ClickDrag(560, $g_iBBSuggestBottom - 40, 560, $g_iBBSuggestTop + 40)
+	If _Sleep(1200) Then Return False
+	$aFirst = QuickMIS("CNX", $g_sImgAutoUpgradeBB, 490, $g_iBBSuggestTop, 630, $g_iBBSuggestTop + 60)
+	If Not IsArray($aFirst) Or UBound($aFirst) = 0 Then Return False
+	__BBSuggestLineIsWall($aFirst[0][2])
+	Return ($g_sBBSuggestLastName <> $sBefore)
+EndFunc   ;==>__BBSuggestScroll
+
 Func MainSuggestedUpgradeCode($bDebugImage = $g_bDebugImageSave)
 
 	; If is not selected return
 	If Not $g_iChkBBSuggestedUpgrades Then Return
 	Local $bDebug = $g_bDebugSetLog
 	Local $bScreencap = True
-	Local $y = 102, $x = 490, $x1 = 630
+	Local $y = $g_iBBSuggestTop, $x = 490, $x1 = 630
+	Local $iScrolls = 0
 
 	BuilderBaseReport(True, True)
 
@@ -71,6 +130,10 @@ Func MainSuggestedUpgradeCode($bDebugImage = $g_bDebugImageSave)
 		Return
 	EndIf
 
+	; with the last builder kept for walls only the wall suggestions can be taken: said once when it
+	; happens, the lines are then tried quietly (a suggestion has to be opened to know whether it is a wall)
+	Local $bWallsOnly = False
+
 	; Check if you are on Builder Base
 	If isOnBuilderBase(True) Then
 
@@ -78,11 +141,27 @@ Func MainSuggestedUpgradeCode($bDebugImage = $g_bDebugImageSave)
 
 		While 1
 
+			If Not $bWallsOnly And Not BBBuilderFreeForBuilding(True) Then
+				$bWallsOnly = True
+				SetLog("Only wall suggestions will be taken", $COLOR_INFO)
+			EndIf
+
 			; Will Open the Suggested Window and check if is OK
 			If ClickOnBuilder() Then
 				SetDebugLog("Upgrade Window Opened successfully", $COLOR_INFO)
 				; Proceeds with icon detection
-				Local $aLine = QuickMIS("CNX", $g_sImgAutoUpgradeBB, $x, $y, $x1, 340 + $g_iMidOffsetY)
+				Local $aLine = QuickMIS("CNX", $g_sImgAutoUpgradeBB, $x, $y, $x1, $g_iBBSuggestBottom + $g_iMidOffsetY)
+				; walls sit at the end of the list: scroll down before giving up, so the builder kept for them
+				; is actually used instead of waiting for a wall to show up in the first rows
+				If $bWallsOnly And Not __BBSuggestHasWall($aLine) And $iScrolls < $g_iBBSuggestMaxScroll Then
+					$iScrolls += 1
+					If __BBSuggestScroll() Then
+						SetDebugLog("No wall in sight, scrolled the suggestions (" & $iScrolls & "/" & $g_iBBSuggestMaxScroll & ")", $COLOR_DEBUG)
+						$y = $g_iBBSuggestTop
+						ContinueLoop
+					EndIf
+					$iScrolls = $g_iBBSuggestMaxScroll ; the list does not move any more, it is all there
+				EndIf
 				; Proceeds with icon detection
 				If IsArray($aLine) And UBound($aLine) > 0 Then
 					_ArraySort($aLine, 0, 0, 0, 2) ;sort by Y coord
@@ -90,11 +169,24 @@ Func MainSuggestedUpgradeCode($bDebugImage = $g_bDebugImageSave)
 						Local $g_WallDetected = False
 						Local $aResult = GetIconPosition($x, $aLine[$i][2] - 10, $x1, $aLine[$i][2] + 10, $g_sImgAutoUpgradeBB, $bScreencap, $bDebug, $bDebugImage)
 						If IsArray($aResult) And UBound($aResult) > 0 Then
+							; with the builder kept for walls, the name of the row decides: opening a building only to
+							; close it again cost a click and a reopened menu for every suggestion of every cycle
+							If $bWallsOnly And ($aResult[2] = "Gold" Or $aResult[2] = "Elixir") And __BBSuggestLineIsWall($aLine[$i][2]) = 0 Then
+								SetDebugLog("[" & $i + 1 & "] " & $g_sBBSuggestLastName & ": not a wall, not opened", $COLOR_DEBUG)
+								If $i = UBound($aLine) - 1 Then ExitLoop 2
+								ContinueLoop
+							EndIf
 							Switch $aResult[2]
 								Case "Gold"
 									Click($aResult[0], $aResult[1], 1)
 									If _Sleep(2000) Then Return
 									If IsWallDetected() Then $g_WallDetected = True
+									If Not $g_WallDetected And $bWallsOnly Then ; not a wall, the builder stays for walls, next suggestion
+										SetDebugLog("[" & $i + 1 & "] " & "not a wall, skipped", $COLOR_DEBUG)
+										If $i = UBound($aLine) - 1 Then ExitLoop 2
+										$y = $aLine[$i][2] + 15
+										ExitLoop
+									EndIf
 									If GetUpgradeButton($aResult[2], $bDebug, $bDebugImage, $g_WallDetected) Then
 										If $g_WallDetected Then
 											ExitLoop
@@ -115,6 +207,12 @@ Func MainSuggestedUpgradeCode($bDebugImage = $g_bDebugImageSave)
 									Click($aResult[0], $aResult[1], 1)
 									If _Sleep(2000) Then Return
 									If IsWallDetected() Then $g_WallDetected = True
+									If Not $g_WallDetected And $bWallsOnly Then ; not a wall, the builder stays for walls, next suggestion
+										SetDebugLog("[" & $i + 1 & "] " & "not a wall, skipped", $COLOR_DEBUG)
+										If $i = UBound($aLine) - 1 Then ExitLoop 2
+										$y = $aLine[$i][2] + 15
+										ExitLoop
+									EndIf
 									If GetUpgradeButton($aResult[2], $bDebug, $bDebugImage, $g_WallDetected) Then
 										If $g_WallDetected Then
 											ExitLoop
@@ -133,6 +231,11 @@ Func MainSuggestedUpgradeCode($bDebugImage = $g_bDebugImageSave)
 									EndIf
 								Case "New"
 									If $g_iChkPlacingNewBuildings = 1 Then
+										If $bWallsOnly Then ; the builder stays for walls, next suggestion
+											If $i = UBound($aLine) - 1 Then ExitLoop 2
+											$y = $aLine[$i][2] + 15
+											ExitLoop
+										EndIf
 										SetLog("[" & $i + 1 & "]" & " New Building detected, Placing it...", $COLOR_INFO)
 										If NewBuildings($aResult, $bDebugImage) Then
 											$g_iFreeBuilderCountBB -= 1
@@ -329,6 +432,7 @@ Func GetUpgradeButton($sUpgButton = "", $Debug = False, $bDebugImage = $g_bDebug
 			EndIf
 
 			;Wall Double Button Case
+			Local $bWallUseGold = True ; the elixir button is 94 px to the right of the gold one
 			If $bWallUpgrade Then
 
 				Select
@@ -349,7 +453,7 @@ Func GetUpgradeButton($sUpgButton = "", $Debug = False, $bDebugImage = $g_bDebug
 						EndIf
 					Case $ResType = "Elixir" And Not $g_iChkBBSuggestedUpgradesIgnoreElixir
 						If UBound(decodeSingleCoord(FindImageInPlace2("UpgradeButton2", $g_sImgUpgradeBtn2Wall, $aUpgradeIcon[0] + 65, $aUpgradeIcon[1] - 44, _
-								$aUpgradeIcon[0] + 140, $aUpgradeIcon[1] - 10, True))) > 1 Then $aUpgradeIcon[0] += 94
+								$aUpgradeIcon[0] + 140, $aUpgradeIcon[1] - 10, True))) > 1 Then __BBWallUseElixir($aUpgradeIcon, $bWallUseGold)
 						SetDebugLog("Resource check passed", $COLOR_DEBUG)
 						If _Sleep($DELAYAUTOUPGRADEBUILDING1) Then Return
 					Case $ResType = "Gold" And $g_iChkBBSuggestedUpgradesIgnoreGold
@@ -361,7 +465,7 @@ Func GetUpgradeButton($sUpgButton = "", $Debug = False, $bDebugImage = $g_bDebug
 						Else
 							If UBound(decodeSingleCoord(FindImageInPlace2("UpgradeButton2", $g_sImgUpgradeBtn2Wall, $aUpgradeIcon[0] + 65, $aUpgradeIcon[1] - 44, _
 									$aUpgradeIcon[0] + 140, $aUpgradeIcon[1] - 10, True))) > 1 Then
-								$aUpgradeIcon[0] += 94
+								__BBWallUseElixir($aUpgradeIcon, $bWallUseGold)
 								If WaitforPixel($aUpgradeIcon[0], $aUpgradeIcon[1] - 60, $aUpgradeIcon[0] + 30, $aUpgradeIcon[1] - 40, "FF887F", 20, 2) Then
 									SetLog("Not enough Elixir to upgrade Wall, looking next...", $COLOR_WARNING)
 									If _Sleep(1000) Then Return
@@ -382,6 +486,13 @@ Func GetUpgradeButton($sUpgButton = "", $Debug = False, $bDebugImage = $g_bDebug
 						SetDebugLog("Any case above not found ?? Bad programmer !", $COLOR_DEBUG)
 				EndSelect
 
+			EndIf
+
+			; walls: as many as the loot allows in one go through the game's "Upgrade More" wizard, when the bar has it
+			If $bWallUpgrade Then
+				Local $iBatch = UpgradeWallMore($bWallUseGold, 0, True)
+				If $iBatch > 0 Then Return True
+				If $iBatch < 0 Then Return False ; the wizard was closed again, the wall is no longer selected
 			EndIf
 
 			ClickP($aUpgradeIcon)
@@ -577,3 +688,24 @@ Func NewBuildings($aResult, $bDebugImage = $g_bDebugImageSave)
 	Return False
 
 EndFunc   ;==>NewBuildings
+
+; True when a Master Builder may be spent on something that is not a wall. With "Keep 1 builder for
+; walls" on, the last free builder is left to the wall suggestions, which are instant and never keep him.
+Func BBBuilderFreeForBuilding($bSetLog = True)
+	Local $iKeep = ($g_iChkBBSaveWallBuilder = 1 ? 1 : 0)
+	If $g_iFreeBuilderCountBB > $iKeep Then Return True
+	If $bSetLog Then
+		If $g_iFreeBuilderCountBB = 0 Then
+			SetLog("No Master Builder available! [" & $g_iFreeBuilderCountBB & "/" & $g_iTotalBuilderCountBB & "]", $COLOR_INFO)
+		Else
+			SetLog("The last free Master Builder is kept for walls [" & $g_iFreeBuilderCountBB & "/" & $g_iTotalBuilderCountBB & "]", $COLOR_INFO)
+		EndIf
+	EndIf
+	Return False
+EndFunc   ;==>BBBuilderFreeForBuilding
+
+; The wall bar has the gold and the elixir Upgrade buttons side by side: move to the elixir one.
+Func __BBWallUseElixir(ByRef $aUpgradeIcon, ByRef $bWallUseGold)
+	$aUpgradeIcon[0] += 94
+	$bWallUseGold = False
+EndFunc   ;==>__BBWallUseElixir

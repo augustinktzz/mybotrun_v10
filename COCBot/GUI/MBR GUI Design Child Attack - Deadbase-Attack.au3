@@ -26,6 +26,7 @@ Global $g_hPicDBLightSpell = 0, $g_hPicDBHealSpell = 0, $g_hPicDBRageSpell = 0, 
 		$g_hPicDBOvergrowthSpell = 0
 
 Global $g_hCmbDBSiege = 0, $g_hCmbDBWardenMode = 0, $g_hChkDBChampionAttack = 0, $g_hPicDBChampionAttack = 0
+Global $g_hChkDBUseSiege = 0, $g_hPicDBUseSiege = 0
 Global $g_hChkDBDukeAttack = 0, $g_hPicDBDukeAttack = 0
 Global $g_hChkDBPrinceAttack = 0, $g_hPicDBPrinceAttack = 0
 
@@ -117,7 +118,16 @@ Func CreateAttackSearchDeadBaseAttack()
 	_GUICtrlSetTip(-1, $sTxtTip)
 	$g_hChkDBDukeAttack = GUICtrlCreateCheckbox("", $x + 27, $y, 17, 17)
 	_GUICtrlSetTip(-1, $sTxtTip)
-	$x -= 46
+
+	$x += 46
+	$g_hPicDBUseSiege = _GUICtrlCreateIcon($g_sLibIconPath, $eIcnWallW, $x, $y, 24, 24)
+	$sTxtTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Attack", "Chk-Use-Siege_Info_01", "Deploy the siege machine loaded in your Clan Castle, whichever one it is.") & @CRLF & _
+			GetTranslatedFileIni("MBR GUI Design Child Attack - Attack", "Chk-Use-Siege_Info_02", "Untick to keep it for a war: the castle troops are still dropped.")
+	_GUICtrlSetTip(-1, $sTxtTip)
+	$g_hChkDBUseSiege = GUICtrlCreateCheckbox("", $x + 27, $y, 17, 17)
+	_GUICtrlSetTip(-1, $sTxtTip)
+	GUICtrlSetOnEvent(-1, "chkDBUseSiege")
+	$x -= 92
 
 	$y += 27
 	$g_hPicDBDropCC = _GUICtrlCreateIcon($g_sLibIconPath, $eIcnCC, $x, $y, 24, 24)

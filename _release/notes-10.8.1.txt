@@ -1,0 +1,1 @@
+Builder Base: new "Keep 1 builder for walls" tick box under Village > Misc > Suggested Upgrades. With it on, the last free Master Builder is left to the wall suggestions: buildings, the Battle Machine, the Copter and new buildings only start when two builders are free.

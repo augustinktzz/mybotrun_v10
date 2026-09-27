@@ -1,0 +1,1 @@
+Siege machines are deployed again: the attack bar gave the siege and the Grand Warden the same slot number, so one of the two was dropped from the usable troops and a Stone Slammer was carried into every raid without ever being used.

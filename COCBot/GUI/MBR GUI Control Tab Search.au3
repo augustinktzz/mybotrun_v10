@@ -254,7 +254,7 @@ Func chkABActivateCamps()
 EndFunc   ;==>chkABActivateCamps
 
 Func chkDBKingWait()
-	If $g_iTownHallLevel > 6 Or $g_iTownHallLevel = 0 Then ; Must be TH7 or above to have King
+	If $g_iTownHallLevel > 3 Or $g_iTownHallLevel = 0 Then ; Must be TH4 or above to have King (game data)
 		_GUI_Value_STATE("ENABLE", $g_hChkDBKingWait & "#" & $g_hChkDBKingAttack)
 	Else
 		GUICtrlSetState($g_hChkDBKingWait, BitOR($GUI_DISABLE, $GUI_UNCHECKED))
@@ -299,7 +299,7 @@ Func chkDBChampionWait()
 EndFunc   ;==>chkDBChampionWait
 
 Func chkABKingWait()
-	If $g_iTownHallLevel > 6 Or $g_iTownHallLevel = 0 Then ; Must be TH7 or above to have King
+	If $g_iTownHallLevel > 3 Or $g_iTownHallLevel = 0 Then ; Must be TH4 or above to have King (game data)
 		_GUI_Value_STATE("ENABLE", $g_hChkABKingWait & "#" & $g_hChkABKingAttack)
 	Else
 		GUICtrlSetState($g_hChkABKingWait, BitOR($GUI_DISABLE, $GUI_UNCHECKED))

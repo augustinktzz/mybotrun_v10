@@ -235,8 +235,11 @@ Func getResourcesMainScreen($x_start, $y_start) ; -> Gets complete value of Gold
 	Return getOcrAndCapture("coc-ms", $x_start, $y_start, 110, 16, True)
 EndFunc   ;==>getResourcesMainScreen
 
+; The loot amounts of the end of battle screen are right aligned on x 450: a 6 digit value starts at
+; x 356, a 7 digit one right on x 345 and an 8 digit one near x 320, so the box has to open far
+; enough to the left or the first digit is cut off (1 075 073 was read back as 075 073).
 Func getResourcesLoot($x_start, $y_start) ; -> Gets complete value of Gold/Elixir after attack xxx,xxx "AttackReport"
-	Return getOcrAndCapture("coc-loot", $x_start, $y_start, 160, 22, True)
+	Return getOcrAndCapture("coc-loot", $x_start, $y_start, 185, 22, True)
 EndFunc   ;==>getResourcesLoot
 
 Func getResourcesLootDE($x_start, $y_start) ; -> Gets complete value of Dark Elixir after attack xxx,xxx "AttackReport"

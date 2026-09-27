@@ -23,10 +23,7 @@ Func DoubleCannonUpgrade($test = False)
 		If Not $g_bDoubleCannonUpgrade Then Return
 
 		; Master Builder is not available return
-		If $g_iFreeBuilderCountBB = 0 Then
-			SetLog("No Master Builder available! [" & $g_iFreeBuilderCountBB & "/" & $g_iTotalBuilderCountBB & "]", $COLOR_INFO)
-			Return False
-		EndIf
+		If Not BBBuilderFreeForBuilding() Then Return False ; also keeps the last builder for walls when asked to
 	EndIf
 
 	ClearScreen("Defaut", False)
@@ -98,8 +95,8 @@ Func DoubleCannonUpgrade($test = False)
 
 	If _Sleep($DELAYUPGRADEHERO1) Then Return
 
-	If $g_aiCurrentLootBB[$eLootGoldBB] < ($g_afDoubleCannonUpgCost[$aDoubleCannonLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
-		SetLog("Double Cannon Upg failed, require " & ($g_afDoubleCannonUpgCost[$aDoubleCannonLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " builder gold!", $COLOR_INFO)
+	If $g_aiCurrentLootBB[$eLootGoldBB] < (__UpgCostAt($g_afDoubleCannonUpgCost, $aDoubleCannonLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
+		SetLog("Double Cannon Upg failed, require " & (__UpgCostAt($g_afDoubleCannonUpgCost, $aDoubleCannonLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " builder gold!", $COLOR_INFO)
 		ClearScreen("Defaut", False)
 		If _Sleep(1000) Then Return
 		SwitchToBuilderbase()
@@ -164,10 +161,7 @@ Func ArcherTowerUpgrade($test = False)
 		If Not $g_bArcherTowerUpgrade Then Return
 
 		; Master Builder is not available return
-		If $g_iFreeBuilderCountBB = 0 Then
-			SetLog("No Master Builder available! [" & $g_iFreeBuilderCountBB & "/" & $g_iTotalBuilderCountBB & "]", $COLOR_INFO)
-			Return False
-		EndIf
+		If Not BBBuilderFreeForBuilding() Then Return False ; also keeps the last builder for walls when asked to
 	EndIf
 
 	ClearScreen("Defaut", False)
@@ -238,8 +232,8 @@ Func ArcherTowerUpgrade($test = False)
 
 	If _Sleep($DELAYUPGRADEHERO1) Then Return
 
-	If $g_aiCurrentLootBB[$eLootGoldBB] < ($g_afArcherTowerUpgCost[$aArcherTowerLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
-		SetLog("Archer Tower Upg failed, require " & ($g_afArcherTowerUpgCost[$aArcherTowerLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " builder gold!", $COLOR_INFO)
+	If $g_aiCurrentLootBB[$eLootGoldBB] < (__UpgCostAt($g_afArcherTowerUpgCost, $aArcherTowerLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
+		SetLog("Archer Tower Upg failed, require " & (__UpgCostAt($g_afArcherTowerUpgCost, $aArcherTowerLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " builder gold!", $COLOR_INFO)
 		ClearScreen("Defaut", False)
 		If _Sleep(1000) Then Return
 		SwitchToBuilderbase()
@@ -304,10 +298,7 @@ Func MultiMortarUpgrade($test = False)
 		If Not $g_bMultiMortarUpgrade Then Return
 
 		; Master Builder is not available return
-		If $g_iFreeBuilderCountBB = 0 Then
-			SetLog("No Master Builder available! [" & $g_iFreeBuilderCountBB & "/" & $g_iTotalBuilderCountBB & "]", $COLOR_INFO)
-			Return False
-		EndIf
+		If Not BBBuilderFreeForBuilding() Then Return False ; also keeps the last builder for walls when asked to
 	EndIf
 
 	ClearScreen("Defaut", False)
@@ -379,8 +370,8 @@ Func MultiMortarUpgrade($test = False)
 
 	If _Sleep($DELAYUPGRADEHERO1) Then Return
 
-	If $g_aiCurrentLootBB[$eLootGoldBB] < ($g_afMultiMortarUpgCost[$aMultiMortarLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
-		SetLog("Multi Mortar Upg failed, require " & ($g_afMultiMortarUpgCost[$aMultiMortarLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " builder gold!", $COLOR_INFO)
+	If $g_aiCurrentLootBB[$eLootGoldBB] < (__UpgCostAt($g_afMultiMortarUpgCost, $aMultiMortarLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
+		SetLog("Multi Mortar Upg failed, require " & (__UpgCostAt($g_afMultiMortarUpgCost, $aMultiMortarLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " builder gold!", $COLOR_INFO)
 		ClearScreen("Defaut", False)
 		If _Sleep(1000) Then Return
 		SwitchToBuilderbase()
@@ -445,10 +436,7 @@ Func AnyDefUpgrade($test = False)
 		If Not $g_bAnyDefUpgrade Then Return
 
 		; Master Builder is not available return
-		If $g_iFreeBuilderCountBB = 0 Then
-			SetLog("No Master Builder available! [" & $g_iFreeBuilderCountBB & "/" & $g_iTotalBuilderCountBB & "]", $COLOR_INFO)
-			Return False
-		EndIf
+		If Not BBBuilderFreeForBuilding() Then Return False ; also keeps the last builder for walls when asked to
 	EndIf
 
 	ClearScreen("Defaut", False)
@@ -520,8 +508,8 @@ Func AnyDefUpgrade($test = False)
 
 	If _Sleep($DELAYUPGRADEHERO1) Then Return
 
-	If $g_aiCurrentLootBB[$eLootGoldBB] < ($g_afAnyDefUpgCost[$aCannonLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
-		SetLog("Cannon Upg failed, require " & ($g_afAnyDefUpgCost[$aCannonLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " builder gold!", $COLOR_INFO)
+	If $g_aiCurrentLootBB[$eLootGoldBB] < (__UpgCostAt($g_afAnyDefUpgCost, $aCannonLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) Then
+		SetLog("Cannon Upg failed, require " & (__UpgCostAt($g_afAnyDefUpgCost, $aCannonLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " builder gold!", $COLOR_INFO)
 		ClearScreen("Defaut", False)
 		If _Sleep(1000) Then Return
 		SwitchToBuilderbase()
@@ -582,10 +570,7 @@ Func BOBBuildingUpgrades($bTest = False)
 	If Not $g_bDoubleCannonUpgrade And Not $g_bArcherTowerUpgrade And Not $g_bMultiMortarUpgrade And Not $g_bAnyDefUpgrade And Not $g_bBattleMachineUpgrade And Not $g_bBattlecopterUpgrade Then Return False
 
 	; Master Builder is not available return
-	If $g_iFreeBuilderCountBB = 0 Then
-		SetLog("No Master Builder available for BOB Control upgrades !", $COLOR_INFO)
-		Return False
-	EndIf
+	If Not BBBuilderFreeForBuilding() Then Return False ; also keeps the last builder for walls when asked to
 
 	If $g_bDoubleCannonUpgrade Then
 		DoubleCannonUpgrade()

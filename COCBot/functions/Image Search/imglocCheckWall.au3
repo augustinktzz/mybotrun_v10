@@ -53,12 +53,27 @@ Func imglocCheckWall()
 		_CaptureRegion2()
 		$FoundWalls = imglocFindWalls($levelWall, $CocDiamondECD, $CocDiamondECD, 10) ; lets get 10 points just to make sure we discard false positives
 		SetDebugLog("$FoundWalls = " & $FoundWalls)
+		If $FoundWalls[0] = "" Then
+			; the templates of the DLL are straight runs: the bot's own PNG templates (imgcv\own\Walls\<level>\) hold the corners
+			; and junctions cut from real screenshots. Every candidate is still verified by the OCR of its info bar below.
+			Local $aCV = FindImageCV("own\Walls\" & $levelWall, 0, 60, $g_iGAME_WIDTH, 640, 0.75, 6)
+			If UBound($aCV) > 0 Then
+				Local $sPts = ""
+				For $i = 0 To UBound($aCV) - 1
+					$sPts &= ($i > 0 ? "|" : "") & $aCV[$i][0] & "," & $aCV[$i][1]
+				Next
+				$FoundWalls[0] = $sPts
+				SetLog("Wall(s) level " & $levelWall & ": " & UBound($aCV) & " candidate(s) from the bot's own templates", $COLOR_SUCCESS)
+			EndIf
+		EndIf
 	EndIf
 
 	ClearScreen()
 
 	If ($FoundWalls[0] = "") Then ; nothing found
 		SetLog("No wall(s) level: " & $levelWall & " found.", $COLOR_ERROR)
+		; the last pieces of a level are the ones the templates do not know: let the game select one from the builder menu
+		If BuilderMenuSelectWall($levelWall) Then Return True
 		If SwitchToNextWallLevel() Then
 			SetLog("No more walls of current level, switching to next", $COLOR_ACTION)
 		EndIf

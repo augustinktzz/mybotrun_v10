@@ -1,3 +1,154 @@
+* v10.10.4 **
+* Fix: fewer restarts during the village search. The Next button is found by one pixel; when that pixel was missed, the bot waited twelve seconds, went home and restarted CoC - eleven times in a few days, a couple of minutes lost each time. It now also looks for the button as an image once the pixel has been missed three times, which the normal search never reaches, so a search that works is not slowed at all.
+* Fix: the diagnosis screenshot of a missed Next button is taken on the search screen itself. It used to be taken after the bot had already gone home, so it only ever showed the village.
+
+* v10.10.3 **
+* Fix: the builder base finally upgrades walls. With "Keep 1 builder for walls" ticked, that builder never did anything: the bot only looked at the first rows of the suggestion list, where walls almost never are, and gave up until the next cycle - 32 cycles and 167 skipped suggestions in one day without a single wall. The list is now scrolled to reach the wall rows, and the band read goes further down.
+* Fix: with the builder kept for walls, the bot no longer opens every building of the list to find out what it is. The name of each row is read first, so only wall rows are opened; the rest is skipped without a click and without reopening the menu.
+* New: the builder menu font and the missing builder base templates (wall upgrade buttons, +1 and +10, locked walls, resource icons) are shipped, which is what lets the bot read a row before clicking it.
+
+* v10.10.2 **
+* Fix: MultiBot refuses two setups on the same emulator instance, and says so when an existing list already has some. One instance runs one game, so "Start all instances" could only start one of them and two bots would have fought for the same window; the dialog now asks for an instance of its own per village.
+
+* v10.10.1 **
+* Fix: the Clan Wars page could still open after the previous fix. The village is centred by two different drags: one when the stone and the tree of the scenery are both found (the usual case), another one when only one of them is; only the second had been corrected. Both now check the release point of the drag as well as its start, and fall back to the tree, then to the water, when the stone would end on the War Button.
+* Fix: the check for a page covering the village (Return Home button) was placed in a zoom loop BlueStacks 5 does not use. It now runs where every zoom loop meets, after every third failed measure, so the Clan Wars page is left within a few seconds instead of after a restart of CoC.
+
+* v10.10.0 **
+* New: MultiBot. MultiBot.exe, next to the bot, runs several villages at once: one bot per profile, each on its own BlueStacks instance. A setup holds the profile, the instance (listed from BlueStacks) and the launch options, plus the settings of that profile that matter with several bots: window arrangement and offsets, screen capture mode, dedicated ADB port, processor cores, threads, how many bots may attack at the same time, and the Halt attack condition. Start all or close all with one button, or per setup with the right click: start, close, restart the bot, but also start the run, stop it, pause and resume without closing it, and start or stop the instance. A State column follows every bot (Off, Starting, Idle, Running, Paused). Shortcuts on the Desktop or in the Startup folder start a setup by itself. Bots are closed through their own interface, as their Exit button does, so settings are saved and no Watchdog relaunches them. Derived from the MultiBot of MyBot.run, rewritten for this version. See the README.
+
+* v10.9.9 **
+* Fix: the bot could open the Clan Wars page by itself and then loop on it. When it centres the village after a zoom, it drags from a stone of the scenery; that drag ends a few pixels away, and with a stone close to the left edge the finger was released on the War Button. The village could not be measured any more, CoC was restarted after ten tries, and the same drag opened the page again (twelve times today). The release point of the drag is now checked like its start, and the War Button zone is a little wider.
+* Fix: the bot now leaves such a page on its own. The villager's "Return Home" button (Clan Wars page, war map...) is recognised with the bot's own template (imgcv\own\ReturnHome) and pressed, and the zoom-out loop looks for obstacles every third failed measure instead of waiting ten failures and a CoC restart.
+
+* v10.9.8 **
+* Fix: the Discord status now follows the Application ID and the invite as soon as you leave their box, whether the bot is running or not. Until now the two boxes were only read when the settings were saved, so pasting the ID and expecting the status to appear did nothing, and a stop/start or a profile switch was needed for the bot to see it. Changing the ID while connected reopens the connection with the new one; changing the invite or the Link box updates the button on the profile at the next refresh.
+
+* v10.9.7 **
+* Fix: the Discord status stayed silent when it could not start. With the option ticked but the Application ID box empty, or holding something that is not an ID, the bot said nothing at all and the profile simply never changed. It now writes one line in the log naming what is missing and where to fix it, once per run instead of at every check.
+* Fix: the Discord status is now opened after the settings have been read, not before. Pasting the Application ID and pressing Start straight away connected only at the next check; the status is now up from the first second of the run.
+* Fix: ticking "Discord status" while the bot is already running takes the Application ID and the invite as they are typed, so the status appears at once instead of waiting for the next settings save.
+
+* v10.9.6 **
+* Discord Rich Presence: the "Join the server" button now opens the invite of your choice instead of a fixed link. The box next to the Link option takes any server invite (an invite pasted without https:// gets it added); an invalid one only hides the button, the status itself is still published.
+
+* v10.9.5 **
+* New: Discord Rich Presence. Village > Notify > "Discord status" shows on your own Discord profile what the bot is doing - Town Hall level and profile name, gold, elixir and dark elixir, and the time the bot has been running - with an optional "Join the Discord" button under it. Off by default, and nothing leaves the machine: the bot talks to the Discord application through its local pipe and Discord publishes the status, so no webhook, no server, nothing to install. It needs the Discord application running on the same PC and a free Application ID created on discord.com/developers/applications, pasted next to the option; the README explains the three steps and how to add the pictures. The status is public, so the option stays off until you turn it on. The bot updates it at most every 15 seconds to respect the Discord rate limit, reconnects by itself if Discord is closed and reopened, and clears the status when you stop the bot.
+
+* v10.9.4 **
+* The crash that stopped the bot while upgrading the Grand Warden ("Variable subscript badly formatted") was fixed for the six main village heroes in 10.8.10; the same weakness was still there in the builder base. The levels of the Battle Machine, the Battle Copter, the Double Cannon, the Archer Tower, the Multi Mortar and the cannons are read by OCR on the info bar, and were used straight away as an index of their cost table: an empty read, or one bad digit turning level 3 into 35, killed the bot the same way. All 40 cost lookups of the bot now go through one guarded accessor: an unusable level gives a cost of zero, the game refuses the upgrade itself, and the bot carries on instead of stopping.
+
+* v10.9.3 **
+* Speed: measuring the village (ZoomOut) is faster. The bot walked through the stone and tree reference images one by one on every zoom out, and read the folder from disk each time, although the scenery of a village never changes: on a real log the tree was always the fifth file tried, which cost 0.74 s against 0.22 s for the stone found on the first try. The folder is now read once and the image that matched last time is tried first, so the four useless searches are gone. The list is only reordered, never shortened: if the scenery really changes the bot simply carries on through the other images as before. New reference images need a bot restart to be picked up.
+
+* v10.9.2 **
+* Walls work at any level again: when the image search finds nothing and the builder menu is used instead, the game picks the wall itself and it can be of any level. The bot used to give up unless that wall matched the level of the Village > Upgrade combo; it now follows the level the game offers, moves the combo to it and recomputes the price of one wall, so the batch upgrade stays correct. The level switch no longer goes through the GUI combo, so it also works in mini and GUI-less mode.
+* The bot's own wall templates (imgcv\own\Walls\<level>\) stay optional per level: a level with no template folder is only a debug line in the log, not an error.
+
+* v10.9.1 **
+* Fix: the OpenCV interception is called by name from DllCallMyBot so the MiniGui and the other small executables, which do not embed the engine, build and run cleanly (10.9.0 compiled them with an unresolved reference).
+
+* v10.9.0 **
+* The OpenCV engine of the bot can now answer the image searches of the whole bot: when a template folder of the DLL has a PNG mirror in imgcv\<same path>\, the searches of that folder (findImage, findMultiple, QuickMIS, FindImageInPlace...) are served by the bot's own engine, unchanged for the 400 call sites. Same for the text: a glyph folder imgcv\OCR\<font>\ makes the bot read that font itself.
+* A shadow.txt file in such a folder keeps the DLL in charge and only logs the OpenCV result ("CV Search", "CV shadow", "CV ocr" lines), which is how each folder is validated before the switch. Two folders ship in that mode: the resource icons of the builder menu and the main screen counters font (coc-ms).
+* Own wall templates moved to imgcv\own\Walls\<level>\ (the imgcv\Walls\ name is reserved for a mirror of the DLL wall templates).
+
+* v10.8.11 **
+* New: a second image search engine of the bot's own, on the OpenCV libraries already in lib\ - plain PNG templates in imgcv\<group>\, cut from any 860x732 screenshot, no encrypted format. First use: imgcv\Walls\<level>\ holds the wall pieces (corners, junctions) the old templates never see; when the usual wall search finds nothing, these candidates are tried and verified by OCR before the builder menu fallback.
+
+* v10.8.10 **
+* Heroes: a hero already upgrading (or a hero whose window did not open) made the bot crash with "Variable subscript badly formatted" - the level read by OCR was empty and used as an index of the cost table. The level is now checked before use, the cost lookup never crashes, and when the hero upgrade window is not the one on screen the bot closes what is there (a gem window included) and skips the hero instead of carrying on.
+* Hero Hall: the bot said "Townhall Lvl 6 has no Hero Hall" and skipped it; the game data now gives the Hero Hall and the Barbarian King from Town Hall 4, the bot follows (locate, upgrade heroes, hero options in the GUI).
+
+* v10.8.9 **
+* Walls: the Wall line of the builder menu is now recognised whatever the scroll position (the list stops between two pixels and blurs the text: the bot compares the brightness of each column of the name instead of exact pixels, the debug log shows the match score of every page).
+
+* v10.8.8 **
+* Walls: the builder menu fallback did not recognise the Wall line in the bot (it looked for it on the resource icon lines only); the whole name column of the menu is now scanned, every page is logged and a screenshot is kept in Temp\Debug\BuilderMenuNoWall when no Wall line is found.
+
+* v10.8.7 **
+* Walls: when the image search cannot see the walls any more (the last pieces of a level are corners and junctions the templates do not know), the bot opens the builder menu, scrolls to its "Wall" line and lets the game select a wall of that level, then upgrades as usual (Upgrade More batch). No Wall line in the menu means nothing is left to upgrade.
+
+* v10.8.6 **
+* Walls: the "walls at once" setting is gone, the bot now always upgrades as many walls as the loot allows in one go through the game's Upgrade More wizard (the +10 button is used, the Min. Gold / Elixir to save is still kept). The builder base does the same with its wall suggestions.
+* Builder base: with "Keep 1 builder for walls" ticked the bot said "The last free Master Builder is kept for walls" on every suggestion it opened; it now says it once and only takes the wall suggestions.
+
+* v10.8.5 **
+* Spells are now dropped: the Heal / Rage / Earthquake... spells ticked in the attack plan stayed in the bar because the bot did not know where the heroes had landed (the standard deploy never recorded the point, only the red-line deploy did). The bot now remembers where the heroes (or the clan castle) were really dropped and puts the spells on the push right behind them.
+
+* v10.8.4 **
+* Builder Base: the Battle Machine and Battle Copter ability is no longer fired the instant it is ready, on a machine at full health. The bot reads the health bar above the machine's slot and fires the ability once it is down to 40 percent, where the hammer's heal is worth something.
+
+* v10.8.3 **
+* The league badge shown in Bot > Stats and in the bottom bar of the Log tab is the real one: the bot copies the badge from the main screen at every village report (the Valkyrie, Witch, Golem... art with the tier number) instead of the trophy icon and the old Bronze / Silver / Gold set.
+
+* v10.8.2 **
+* Builder Base trophies are read correctly (Village > Misc > Builder Base and the builder base report): the count was read while the counter was still rolling after arriving on the base, which gave 19 or 915 for 1 900 and the wrong league. The bot now waits for the counter to settle.
+
+* v10.8.1 **
+* Builder Base: new "Keep 1 builder for walls" tick box under Village > Misc > Suggested Upgrades. With it on, the last free Master Builder is left to the wall suggestions: buildings, the Battle Machine, the Copter and new buildings only start when two builders are free.
+
+* v10.8.0 **
+* Walls: level 18 can be searched and upgraded (to 19, 10 000 000 gold), with its counter in Village > Upgrade > Walls.
+* Pets: Frosty, Diggy and the Poison Lizard go to level 15 with their costs; the cap now follows the Pet House level of the game (levels 11 to 15 need Pet House 11, Diggy's 12) instead of staying at the lowest cap seen since the bot started.
+* Search filters: the "weak base" defence levels reach what the bot can recognise on CoC 18.600 (Mortar and Wizard Tower 17, Air Defense 15, X-Bow 12, Inferno 10, Eagle 7, Scattershot 6, Monolith 3).
+
+* v10.7.0 **
+* Season pass rewards are claimed: with Village > Misc > "Collect Challenge Rewards" on, the bot opens the pass, claims every green card it sees, scrolls the track back to reach the ones behind the current progress, and closes it.
+* New "Pass choice" list next to that option for rewards that offer two items: take the resource (gold, elixir, dark elixir), the magic item, or always the left one.
+
+* v10.6.6 **
+* The spell tick boxes of Attack Plan > Dead Base / Active Base are visible with every attack type: they used to appear for Scripted attacks only, so the spells that Standard and SmartFarm now drop could not be ticked.
+
+* v10.6.5 **
+* Donations follow a moving chat: when a clan mate posts between the moment a request is read and the moment its Donate button is clicked, the bot scans the chat again instead of giving up, and it closes the donation window on the button wherever it has moved to.
+* Windows that ask a Cancel / Okay question (quit the game, spend gems...) are no longer confirmed blindly by the obstacle check; deliberate confirmations (surrender, request, walls, treasury) are unchanged.
+
+* v10.6.4 **
+* Donations work in the 18.600 Social panel: the Donate button of a request is found by its colours wherever it sits in the chat, as the old image of it no longer matched. The rest of the donation flow (requested troops, capacity figures, donation window) kept its layout and is unchanged.
+
+* v10.6.3 **
+* The "Welcome Back Chief" window is closed again: the green check mark on each finished upgrade card was taken for the button, the search stopped there and the window stayed open.
+* The Clan Castle request is sent again: the new "Send" button was found but its off-white label failed the check that tells a button from any other green shape.
+
+* v10.6.2 **
+* Spells are no longer thrown at an empty screen when a fast three star ends the battle while the heroes are still landing.
+* The builder base report is only sent when the reading taken before the cycle worked, so the figures can no longer show the whole storage as if it had just been won, and its Telegram line no longer turns a plus sign into a space.
+* The season pass check is no longer retried on every pass of the bot when the window fails to open, which used to flood the log.
+* The two new siege tick boxes show their tooltip instead of an error code on a fresh install.
+* README: added the siege machine, spell and builder base report sections.
+
+* v10.6.1 **
+* A new profile now leaves the siege choice on "Default", so the bot deploys the machine your Clan Castle actually carries. It used to start on "Battle Drill" and kept trying to switch to a machine the account may not own.
+
+* v10.6.0 **
+* New "Use siege machine" tick box in Attack Plan > Dead Base and Active Base, next to the heroes: the bot deploys whichever siege machine your Clan Castle carries, and unticking it keeps the machine for a war while the castle troops are still dropped. On by default.
+
+* v10.5.1 **
+* Siege machines are deployed again: the attack bar gave the siege and the Grand Warden the same slot number, so one of the two was dropped from the usable troops and a Stone Slammer was carried into every raid without ever being used.
+
+* v10.5.0 **
+* Builder Base report: a new "Builder Base raid" option in Village > Notify posts a Discord card and a Telegram message at the end of each builder base attack cycle, with the attacks done, the gold, elixir and trophies won and a screenshot.
+* Spells are finally used: the standard and Smart Farm attacks now drop the spells ticked in the Attack Plan on the push, right after the heroes (Lightning and Earthquake stay reserved when Smart Zap is on).
+* Loot over one million is read correctly again: the OCR box of the end of battle screen was too narrow on the left, so 1 075 073 gold came back as 75 073.
+* Builder base: a failed zoom out no longer closes and restarts Clash of Clans for nothing, it was switching to fixed point images that only exist for the home village.
+* Season pass: the bot finds the pass button and window again (they moved and were redrawn in 18.600), instead of logging "Can't find button" on every pass.
+
+* v10.4.1 **
+* Attack report: the dark elixir looted is read again. The bot was testing a single pixel that no longer sits on the dark elixir drop of the CoC 18.600 end screen, so it took the "no dark elixir" branch every time and reported 0; the drop is now recognised by its purple icon, and the number is read with the same wide box as gold and elixir (the old one cut the first digit).
+
+* v10.4.0 **
+* Walls: new "Upgrade More: walls at once" setting (Village > Upgrade > Walls, 1 to 10, default 1). The bot uses the game's Upgrade More button to upgrade several walls of the same level in one go: it opens the wizard, presses Add Wall until the wanted count, checks the total and confirms.
+* Walls: the batch is reduced by itself when the resources, the Min. Gold / Min. Elixir to save, or the number of walls left at that level do not allow it; the bot reads the red labels and the red price the game uses to say an action is impossible, and falls back to one wall at a time.
+* Walls: gold and elixir are never mixed in a batch, exactly as the game does; the log says how many walls were upgraded and for how much.
+
+* v10.3.5 **
+* Treasury: the bot now checks that the building it selected really is the Clan Castle (a few pixels of village drift used to select the wall next to it, whose bar shows Upgrade buttons where the chest is expected) and tries nearby points, keeping the one that works; the chest is also required to show its dark frame, so a gold price can no longer pass for it.
+
+* v10.3.4 **
+* Attack report: stars are read again on the CoC 18.600 end screen (the three big stars are sampled for their silver fill instead of three fixed pixels of the old layout); the Discord raid card, the Telegram text, the AttackLog and the stats get the right star count.
+* Discord raid card and Telegram raid text: a loot of 0 (usually Dark Elixir) shows "0" instead of a blank; the Telegram labels are [Dmg] and [Stars] (the "%" label broke the message URL).
+
 * v10.3.3 **
 * Language check at start: when the OCR reads nothing on the Attack button, the white pixels of the label are compared to the English "Attack!" word (pixel match) before the game is declared not in English; the bot no longer stops on an OCR miss.
 

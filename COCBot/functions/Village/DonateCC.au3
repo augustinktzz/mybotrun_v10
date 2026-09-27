@@ -50,6 +50,77 @@ Func PrepareDonateCC()
 	$g_iActiveDonate = BitOR($g_aiPrepDon[0], $g_aiPrepDon[1], $g_aiPrepDon[2], $g_aiPrepDon[3], $g_aiPrepDon[4], $g_aiPrepDon[5])
 EndFunc   ;==>PrepareDonateCC
 
+; Green "Donate" button of a request in the Social panel, found by its colours. The DonateButton
+; template stopped matching the 18.600 panel while everything the bot reads around that button kept
+; its old place (requested troops 88 px above it, capacity figures on its row, the donation window
+; it opens), so only this anchor needed a second way of being found. Measured on a live request:
+; lime top band 0xDDF685 at x 243-325 (83 px wide, 9 px high), white label right below, dark green
+; bottom, 32 px tall in all, the click point 15 px under the band. Returns [x, y] of the first button
+; whose band starts at or below $iYFrom, 0 when there is none in the chat column.
+; $bDimmed looks for the same button under the open donation window, where the whole panel is drawn
+; at half brightness (band 0x6F7C43, label 0x808080): that is how the window is closed on the button
+; wherever the chat has moved to in the meantime.
+Func FindDonateButton($iYFrom = 90, $bDimmed = False)
+	If $iYFrom < 90 Then $iYFrom = 90
+	If $iYFrom > 660 Then Return 0
+	_CaptureRegion(238, 90, 340, 700)
+	Local $iSkipUntilX = -1, $iSkipY = -1
+	For $y = $iYFrom To 672 Step 3
+		For $x = 240 To 335 Step 3
+			If $y = $iSkipY And $x <= $iSkipUntilX Then ContinueLoop
+			If Not __IsDonateBand(_GetPixelColor($x - 238, $y - 90, False), $bDimmed) Then ContinueLoop
+			Local $iXL = $x, $iXR = $x
+			While $iXL > 238 And __IsDonateBand(_GetPixelColor($iXL - 1 - 238, $y - 90, False), $bDimmed)
+				$iXL -= 1
+			WEnd
+			While $iXR < 339 And __IsDonateBand(_GetPixelColor($iXR + 1 - 238, $y - 90, False), $bDimmed)
+				$iXR += 1
+			WEnd
+			$iSkipUntilX = $iXR
+			$iSkipY = $y
+			Local $iWidth = $iXR - $iXL + 1
+			If $iWidth < 60 Or $iWidth > 110 Then ContinueLoop ; troop level badges and text strokes are far narrower
+			Local $iXC = Int(($iXL + $iXR) / 2)
+			Local $iYT = $y
+			While $iYT > 90 And __IsDonateBand(_GetPixelColor($iXC - 238, $iYT - 1 - 90, False), $bDimmed)
+				$iYT -= 1
+			WEnd
+			Local $iLight = 0
+			For $yy = $iYT + 8 To $iYT + 26 Step 2
+				For $xx = $iXC - 30 To $iXC + 30 Step 3
+					Local $sCol = _GetPixelColor($xx - 238, $yy - 90, False)
+					If StringLen($sCol) <> 6 Then ContinueLoop
+					Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+					If $bDimmed Then
+						If $iR > 112 And $iR < 145 And $iG > 112 And $iG < 145 And $iB > 112 And $iB < 145 Then $iLight += 1
+					Else
+						If $iR > 215 And $iG > 215 And $iB > 215 Then $iLight += 1
+					EndIf
+				Next
+			Next
+			If $iLight < 6 Then ContinueLoop
+			Local $aButton[2] = [$iXC, $iYT + 15]
+			SetDebugLog("FindDonateButton: Donate button at " & $aButton[0] & "," & $aButton[1] & " (" & $iWidth & " px wide" & ($bDimmed ? ", dimmed" : "") & ")", $COLOR_DEBUG)
+			Return $aButton
+		Next
+	Next
+	Return 0
+EndFunc   ;==>FindDonateButton
+
+Func __IsDonateBand($sCol, $bDimmed)
+	If Not $bDimmed Then Return __IsLimeButton($sCol)
+	If StringLen($sCol) <> 6 Then Return False
+	Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+	Return ($iR >= 95 And $iR <= 125 And $iG >= 110 And $iG <= 140 And $iB >= 55 And $iB <= 80 And $iG > $iR + 5)
+EndFunc   ;==>__IsDonateBand
+
+; The template first, so nothing changes where it still matches, the colours second.
+Func __DonateButtonSearch($aiSearchArray)
+	Local $aBtn = decodeSingleCoord(findImage("Donate Button", $g_sImgDonateCC & "DonateButton*", GetDiamondFromArray($aiSearchArray), 1, True, Default))
+	If IsArray($aBtn) And UBound($aBtn, 1) >= 2 Then Return $aBtn
+	Return FindDonateButton($aiSearchArray[1])
+EndFunc   ;==>__DonateButtonSearch
+
 Func getArmyRequest($aiDonateCoords, $bNeedCapture = True)
 	; Contains iXStart, $iYStart, $iXEnd, $iYEnd
 	Local $aiSearchArray[4] = [25, $aiDonateCoords[1] - 88, 340, $aiDonateCoords[1] - 38]
@@ -230,6 +301,7 @@ Func DonateCC($bUpdateStats = True)
 	Local $iTimer
 	Local $sSearchArea, $aiSearchArray[4] = [240, 90, 330, 670]
 	Local $aiDonateButton
+	Local $iChatMoved = 0 ; times the chat scrolled between finding a button and clicking it
 
 	While $bDonate
 		$ClanString = ""
@@ -238,8 +310,7 @@ Func DonateCC($bUpdateStats = True)
 
 		WaitForClanMessage("Donate", $aiSearchArray[1], 0, False)
 		$iTimer = __TimerInit()
-		$sSearchArea = GetDiamondFromArray($aiSearchArray)
-		$aiDonateButton = decodeSingleCoord(findImage("Donate Button", $g_sImgDonateCC & "DonateButton*", $sSearchArea, 1, True, Default))
+		$aiDonateButton = __DonateButtonSearch($aiSearchArray)
 
 		If $g_bDebugSetLog Then SetDebugLog("Get all Buttons in " & StringFormat("%.2f", __TimerDiff($iTimer)) & "'ms", $COLOR_DEBUG)
 
@@ -460,6 +531,16 @@ Func DonateCC($bUpdateStats = True)
 			;;; Open Donate Window
 			If _Sleep($DELAYDONATECC3) Then Return
 			If Not DonateWindow($aiDonateButton, $bOpen) Then
+				; The button is no longer where it was read: a clan mate posted and the chat moved. Start
+				; the scan over from the top so the request is read again at its new place, a few times
+				; at most in case the chat keeps moving.
+				$iChatMoved += 1
+				If $iChatMoved <= 3 Then
+					SetLog("The chat moved, looking for the request again", $COLOR_INFO)
+					$aiSearchArray[1] = 90
+					$bDonate = True
+					ContinueLoop
+				EndIf
 				SetLog("Donate Window did not open - Exiting Donate", $COLOR_ERROR)
 				ExitLoop ; Leave donate to prevent a bot hang condition
 			EndIf
@@ -722,8 +803,7 @@ Func DonateCC($bUpdateStats = True)
 		EndIf
 
 		WaitForClanMessage("Donate", $aiSearchArray[1], 0, False)
-		$sSearchArea = GetDiamondFromArray($aiSearchArray)
-		$aiDonateButton = decodeSingleCoord(findImage("Donate Button", $g_sImgDonateCC & "DonateButton*", $sSearchArea, 1, True, Default))
+		$aiDonateButton = __DonateButtonSearch($aiSearchArray)
 
 		If $g_bDebugSetLog Then SetDebugLog("Get more donate buttons in " & StringFormat("%.2f", __TimerDiff($iTimer)) & "'ms", $COLOR_DEBUG)
 
@@ -750,8 +830,7 @@ Func DonateCC($bUpdateStats = True)
 		;;; Chat Down
 		If ClickB("ChatDown") Then
 			$aiSearchArray[1] = 580
-			$sSearchArea = GetDiamondFromArray($aiSearchArray)
-			$aiDonateButton = decodeSingleCoord(findImage("Donate Button", $g_sImgDonateCC & "DonateButton*", $sSearchArea, 1, True, Default))
+			$aiDonateButton = __DonateButtonSearch($aiSearchArray)
 			If IsArray($aiDonateButton) And UBound($aiDonateButton, 1) >= 2 Then
 				$bDonate = True
 				ContinueLoop
@@ -1195,7 +1274,15 @@ Func DonateWindow($aiDonateButton, $bOpen = True)
 
 	If Not $bOpen Then ; close window and exit
 		If _Sleep($DELAYDONATEWINDOW1) Then Return
-		ClickP($aiDonateButton)
+		; The window closes on its own Donate button. A message posted while it was open moves the whole
+		; chat, so the button is looked up again, dimmed under the window, rather than clicked from memory.
+		Local $aiNow = FindDonateButton(90, True)
+		If IsArray($aiNow) Then
+			If Abs($aiNow[1] - $aiDonateButton[1]) > 5 Then SetDebugLog("DonateWindow: the chat moved by " & ($aiNow[1] - $aiDonateButton[1]) & " px while the window was open", $COLOR_DEBUG)
+			ClickP($aiNow)
+		Else
+			ClickP($aiDonateButton)
+		EndIf
 		If _Sleep(500) Then Return
 		If $g_bDebugSetLog Then SetDebugLog("DonateWindow Close Exit", $COLOR_DEBUG)
 		Return
@@ -1205,6 +1292,11 @@ Func DonateWindow($aiDonateButton, $bOpen = True)
 
 	Local $aiSearchArray[4] = [$aiDonateButton[0] - 20, $aiDonateButton[1] - 20, $aiDonateButton[0] + 20, $aiDonateButton[1] + 20]
 	Local $aiDonateButtonCheck = decodeSingleCoord(findImage("Donate Button", $g_sImgDonateCC & "DonateButton*", GetDiamondFromArray($aiSearchArray), 1, True, Default))
+	If Not (IsArray($aiDonateButtonCheck) And UBound($aiDonateButtonCheck, 1) > 1) Then
+		; same fallback as the chat search: the button must still be where it was found, give or take 20 px
+		Local $aiColourCheck = FindDonateButton($aiDonateButton[1] - 20)
+		If IsArray($aiColourCheck) And Abs($aiColourCheck[0] - $aiDonateButton[0]) <= 20 And Abs($aiColourCheck[1] - $aiDonateButton[1]) <= 20 Then $aiDonateButtonCheck = $aiColourCheck
+	EndIf
 
 	If IsArray($aiDonateButtonCheck) And UBound($aiDonateButtonCheck, 1) > 1 Then
 		ClickP($aiDonateButton)

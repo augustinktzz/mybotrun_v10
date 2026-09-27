@@ -97,12 +97,32 @@ Func FinishTimeCalculation($bHero = "")
 	EndSwitch
 EndFunc   ;==>FinishTimeCalculation
 
+; Level of a hero as the yellow number of its upgrade window gives it (the level it upgrades to), turned into
+; the level it has now, -1 when the OCR read nothing (a hero already upgrading shows a timer there).
+Func __HeroLevelFromOcr($sOcr)
+	If Not StringRegExp(String($sOcr), "^\d+$") Then Return -1
+	Return Number($sOcr) - 1
+EndFunc   ;==>__HeroLevelFromOcr
+
+; Entry of a cost table for a level, 0 when the level is outside the table. Levels come from the OCR of the
+; info bar: an empty or misread value used as an index crashed the bot ("Variable subscript badly formatted"
+; when a hero was already upgrading, out of range on a bad digit). Cost 0 lets the game refuse the upgrade
+; itself instead of killing the bot.
+Func __UpgCostAt($afCost, $vLevel)
+	If Not IsNumber($vLevel) Then
+		If Not StringRegExp(String($vLevel), "^-?\d+$") Then Return 0
+		$vLevel = Number($vLevel)
+	EndIf
+	If $vLevel < 0 Or $vLevel >= UBound($afCost) Then Return 0
+	Return $afCost[$vLevel]
+EndFunc   ;==>__UpgCostAt
+
 Func NeededResources($bHero = "")
 	Switch $bHero
 		Case "King"
 			Click($bXcoords[0] + 115, 232 + $g_iMidOffsetY)
 			If _Sleep($DELAYUPGRADEHERO3) Then Return ; Wait for window to open
-			$g_iKingLevel = getYellowLevel(452, 116)
+			$g_iKingLevel = __HeroLevelFromOcr(getYellowLevel(452, 116))
 			$g_aiHeroNeededResource[0] = Number(getCostsUpgradeRed(552, 541 + $g_iMidOffsetY)) ;read Red upgrade text
 			If $g_aiHeroNeededResource[0] = "" Then $g_aiHeroNeededResource[0] = Number(getCostsUpgradeRed(552, 532 + $g_iMidOffsetY)) ;read Red upgrade text (Discount).
 			SetLog($bHero & " Upgrade Requires " & _NumberFormat($g_aiHeroNeededResource[0]) & " Dark Elixir", $COLOR_SUCCESS)
@@ -111,7 +131,7 @@ Func NeededResources($bHero = "")
 		Case "Queen"
 			Click($bXcoords[1] + 115, 232 + $g_iMidOffsetY)
 			If _Sleep($DELAYUPGRADEHERO3) Then Return ; Wait for window to open
-			$g_iQueenLevel = getYellowLevel(445, 116)
+			$g_iQueenLevel = __HeroLevelFromOcr(getYellowLevel(445, 116))
 			$g_aiHeroNeededResource[1] = Number(getCostsUpgradeRed(552, 541 + $g_iMidOffsetY)) ;read Red upgrade text
 			If $g_aiHeroNeededResource[1] = "" Then $g_aiHeroNeededResource[1] = Number(getCostsUpgradeRed(552, 532 + $g_iMidOffsetY)) ;read Red upgrade text (Discount).
 			SetLog($bHero & " Upgrade Requires " & _NumberFormat($g_aiHeroNeededResource[1]) & " Dark Elixir", $COLOR_SUCCESS)
@@ -120,7 +140,7 @@ Func NeededResources($bHero = "")
 		Case "Prince"
 			Click($bXcoords[2] + 115, 232 + $g_iMidOffsetY)
 			If _Sleep($DELAYUPGRADEHERO3) Then Return ; Wait for window to open
-			$g_iPrinceLevel = getYellowLevel(535, 116)
+			$g_iPrinceLevel = __HeroLevelFromOcr(getYellowLevel(535, 116))
 			$g_aiHeroNeededResource[2] = Number(getCostsUpgradeRed(552, 541 + $g_iMidOffsetY)) ;read Red upgrade text
 			If $g_aiHeroNeededResource[2] = "" Then $g_aiHeroNeededResource[2] = Number(getCostsUpgradeRed(552, 532 + $g_iMidOffsetY)) ;read Red upgrade text (Discount).
 			SetLog($bHero & " Upgrade Requires " & _NumberFormat($g_aiHeroNeededResource[2]) & " Dark Elixir", $COLOR_SUCCESS)
@@ -129,7 +149,7 @@ Func NeededResources($bHero = "")
 		Case "Warden"
 			Click($bXcoords[3] + 115, 232 + $g_iMidOffsetY)
 			If _Sleep($DELAYUPGRADEHERO3) Then Return ; Wait for window to open
-			$g_iWardenLevel = getYellowLevel(452, 116)
+			$g_iWardenLevel = __HeroLevelFromOcr(getYellowLevel(452, 116))
 			$g_aiHeroNeededResource[3] = Number(getCostsUpgradeRed(552, 541 + $g_iMidOffsetY)) ;read Red upgrade text
 			If $g_aiHeroNeededResource[3] = "" Then $g_aiHeroNeededResource[3] = Number(getCostsUpgradeRed(552, 532 + $g_iMidOffsetY)) ;read Red upgrade text (Discount).
 			SetLog($bHero & " Upgrade Requires " & _NumberFormat($g_aiHeroNeededResource[3]) & " Elixir", $COLOR_SUCCESS)
@@ -138,7 +158,7 @@ Func NeededResources($bHero = "")
 		Case "Champion"
 			Click($bXcoords[4] + 115, 232 + $g_iMidOffsetY)
 			If _Sleep($DELAYUPGRADEHERO3) Then Return ; Wait for window to open
-			$g_iChampionLevel = getYellowLevel(452, 116)
+			$g_iChampionLevel = __HeroLevelFromOcr(getYellowLevel(452, 116))
 			$g_aiHeroNeededResource[4] = Number(getCostsUpgradeRed(552, 541 + $g_iMidOffsetY)) ;read Red upgrade text
 			If $g_aiHeroNeededResource[4] = "" Then $g_aiHeroNeededResource[4] = Number(getCostsUpgradeRed(552, 532 + $g_iMidOffsetY)) ;read Red upgrade text (Discount).
 			SetLog($bHero & " Upgrade Requires " & _NumberFormat($g_aiHeroNeededResource[4]) & " Dark Elixir", $COLOR_SUCCESS)
@@ -152,7 +172,7 @@ Func UpgradeHeroes()
 	If Not $g_bUpgradeKingEnable And Not $g_bUpgradeQueenEnable And Not $g_bUpgradePrinceEnable And Not $g_bUpgradeWardenEnable And Not $g_bUpgradeChampionEnable And Not $g_bUpgradeDukeEnable Then Return
 	If _Sleep(500) Then Return
 
-	If $g_iTownHallLevel < 7 Then
+	If $g_iTownHallLevel < 4 Then ; Hero Hall and King from TH4 (game data)
 		SetLog("Townhall Lvl " & $g_iTownHallLevel & " has no Hero Hall, so skip locating.", $COLOR_DEBUG)
 		Return
 	EndIf
@@ -614,7 +634,7 @@ Func KingUpgrade()
 
 	If Not $g_bRunState Then Return
 
-	If $g_iTownHallLevel < 7 Then
+	If $g_iTownHallLevel < 4 Then ; Hero Hall and King from TH4 (game data)
 		SetLog("TH upgrade needed - Skipped!", $COLOR_ERROR)
 		$g_bUpgradeKingEnable = False ; Turn Off the King's Upgrade
 		GUICtrlSetState($g_hChkUpgradeKing, $GUI_UNCHECKED)
@@ -687,12 +707,17 @@ Func KingUpgrade()
 		Else
 			SetLog("Your Babarian King Level read as: " & $g_iKingLevel, $COLOR_SUCCESS)
 		EndIf
+	Else ; a hero already upgrading, or a hero whose bar moved, puts another window here: never carry on blind
+		SetLog("The hero upgrade window did not open, upgrade skipped", $COLOR_ERROR)
+		If isGemOpen(True) Then SetLog("A gem window was open instead, closed", $COLOR_ERROR)
+		CloseWindow2(1)
+		Return
 	EndIf
 
 	Local $RedSearch = _PixelSearch(610, 535 + $g_iMidOffsetY, 650, 557 + $g_iMidOffsetY, Hex(0xFF887F, 6), 20)
 	If IsArray($RedSearch) Then
-		If $g_aiCurrentLoot[$eLootDarkElixir] < ($g_afKingUpgCost[$g_iKingLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
-			SetLog("Insufficient DE for Upg King, requires: " & ($g_afKingUpgCost[$g_iKingLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
+		If $g_aiCurrentLoot[$eLootDarkElixir] < (__UpgCostAt($g_afKingUpgCost, $g_iKingLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
+			SetLog("Insufficient DE for Upg King, requires: " & (__UpgCostAt($g_afKingUpgCost, $g_iKingLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
 			CloseWindow2(1)
 			Return
 		EndIf
@@ -709,7 +734,7 @@ Func KingUpgrade()
 	Local $TxtWarningTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Search", "TxtKingWait_Info_03", "ATTENTION: King auto upgrade is currently enable.")
 	If (IsArray($aWhiteZeros) And UBound($aWhiteZeros, 1) = 2) Then
 
-		Local $bUpgradeCost = ($g_afKingUpgCost[$g_iKingLevel] * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afKingUpgCost, $g_iKingLevel) * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Dark Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -749,7 +774,7 @@ Func KingUpgrade()
 		$g_aiCurrentLoot[$eLootDarkElixir] -= $bUpgradeCost
 	ElseIf IsArray($YellowSearch) Then
 
-		Local $bUpgradeCost = ($g_afKingUpgCost[$g_iKingLevel] * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afKingUpgCost, $g_iKingLevel) * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Dark Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -875,12 +900,17 @@ Func QueenUpgrade()
 		Else
 			SetLog("Your Archer Queen Level read as: " & $g_iQueenLevel, $COLOR_SUCCESS)
 		EndIf
+	Else ; a hero already upgrading, or a hero whose bar moved, puts another window here: never carry on blind
+		SetLog("The hero upgrade window did not open, upgrade skipped", $COLOR_ERROR)
+		If isGemOpen(True) Then SetLog("A gem window was open instead, closed", $COLOR_ERROR)
+		CloseWindow2(1)
+		Return
 	EndIf
 
 	Local $RedSearch = _PixelSearch(610, 535 + $g_iMidOffsetY, 650, 557 + $g_iMidOffsetY, Hex(0xFF887F, 6), 20)
 	If IsArray($RedSearch) Then
-		If $g_aiCurrentLoot[$eLootDarkElixir] < ($g_afQueenUpgCost[$g_iQueenLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
-			SetLog("Insufficient DE for Upg Queen, requires: " & ($g_afQueenUpgCost[$g_iQueenLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
+		If $g_aiCurrentLoot[$eLootDarkElixir] < (__UpgCostAt($g_afQueenUpgCost, $g_iQueenLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
+			SetLog("Insufficient DE for Upg Queen, requires: " & (__UpgCostAt($g_afQueenUpgCost, $g_iQueenLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
 			CloseWindow2(1)
 			Return
 		EndIf
@@ -897,7 +927,7 @@ Func QueenUpgrade()
 	Local $TxtWarningTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Search", "TxtQueenWait_Info_03", "ATTENTION: Queen auto upgrade is currently enable.")
 	If (IsArray($aWhiteZeros) And UBound($aWhiteZeros, 1) = 2) Then
 
-		Local $bUpgradeCost = ($g_afQueenUpgCost[$g_iQueenLevel] * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afQueenUpgCost, $g_iQueenLevel) * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Dark Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -937,7 +967,7 @@ Func QueenUpgrade()
 		$g_aiCurrentLoot[$eLootDarkElixir] -= $bUpgradeCost
 	ElseIf IsArray($YellowSearch) Then
 
-		Local $bUpgradeCost = ($g_afQueenUpgCost[$g_iQueenLevel] * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afQueenUpgCost, $g_iQueenLevel) * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Dark Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -1063,12 +1093,17 @@ Func PrinceUpgrade()
 		Else
 			SetLog("Your Minion Prince Level read as: " & $g_iPrinceLevel, $COLOR_SUCCESS)
 		EndIf
+	Else ; a hero already upgrading, or a hero whose bar moved, puts another window here: never carry on blind
+		SetLog("The hero upgrade window did not open, upgrade skipped", $COLOR_ERROR)
+		If isGemOpen(True) Then SetLog("A gem window was open instead, closed", $COLOR_ERROR)
+		CloseWindow2(1)
+		Return
 	EndIf
 
 	Local $RedSearch = _PixelSearch(610, 535 + $g_iMidOffsetY, 650, 557 + $g_iMidOffsetY, Hex(0xFF887F, 6), 20)
 	If IsArray($RedSearch) Then
-		If $g_aiCurrentLoot[$eLootDarkElixir] < ($g_afPrinceUpgCost[$g_iPrinceLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
-			SetLog("Insufficient DE for Upg Prince, requires: " & ($g_afPrinceUpgCost[$g_iPrinceLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
+		If $g_aiCurrentLoot[$eLootDarkElixir] < (__UpgCostAt($g_afPrinceUpgCost, $g_iPrinceLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
+			SetLog("Insufficient DE for Upg Prince, requires: " & (__UpgCostAt($g_afPrinceUpgCost, $g_iPrinceLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
 			CloseWindow2(1)
 			Return
 		EndIf
@@ -1085,7 +1120,7 @@ Func PrinceUpgrade()
 	Local $TxtWarningTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Search", "TxtPrinceWait_Info_03", "ATTENTION: Prince auto upgrade is currently enable.")
 	If (IsArray($aWhiteZeros) And UBound($aWhiteZeros, 1) = 2) Then
 
-		Local $bUpgradeCost = ($g_afPrinceUpgCost[$g_iPrinceLevel] * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afPrinceUpgCost, $g_iPrinceLevel) * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Dark Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -1125,7 +1160,7 @@ Func PrinceUpgrade()
 		$g_aiCurrentLoot[$eLootDarkElixir] -= $bUpgradeCost
 	ElseIf IsArray($YellowSearch) Then
 
-		Local $bUpgradeCost = ($g_afPrinceUpgCost[$g_iPrinceLevel] * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afPrinceUpgCost, $g_iPrinceLevel) * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Dark Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -1254,11 +1289,16 @@ Func WardenUpgrade()
 		Else
 			SetLog("Your Grand Warden Level read as: " & $g_iWardenLevel, $COLOR_SUCCESS)
 		EndIf
+	Else ; a hero already upgrading, or a hero whose bar moved, puts another window here: never carry on blind
+		SetLog("The hero upgrade window did not open, upgrade skipped", $COLOR_ERROR)
+		If isGemOpen(True) Then SetLog("A gem window was open instead, closed", $COLOR_ERROR)
+		CloseWindow2(1)
+		Return
 	EndIf
 
 	If $bCheckValuesForWarden Then
 		If $g_aiHeroNeededResource[3] = 0 Then
-			$g_aiHeroNeededResource[3] = ($g_afWardenUpgCost[$g_iWardenLevel] * 1000000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+			$g_aiHeroNeededResource[3] = (__UpgCostAt($g_afWardenUpgCost, $g_iWardenLevel) * 1000000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 			SetLog("Warden Upgrade Requires " & _NumberFormat($g_aiHeroNeededResource[3]) & " Elixir", $COLOR_SUCCESS)
 			CloseWindow2(1)
 			Return
@@ -1267,8 +1307,8 @@ Func WardenUpgrade()
 
 	Local $RedSearch = _PixelSearch(610, 535 + $g_iMidOffsetY, 650, 557 + $g_iMidOffsetY, Hex(0xFF887F, 6), 20)
 	If IsArray($RedSearch) Then
-		If $g_aiCurrentLoot[$eLootElixir] < ($g_afWardenUpgCost[$g_iWardenLevel] * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
-			SetLog("Insufficient Elixir for Upg Warden, requires: " & ($g_afWardenUpgCost[$g_iWardenLevel] * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
+		If $g_aiCurrentLoot[$eLootElixir] < (__UpgCostAt($g_afWardenUpgCost, $g_iWardenLevel) * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
+			SetLog("Insufficient Elixir for Upg Warden, requires: " & (__UpgCostAt($g_afWardenUpgCost, $g_iWardenLevel) * 1000000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
 			CloseWindow2(1)
 			Return
 		EndIf
@@ -1285,7 +1325,7 @@ Func WardenUpgrade()
 	Local $TxtWarningTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Search", "TxtWardenWait_Info_03", "ATTENTION: Warden auto upgrade is currently enable.")
 	If (IsArray($aWhiteZeros) And UBound($aWhiteZeros, 1) = 2) Then
 
-		Local $bUpgradeCost = ($g_afWardenUpgCost[$g_iWardenLevel] * 1000000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afWardenUpgCost, $g_iWardenLevel) * 1000000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -1325,7 +1365,7 @@ Func WardenUpgrade()
 		$g_aiCurrentLoot[$eLootElixir] -= $bUpgradeCost
 	ElseIf IsArray($YellowSearch) Then
 
-		Local $bUpgradeCost = ($g_afWardenUpgCost[$g_iWardenLevel] * 1000000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afWardenUpgCost, $g_iWardenLevel) * 1000000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -1451,12 +1491,17 @@ Func ChampionUpgrade()
 		Else
 			SetLog("Your Royal Champion Level read as: " & $g_iChampionLevel, $COLOR_SUCCESS)
 		EndIf
+	Else ; a hero already upgrading, or a hero whose bar moved, puts another window here: never carry on blind
+		SetLog("The hero upgrade window did not open, upgrade skipped", $COLOR_ERROR)
+		If isGemOpen(True) Then SetLog("A gem window was open instead, closed", $COLOR_ERROR)
+		CloseWindow2(1)
+		Return
 	EndIf
 
 	Local $RedSearch = _PixelSearch(610, 535 + $g_iMidOffsetY, 650, 557 + $g_iMidOffsetY, Hex(0xFF887F, 6), 20)
 	If IsArray($RedSearch) Then
-		If $g_aiCurrentLoot[$eLootDarkElixir] < ($g_afChampionUpgCost[$g_iChampionLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
-			SetLog("Insufficient DE for Upg Champion, requires: " & ($g_afChampionUpgCost[$g_iChampionLevel] * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
+		If $g_aiCurrentLoot[$eLootDarkElixir] < (__UpgCostAt($g_afChampionUpgCost, $g_iChampionLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) + $g_iUpgradeMinDark Then
+			SetLog("Insufficient DE for Upg Champion, requires: " & (__UpgCostAt($g_afChampionUpgCost, $g_iChampionLevel) * 1000) * (1 - Number($g_iBuilderBoostDiscount) / 100) & " + " & $g_iUpgradeMinDark, $COLOR_INFO)
 			CloseWindow2(1)
 			Return
 		EndIf
@@ -1473,7 +1518,7 @@ Func ChampionUpgrade()
 	Local $TxtWarningTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Search", "TxtChampionWait_Info_03", "ATTENTION: Champion auto upgrade is currently enable.")
 	If (IsArray($aWhiteZeros) And UBound($aWhiteZeros, 1) = 2) Then
 
-		Local $bUpgradeCost = ($g_afChampionUpgCost[$g_iChampionLevel] * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afChampionUpgCost, $g_iChampionLevel) * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Dark Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 
@@ -1513,7 +1558,7 @@ Func ChampionUpgrade()
 		$g_aiCurrentLoot[$eLootDarkElixir] -= $bUpgradeCost
 	ElseIf IsArray($YellowSearch) Then
 
-		Local $bUpgradeCost = ($g_afChampionUpgCost[$g_iChampionLevel] * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
+		Local $bUpgradeCost = (__UpgCostAt($g_afChampionUpgCost, $g_iChampionLevel) * 1000 * (1 - Number($g_iBuilderBoostDiscount) / 100))
 		SetLog("Upgrade cost " & _NumberFormat($bUpgradeCost) & " Dark Elixir", $COLOR_INFO)
 		If _Sleep(1000) Then Return
 

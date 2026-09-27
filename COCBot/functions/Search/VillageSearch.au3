@@ -392,7 +392,15 @@ Func _VillageSearch() ;Control for searching a village that meets conditions
 			$i += 1
 			_CaptureRegions()
 
-			If (_ColorCheck(_GetPixelColor($NextBtn[0], $NextBtn[1]), Hex($NextBtn[2], 6), $NextBtn[3])) And IsAttackPage(False) Then
+			Local $bNextSeen = _ColorCheck(_GetPixelColor($NextBtn[0], $NextBtn[1]), Hex($NextBtn[2], 6), $NextBtn[3])
+			; The pixel is seen at once or never: each time it was missed the bot waited the 99 rounds, then went
+			; home and restarted (11 times in a few days). From the third miss the button is also looked for as an
+			; image, a cost only this path pays - the normal search never reaches it.
+			If Not $bNextSeen And $i >= 3 Then
+				$bNextSeen = QuickMIS("BC1", $g_sImgNextButton, 680, 520 + $g_iBottomOffsetY, 860, 620 + $g_iBottomOffsetY)
+				If $i = 3 Then SetDebugLog("Next button pixel " & _GetPixelColor($NextBtn[0], $NextBtn[1]) & " (wanted " & Hex($NextBtn[2], 6) & "), image: " & $bNextSeen & ", attack page: " & IsAttackPage(False), $COLOR_DEBUG)
+			EndIf
+			If $bNextSeen And IsAttackPage(False) Then
 				$g_bCloudsActive = True
 				Local $NextCoordsX[2] = [740, 820]
 				Local $NextCoordsY[2] = [495 + $g_iBottomOffsetY, 540 + $g_iBottomOffsetY]
@@ -404,17 +412,18 @@ Func _VillageSearch() ;Control for searching a village that meets conditions
 				SetDebugLog("Wait to see Next Button... " & $i, $COLOR_DEBUG)
 			EndIf
 			If $i >= 99 Or isProblemAffect() Or (Mod($i, 10) = 0 And checkObstacles_Network(False, False)) Then ; if we can't find the next button or there is an error, then restart
+				; the screen that went wrong, before checkMainScreen() takes the bot home: kept afterwards, the
+				; capture only ever showed the village
+				SaveFailureImage("NextButton")
 				$g_bIsClientSyncError = True
 				checkMainScreen()
 				If $g_bRestart Then
 					$g_iNbrOfOoS += 1
 					UpdateStats()
 					SetLog("Couldn't locate Next button", $COLOR_ERROR)
-					SaveFailureImage("NextButton")
 					PushMsg("OoSResources")
 				Else
 					SetLog("Have strange problem Couldn't locate Next button, Restarting CoC and Bot...", $COLOR_ERROR)
-					SaveFailureImage("NextButton")
 					$g_bIsClientSyncError = False ; disable fast OOS restart if not simple error and try restarting CoC
 					CloseCoC(True)
 				EndIf

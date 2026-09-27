@@ -336,7 +336,7 @@ Func chkUpgradeKing()
 	Local $TxtTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Search", "TxtKingWait_Info_01", -1) & @CRLF & _
 			GetTranslatedFileIni("MBR GUI Design Child Attack - Search", "TxtKingWait_Info_02", -1)
 	Local $TxtWarningTip = GetTranslatedFileIni("MBR GUI Design Child Attack - Search", "TxtKingWait_Info_03", "ATTENTION: King auto upgrade is currently enable.")
-	If $g_iTownHallLevel > 6 Then ; Must be TH7 or above to have King
+	If $g_iTownHallLevel > 3 Then ; Must be TH4 or above to have King (game data)
 		If GUICtrlRead($g_hCmbBoostBarbarianKing) > 0 Then
 			GUICtrlSetState($g_hChkUpgradeKing, $GUI_UNCHECKED + $GUI_DISABLE)
 			GUICtrlSetState($g_hChkRepUpgradeKing, $GUI_UNCHECKED + $GUI_DISABLE)
@@ -640,7 +640,7 @@ EndFunc   ;==>chkUpgradePets
 
 Func cmbHeroReservedBuilder()
 	$g_iHeroReservedBuilder = _GUICtrlComboBox_GetCurSel($g_hCmbHeroReservedBuilder)
-	If $g_iTownHallLevel > 6 Then ; Must be TH7 or above to have Heroes
+	If $g_iTownHallLevel > 3 Then ; Must be TH4 or above to have Heroes (game data)
 		If $g_iTownHallLevel > 12 Then ; For TH13 enable up to 5 reserved builders
 			If $g_aiHeroHallPos[2] > 6 Then GUICtrlSetData($g_hCmbHeroReservedBuilder, "|0|1|2|3|4|5", "0")
 		ElseIf $g_iTownHallLevel > 10 Then ; For TH13 enable up to 4 reserved builders
@@ -889,12 +889,15 @@ Func cmbWalls()
 	$g_iWallCost = $g_aiWallCost[$g_iCmbUpgradeWallsLevel]
 	GUICtrlSetData($g_hLblWallCost, _NumberFormat(Int($g_iWallCost - ($g_iWallCost * Number($g_iBuilderBoostDiscount) / 100))))
 
-	For $i = 4 To $g_iCmbUpgradeWallsLevel + 5
+	; counters run from level 4 to 19 (index = level); the level above the one searched is the last shown
+	Local $iLastShown = $g_iCmbUpgradeWallsLevel + 5
+	If $iLastShown > 19 Then $iLastShown = 19
+	For $i = 4 To $iLastShown
 		GUICtrlSetState($g_ahWallsCurrentCount[$i], $GUI_SHOW)
 		GUICtrlSetState($g_ahPicWallsLevel[$i], $GUI_SHOW)
 	Next
 
-	For $i = $g_iCmbUpgradeWallsLevel + 6 To 18
+	For $i = $iLastShown + 1 To 19
 		GUICtrlSetState($g_ahWallsCurrentCount[$i], $GUI_HIDE)
 		GUICtrlSetState($g_ahPicWallsLevel[$i], $GUI_HIDE)
 	Next

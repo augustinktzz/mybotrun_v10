@@ -32,7 +32,7 @@ Func AttackReport()
 	; CoC 18.600.5 moved the loot rows down: the gold digits now occupy real y 332 to 348
 	; (x 358 to 449), so reading at y 319 caught only their top edge and this loop always
 	; ran its full 20 rounds, burning 10 seconds after every single battle.
-	While getResourcesLoot(345, 299 + $g_iMidOffsetY) = "" ; check for gold value to be non-zero before reading other values as a secondary timer to make sure all values are available
+	While getResourcesLoot(320, 299 + $g_iMidOffsetY) = "" ; check for gold value to be non-zero before reading other values as a secondary timer to make sure all values are available
 		$iCount += 1
 		If _Sleep($DELAYATTACKREPORT1) Then Return
 		SetDebugLog("Waiting Attack Report Ready, " & ($iCount / 2) & " Seconds.", $COLOR_DEBUG)
@@ -44,22 +44,22 @@ Func AttackReport()
 	;G was 290, is 285
 	;E was 290, is 285
 	;DE was 365, is 353
-	If _ColorCheck(_GetPixelColor($aAtkRprtDECheck[0], $aAtkRprtDECheck[1], True), Hex($aAtkRprtDECheck[2], 6), $aAtkRprtDECheck[3]) Then ; if the color of the DE drop detected
+	If __EndScreenHasDarkElixir() Then ; the dark elixir row only exists when the base had a dark elixir storage
 		; Rows measured on a CoC 18.600.5 end of battle screen: gold at real y 332-348,
 		; elixir at 373-389, dark elixir at 414-430, all starting around x 355.
-		$g_iStatsLastAttack[$eLootGold] = getResourcesLoot(345, 299 + $g_iMidOffsetY)
+		$g_iStatsLastAttack[$eLootGold] = getResourcesLoot(320, 299 + $g_iMidOffsetY)
 		If _Sleep($DELAYATTACKREPORT2) Then Return
-		$g_iStatsLastAttack[$eLootElixir] = getResourcesLoot(345, 340 + $g_iMidOffsetY)
+		$g_iStatsLastAttack[$eLootElixir] = getResourcesLoot(320, 340 + $g_iMidOffsetY)
 		If _Sleep($DELAYATTACKREPORT2) Then Return
-		$g_iStatsLastAttack[$eLootDarkElixir] = getResourcesLootDE(400, 381 + $g_iMidOffsetY)
+		$g_iStatsLastAttack[$eLootDarkElixir] = getResourcesLoot(320, 381 + $g_iMidOffsetY) ; same wide box as the two rows above: the digits start at x 387 and a 85 px box from 400 cut the first one
 		If _Sleep($DELAYATTACKREPORT2) Then Return
 		$g_iStatsLastAttack[$eLootTrophy] = 0 ; CoC 18.600 shows no trophy line on the end screen any more
 		SetLog("Loot: [G]: " & _NumberFormat($g_iStatsLastAttack[$eLootGold]) & " [E]: " & _NumberFormat($g_iStatsLastAttack[$eLootElixir]) & " [DE]: " & _NumberFormat($g_iStatsLastAttack[$eLootDarkElixir]) & " [T]: " & $g_iStatsLastAttack[$eLootTrophy], $COLOR_SUCCESS)
 	Else
 		; Same rows as the branch above, without the dark elixir line
-		$g_iStatsLastAttack[$eLootGold] = getResourcesLoot(345, 299 + $g_iMidOffsetY)
+		$g_iStatsLastAttack[$eLootGold] = getResourcesLoot(320, 299 + $g_iMidOffsetY)
 		If _Sleep($DELAYATTACKREPORT2) Then Return
-		$g_iStatsLastAttack[$eLootElixir] = getResourcesLoot(345, 340 + $g_iMidOffsetY)
+		$g_iStatsLastAttack[$eLootElixir] = getResourcesLoot(320, 340 + $g_iMidOffsetY)
 		If _Sleep($DELAYATTACKREPORT2) Then Return
 		$g_iStatsLastAttack[$eLootTrophy] = 0 ; CoC 18.600 shows no trophy line on the end screen any more
 		$g_iStatsLastAttack[$eLootDarkElixir] = ""
@@ -165,10 +165,14 @@ Func AttackReport()
 	EndIf
 
 	; check stars earned
+	; CoC 18.600 end screen: three big stars behind the "Total damage" banner, an earned one is filled
+	; silver-white (D7DFEC), an empty one is a dark shadow. Each is sampled on a small grid of its lower
+	; body (below the damage text, above the ribbon): left 330,178 / middle 430,176 / right 530,178.
 	Local $starsearned = 0
-	If _ColorCheck(_GetPixelColor($aWonOneStarAtkRprt[0], $aWonOneStarAtkRprt[1], True), Hex($aWonOneStarAtkRprt[2], 6), $aWonOneStarAtkRprt[3]) Then $starsearned += 1
-	If _ColorCheck(_GetPixelColor($aWonTwoStarAtkRprt[0], $aWonTwoStarAtkRprt[1], True), Hex($aWonTwoStarAtkRprt[2], 6), $aWonTwoStarAtkRprt[3]) Then $starsearned += 1
-	If _ColorCheck(_GetPixelColor($aWonThreeStarAtkRprt[0], $aWonThreeStarAtkRprt[1], True), Hex($aWonThreeStarAtkRprt[2], 6), $aWonThreeStarAtkRprt[3]) Then $starsearned += 1
+	_CaptureRegion(280, 150, 580, 210)
+	If __StarEarned($aWonOneStarAtkRprt[0], $aWonOneStarAtkRprt[1]) Then $starsearned += 1
+	If __StarEarned($aWonTwoStarAtkRprt[0], $aWonTwoStarAtkRprt[1]) Then $starsearned += 1
+	If __StarEarned($aWonThreeStarAtkRprt[0], $aWonThreeStarAtkRprt[1]) Then $starsearned += 1
 	SetLog("Stars earned: " & $starsearned)
 
 	Local $AtkLogTxt
@@ -262,3 +266,39 @@ Func IsStreakEvent()
 	If IsArray($WhiteCross) Then Return True
 	Return False
 EndFunc   ;==>IsStreakEvent
+
+; True when the 5x5 sample grid (step 4) around the point is mostly white: an earned star of the
+; CoC 18.600 end screen. Yellow ribbon and green text fail the whiteness test (min channel > 180).
+; Reads the last capture (absolute screen coordinates).
+Func __StarEarned($iX, $iY)
+	Local $iWhite = 0
+	For $dy = -8 To 8 Step 4
+		For $dx = -8 To 8 Step 4
+			Local $sCol = _GetPixelColor($iX + $dx - 280, $iY + $dy - 150, False)
+			If StringLen($sCol) <> 6 Then ContinueLoop
+			Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+			If $iR > 180 And $iG > 180 And $iB > 180 Then $iWhite += 1
+		Next
+	Next
+	SetDebugLog("Star at " & $iX & "," & $iY & ": " & $iWhite & "/25 white samples", $COLOR_DEBUG)
+	Return $iWhite >= 15
+EndFunc   ;==>__StarEarned
+
+; True when the end of battle screen shows a dark elixir row. The three "You got" icons stand at x 478:
+; gold coin (y 336), elixir drop (y 378) and the dark purple dark elixir drop (y 414-430). Counting the
+; purple samples of that last icon tells the row apart: a base without dark elixir storage has none.
+; Measured on live end screens: 152 to 239 samples when the row is there, 0 to 3 when it is not.
+Func __EndScreenHasDarkElixir()
+	_CaptureRegion(465, 408, 495, 432)
+	Local $iPurple = 0
+	For $y = 0 To 24
+		For $x = 0 To 30
+			Local $sCol = _GetPixelColor($x, $y, False)
+			If StringLen($sCol) <> 6 Then ContinueLoop
+			Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
+			If $iR > 40 And $iR < 140 And $iG > 25 And $iG < 115 And $iB > 55 And $iB < 150 And $iB > $iG + 15 And $iR > $iG + 5 Then $iPurple += 1
+		Next
+	Next
+	SetDebugLog("End screen dark elixir drop: " & $iPurple & " purple samples (>= 60 means the row is there)", $COLOR_DEBUG)
+	Return ($iPurple >= 60)
+EndFunc   ;==>__EndScreenHasDarkElixir

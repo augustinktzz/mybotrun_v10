@@ -18,7 +18,7 @@ Func LocateHeroHall($bCollect = True)
 	$g_aiHeroHallPos[1] = -1
 	$g_aiHeroHallPos[2] = -1
 
-	If $g_iTownHallLevel < 7 Then
+	If $g_iTownHallLevel < 4 Then ; the Hero Hall and the King come at TH4 since the 2025 game data (buildings.csv / heroes.csv)
 		SetLog("Townhall Lvl " & $g_iTownHallLevel & " has no Hero Hall, so skip locating.", $COLOR_DEBUG)
 		Return
 	EndIf

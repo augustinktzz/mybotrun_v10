@@ -1,0 +1,3 @@
+﻿Walls: new "Upgrade More: walls at once" setting (Village > Upgrade > Walls, 1 to 10, default 1). The bot uses the game's Upgrade More button to upgrade several walls of the same level in one go: it opens the wizard, presses Add Wall until the wanted count, checks the total and confirms.
+Walls: the batch is reduced by itself when the resources, the Min. Gold / Min. Elixir to save, or the number of walls left at that level do not allow it; the bot reads the red labels and the red price the game uses to say an action is impossible, and falls back to one wall at a time.
+Walls: gold and elixir are never mixed in a batch, exactly as the game does; the log says how many walls were upgraded and for how much.

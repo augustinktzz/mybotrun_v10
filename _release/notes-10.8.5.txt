@@ -1,0 +1,1 @@
+Spells are now dropped: the Heal / Rage / Earthquake... spells ticked in the attack plan stayed in the bar because the bot did not know where the heroes had landed (the standard deploy never recorded the point, only the red-line deploy did). The bot now remembers where the heroes (or the clan castle) were really dropped and puts the spells on the push right behind them.

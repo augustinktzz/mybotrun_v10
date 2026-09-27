@@ -438,6 +438,13 @@ Global $g_sProfilePath = @ScriptDir & "\Profiles"
 Global Const $g_sPrivateProfilePath = @AppDataDir & "\MyBot.run-Profiles" ; Used to save private & very sensitive profile information like shared_prefs (notification tokens will be saved in future here also)
 Global Const $g_sPrivateAuthenticationFile = @AppDataDir & "\.mybot.run.authentication"
 Global Const $g_sProfilePresetPath = @ScriptDir & "\Strategies"
+; Discord Rich Presence: shows what the bot does on the Discord profile (off by default, see DiscordRichPresence.au3)
+Global $g_bDiscordRPCEnable = False
+Global $g_sDiscordRPCClientId = ""
+Global $g_bDiscordRPCButton = True ; adds a "Join the server" button under the status
+Global $g_sDiscordRPCButtonUrl = "https://discord.gg/mdE5m5QPEF" ; where that button leads
+Global $g_bDiscordRPCIdWarned = False ; the missing application id is said once, not at every call
+
 Global $g_sProfileCurrentName = "" ; Name of profile currently being used
 Global $g_sProfileConfigPath = "" ; Path to the current config.ini being used in this profile
 Global $g_sProfileBuildingStatsPath = "" ; Path to stats_chkweakbase.ini file for this profile
@@ -998,7 +1005,7 @@ Global $g_bAutoUpgradeWallsEnable = 0
 Global $g_iUpgradeWallMinGold = 0, $g_iUpgradeWallMinElixir = 0
 Global $g_iUpgradeWallLootType = 0, $g_bUpgradeWallSaveBuilder = False
 Global $g_iCmbUpgradeWallsLevel = 0
-Global $g_aiWallsCurrentCount[19] = [-1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] ; elements 0 to 3 are not referenced
+Global $g_aiWallsCurrentCount[20] = [-1, -1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] ; elements 0 to 3 are not referenced, index = wall level up to 19
 Global $g_aiLastGoodWallPos[2] = [-1, -1]
 
 ; Auto Upgrade
@@ -1021,6 +1028,12 @@ Global $g_sUpgradeDuration
 
 ; Builder Base
 Global $g_iChkBBSuggestedUpgrades = 0, $g_iChkBBSuggestedUpgradesIgnoreGold = 0, $g_iChkBBSuggestedUpgradesIgnoreElixir = 0, $g_iChkBBSuggestedUpgradesIgnoreHall = 0, $g_iChkBBSuggestedUpgradesIgnoreWall = 0
+; Builder base: leave one Master Builder free for the wall suggestions, the way the home village can save one
+; builder for its walls. Buildings, the Battle Machine, the Copter and new buildings then need 2 free builders.
+Global $g_iChkBBSaveWallBuilder = 0
+; Health (percent) under which the Battle Machine / Copter ability is fired, once ready. The hammer heals the
+; machine, so firing it at full health, as the bot did until v10.8, threw that heal away.
+Global $g_iBBMachineAbilityHealth = 40 ; the bar loses about 15 points between two polls, 40 fires around 30
 Global $g_iChkPlacingNewBuildings = 0
 Global $g_bStayOnBuilderBase = False ; set to True in MyBot.run.au3 _RunFunction when on builder base
 Global $g_bBattleMachineUpgrade = False
@@ -1062,6 +1075,10 @@ Global $g_bNotifyAlertMatchFound = False, $g_bNotifyAlerLastRaidIMG = False, $g_
 		$g_bNotifyAlertUpgradeWalls = False, $g_bNotifyAlertOutOfSync = False, $g_bNotifyAlertTakeBreak = False, $g_bNotifyAlertBulderIdle = False, _
 		$g_bNotifyAlertVillageReport = False, $g_bNotifyAlertLastAttack = False, $g_bNotifyAlertAnotherDevice = False, $g_bNotifyAlertMaintenance = False, _
 		$g_bNotifyAlertBAN = False, $g_bNotifyAlertBOTUpdate = False, $g_bNotifyAlertSmartWaitTime = False, $g_bNotifyAlertLaboratoryIdle = False
+;Builder base raid report: filled by DoAttackBB() from the resource values read before and after the
+;attack cycle, so the card shows what the whole cycle brought in without reading the end of battle screen
+Global $g_bNotifyAlertBBRaid = False
+Global $g_iBBRaidAttacks = 0, $g_iBBRaidGold = 0, $g_iBBRaidElixir = 0, $g_iBBRaidTrophy = 0
 ;Schedule
 Global $g_bNotifyScheduleHoursEnable = False, $g_bNotifyScheduleWeekDaysEnable = False
 Global $g_abNotifyScheduleHours[24] = [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False]
@@ -1210,6 +1227,10 @@ Global $g_iDeadEagleSearch = 0
 Global $g_iSlotsGiants = 1
 Global $g_aiAttackAlgorithm[$g_iModeCount] = [0, 0, 0], $g_aiAttackTroopSelection[$g_iModeCount + 1] = [0, 0, 0, 0], $g_aiAttackUseHeroes[$g_iModeCount] = [0, 0, 0], _
 		$g_abAttackDropCC[$g_iModeCount] = [0, 0, 0] , $g_aiAttackUseSiege[$g_iModeCount] = [0, 0, 0], $g_aiAttackUseWardenMode[$g_iModeCount] = [0, 0, 0]
+; Deploy the siege machine loaded in the castle slot, whichever one the account owns. Separate from
+; "Drop Clan Castle" because the castle can be worth dropping on its own, and a siege kept for a war
+; is worth holding back. On by default so profiles made before this option behave as they used to.
+Global $g_abAttackUseSiegeMachine[$g_iModeCount] = [True, True, True]
 Global $g_abAttackUseLightSpell[$g_iModeCount] = [0, 0, 0], $g_abAttackUseHealSpell[$g_iModeCount] = [0, 0, 0], $g_abAttackUseRageSpell[$g_iModeCount] = [0, 0, 0], _
 		$g_abAttackUseJumpSpell[$g_iModeCount] = [0, 0, 0], $g_abAttackUseFreezeSpell[$g_iModeCount] = [0, 0, 0], $g_abAttackUseCloneSpell[$g_iModeCount] = [0, 0, 0], _
 		$g_abAttackUseInvisibilitySpell[$g_iModeCount] = [0, 0, 0], $g_abAttackUseRecallSpell[$g_iModeCount] = [0, 0, 0], $g_abAttackUseReviveSpell[$g_iModeCount] = [0, 0, 0], _
@@ -1538,7 +1559,7 @@ EndFunc   ;==>TranslateTroopNames
 
 ;Upgrading - Wall
 ;First cost is for upgrade to walls level 5.  MBR doesn't support walls until level 4.
-Global Const $g_aiWallCost[14] = [20000, 30000, 50000, 75000, 100000, 200000, 500000, 1000000, 1500000, 2000000, 3000000, 4000000, 5000000, 7000000] ; Updated for March 25
+Global Const $g_aiWallCost[15] = [20000, 30000, 50000, 75000, 100000, 200000, 500000, 1000000, 1500000, 2000000, 3000000, 4000000, 5000000, 7000000, 10000000] ; cost of the level above, from level 4 to 18, buildings.csv of CoC 18.600 (level 19 needs Town Hall 18)
 Global $g_iWallCost = 0
 
 ; Upgrading - Heroes
@@ -1726,6 +1747,7 @@ Global $g_bIsCCDropped = False
 Global $g_bIsHeroesDropped = False
 Global $g_aiDeployCCPosition[2] = [-1, -1]
 Global $g_aiDeployHeroesPosition[2] = [-1, -1]
+Global $g_aiSpellDropPoint[2] = [-1, -1] ; where the heroes (or the clan castle) were really dropped, the spells of the attack plan go there
 
 ; Attack CSV
 Global $g_aiCSVGoldStoragePos
@@ -2011,6 +2033,9 @@ Global $g_bChkCollectFreeMagicItems = True
 ; Daily challenge
 Global $g_bChkCollectRewards = True
 Global $g_bChkSellRewards = True  ; Sell "storage full" extra magic items for gems
+; What to take when a season pass reward offers two options: 0 = the resource (gold, elixir, dark
+; elixir) when one of them is one, 1 = the magic item instead, 2 = always the left option
+Global $g_iPassRewardChoice = 0
 Global $g_iBuilderBoostDiscount = 0 ; in percent
 
 ; SC_ID without shared_prefs
@@ -2127,7 +2152,10 @@ Global $g_iMinDark4PetUpgrade = 0
 Global Enum $ePetLassi, $ePetElectroOwl, $ePetMightyYak, $ePetUnicorn, $ePetFrosty, $ePetDiggy, $ePetPoisonLizard, $ePetPhoenix, $ePetSpiritFox, $ePetAngryJelly, $ePetSneezy, $ePetCount
 Global Const $g_asPetNames[$ePetCount] = ["Lassi", "Electro Owl", "Mighty Yak", "Unicorn", "Frosty", "Diggy", "Poison Lizard", "Phoenix", "Spirit Fox", "Angry Jelly", "Sneezy"]
 Global Const $g_asPetShortNames[$ePetCount] = ["Lassi", "Owl", "Yak", "Unicorn", "Frosty", "Diggy", "Lizard", "Phoenix", "Fox", "Jelly", "Sneezy"]
-Global $g_ePetLevels[$ePetCount] = [15, 15, 15, 15, 10, 10, 10, 10, 10, 10, 10] ; March 25 Update, Pets have not same max level.
+; True maximum of each pet (pets.csv of CoC 18.600): Frosty, Diggy and the Poison Lizard reach 15 since 18.600.
+; $g_ePetLevels is the cap the Pet House level currently allows, reset from this table on every pass.
+Global Const $g_aiPetMaxLevel[$ePetCount] = [15, 15, 15, 15, 15, 15, 15, 10, 10, 10, 10]
+Global $g_ePetLevels[$ePetCount] = [15, 15, 15, 15, 15, 15, 15, 10, 10, 10, 10]
 Global $g_bUpgradePetsEnable[$ePetCount] = [False, False, False, False, False, False, False, False, False, False, False]
 Local $g_aiPetLevel[$ePetCount] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
@@ -2136,9 +2164,9 @@ Global Const $g_aiPetUpgradeCostPerLevel[$ePetCount][15] = [ _
 		[0, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225], _ ; Electro Owl
 		[0, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170], _ ; Mighty Yak
 		[0, 60, 75, 80, 95, 110, 125, 140, 155, 170, 200, 230, 260, 290, 300], _ ; Unicorn
-		[0, 70, 85, 100, 115, 130, 145, 160, 170, 180, 0, 0, 0, 0, 0], _ ; Frosty
-		[0, 90, 105, 120, 130, 140, 150, 160, 170, 180, 0, 0, 0, 0, 0], _ ; Diggy
-		[0, 60, 75, 90, 100, 110, 120, 130, 140, 150, 0, 0, 0, 0, 0], _ ; Poison Lizard
+		[0, 70, 85, 100, 115, 130, 145, 160, 170, 180, 200, 230, 260, 290, 320], _ ; Frosty
+		[0, 90, 105, 120, 130, 140, 150, 160, 170, 180, 220, 250, 280, 310, 350], _ ; Diggy
+		[0, 60, 75, 90, 100, 110, 120, 130, 140, 150, 180, 200, 220, 240, 260], _ ; Poison Lizard
 		[0, 80, 95, 110, 125, 140, 155, 170, 180, 190, 0, 0, 0, 0, 0], _ ; Phoenix
 		[0, 150, 160, 170, 180, 190, 200, 210, 220, 230, 0, 0, 0, 0, 0], _ ; Spirit Fox
 		[0, 150, 160, 170, 180, 190, 200, 210, 220, 230, 0, 0, 0, 0, 0], _ ; Angry Jelly

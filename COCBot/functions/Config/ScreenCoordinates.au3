@@ -138,9 +138,9 @@ Global $aChampionHealth = [-1, 566 + $g_iBottomOffsetY, 0x00D500, 15, 2]
 Global $aDukeHealth = [-1, 566 + $g_iBottomOffsetY, 0x00D500, 15, 2] ; same health bar geometry as the other heroes
 
 ; attack report... stars won
-Global $aWonOneStarAtkRprt[4] = [325, 180 + $g_iMidOffsetY, 0xC8CAC4, 30] ; Center of 1st Star reached attacked village
-Global $aWonTwoStarAtkRprt[4] = [398, 180 + $g_iMidOffsetY, 0xD0D6D0, 30] ; Center of 2nd Star reached attacked village
-Global $aWonThreeStarAtkRprt[4] = [534, 180 + $g_iMidOffsetY, 0xC8CAC7, 30] ; Center of 3rd Star reached attacked village
+Global $aWonOneStarAtkRprt[4] = [330, 178, 0xD7DFEC, 30] ; lower body of the 1st star of the CoC 18.600 end screen (silver-white when earned)
+Global $aWonTwoStarAtkRprt[4] = [430, 176, 0xD7DFEC, 30] ; lower body of the 2nd (big, middle) star, between the damage text and the ribbon
+Global $aWonThreeStarAtkRprt[4] = [530, 178, 0xD7DFEC, 30] ; lower body of the 3rd star
 ; pixel color: location information								BS 850MB (Reg GFX), BS 500MB (Med GFX) : location
 
 Global $NextBtn[4] = [720, 536 + $g_iBottomOffsetY, 0xF57627, 20] ;  Next Button, orange body of the CoC 18.600.5 button (x 700-850, y 545-612), stable on 12 live frames

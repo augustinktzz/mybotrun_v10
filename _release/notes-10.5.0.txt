@@ -1,0 +1,5 @@
+Builder Base report: a new "Builder Base raid" option in Village > Notify posts a Discord card and a Telegram message at the end of each builder base attack cycle, with the attacks done, the gold, elixir and trophies won and a screenshot.
+Spells are finally used: the standard and Smart Farm attacks now drop the spells ticked in the Attack Plan on the push, right after the heroes (Lightning and Earthquake stay reserved when Smart Zap is on).
+Loot over one million is read correctly again: the OCR box of the end of battle screen was too narrow on the left, so 1 075 073 gold came back as 75 073.
+Builder base: a failed zoom out no longer closes and restarts Clash of Clans for nothing, it was switching to fixed point images that only exist for the home village.
+Season pass: the bot finds the pass button and window again (they moved and were redrawn in 18.600), instead of logging "Can't find button" on every pass.

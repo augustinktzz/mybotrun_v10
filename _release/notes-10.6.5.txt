@@ -1,0 +1,2 @@
+Donations follow a moving chat: when a clan mate posts between the moment a request is read and the moment its Donate button is clicked, the bot scans the chat again instead of giving up, and it closes the donation window on the button wherever it has moved to.
+Windows that ask a Cancel / Okay question (quit the game, spend gems...) are no longer confirmed blindly by the obstacle check; deliberate confirmations (surrender, request, walls, treasury) are unchanged.

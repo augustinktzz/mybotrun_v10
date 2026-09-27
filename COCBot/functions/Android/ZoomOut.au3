@@ -404,10 +404,15 @@ Func SearchZoomOut($CenterVillageBoolOrScrollPos = $aCenterHomeVillageClickDrag,
 	Local $aResult = ["", 0, 0, 0, 0] ; expected dummy value
 
 	Local $village
-	If $g_aiSearchZoomOutCounter[0] = 5 Then
+	; The secondary fixed points (2stone / 2tree) only exist in imgxml\village\NormalVillage: on the
+	; builder base that branch could only fail with "Missing stone files (4)", which then triggered a
+	; pointless "Restart CoC to reset zoom" (CoC closed twice) and aborted the attack. Keep the normal
+	; set there and let the caller give up on its own.
+	Local $bSecondarySet = ($g_aiSearchZoomOutCounter[0] >= 5) And Not (isOnBuilderBase(True) Or isOnBuilderBaseEnemyVillage(True))
+	If $g_aiSearchZoomOutCounter[0] = 5 And $bSecondarySet Then
 		SetLog("Try secondary village measuring...", $COLOR_INFO)
 	EndIf
-	If $g_aiSearchZoomOutCounter[0] < 5 Then
+	If Not $bSecondarySet Then
 		$village = GetVillageSize($DebugLog, "stone", "tree")
 	Else
 		; try secondary images
@@ -465,10 +470,11 @@ Func SearchZoomOut($CenterVillageBoolOrScrollPos = $aCenterHomeVillageClickDrag,
 
 			If $bCenterVillage And ($x <> 0 Or $y <> 0) And ($UpdateMyVillage = False Or $x <> $g_iVILLAGE_OFFSET[0] Or $y <> $g_iVILLAGE_OFFSET[1]) And Not $g_bOnBuilderBaseEnemyVillage Then
 				If $DebugLog Then SetDebugLog("Center Village" & $sSource & " by: " & $x & ", " & $y)
-				If IsCoordSafe($stone[0], $stone[1]) Then
+				; the whole drag, start and release, has to stay clear of the buttons (see IsDragSafe)
+				If IsDragSafe($stone[0], $stone[1], $x, $y) Then
 					$aScrollPos[0] = $stone[0]
 					$aScrollPos[1] = $stone[1]
-				ElseIf IsCoordSafe($tree[0], $tree[1]) Then
+				ElseIf IsDragSafe($tree[0], $tree[1], $x, $y) Then
 					$aScrollPos[0] = $tree[0]
 					$aScrollPos[1] = $tree[1]
 				Else
@@ -540,6 +546,12 @@ Func SearchZoomOut($CenterVillageBoolOrScrollPos = $aCenterHomeVillageClickDrag,
 				Return SearchZoomOut($CenterVillageBoolOrScrollPos, $UpdateMyVillage, "SearchZoomOut:" & $sSource, True, $DebugLog)
 			Else
 				$g_aiSearchZoomOutCounter[0] += 1
+				; nothing to measure three times in a row: a page without an error window may cover the village
+				; (the Clan Wars page for one), which only checkObstacles knows how to leave. Every zoom loop
+				; ends up here, so this is checked once for all of them, before the ten failures that restart CoC.
+				If Mod($g_aiSearchZoomOutCounter[0], 3) = 0 And Not $g_bOnBuilderBaseEnemyVillage Then
+					If checkObstacles() Then SetLog("Screen cleared, measuring the village again", $COLOR_INFO)
+				EndIf
 			EndIf
 		Else
 			If Not $g_bDebugDisableZoomout And $villageSize > 480 Then

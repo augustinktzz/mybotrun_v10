@@ -70,7 +70,13 @@ Func GetAttackBar($bRemaining = False, $pMatchMode = $DB, $bDebug = False)
 					_ArrayAdd($aSlotAmountX, $aTempCoords[0] & "|" & $aTempCoords[1] & "|" & $iRow, 0, "|", @CRLF, $ARRAYFILL_FORCE_NUMBER)
 					$aiOCRLocation[$iRow - 1] = $aTempCoords[1] ; Store any OCR Location for later use on Heroes
 				Else
-					If StringRegExp($aTempArray[0], "(King)|(Queen)|(Prince)|(Warden)|(Champion)|(Duke)", 0) Then _ArrayAdd($aSlotAmountX, $aTempCoords[0] & "|" & $aTempCoords[1] & "|" & $iRow, 0, "|", @CRLF, $ARRAYFILL_FORCE_NUMBER)
+					; $aSlotAmountX holds one anchor per slot and is what gives every icon its slot number,
+					; so a slot that shows no "x N" amount has to add its own icon as the anchor. Only the
+					; heroes did: the siege machine shows a level, never an amount, so it had no anchor and
+					; was given the nearest one, the warden's. Both then reported the same slot number and
+					; PrepareAttack() kept one of the two, which is how a Stone Slammer was carried into
+					; every raid and never deployed.
+					If StringRegExp($aTempArray[0], "(King)|(Queen)|(Prince)|(Warden)|(Champion)|(Duke)|(WallW)|(BattleB)|(StoneS)|(SiegeB)|(LogL)|(FlameF)|(BattleD)|(TroopL)", 0) Then _ArrayAdd($aSlotAmountX, $aTempCoords[0] & "|" & $aTempCoords[1] & "|" & $iRow, 0, "|", @CRLF, $ARRAYFILL_FORCE_NUMBER)
 					Local $aTempElement[1][8] = [[$aTempArray[0], $aTempCoords[0], $aTempCoords[1], -1, -1, -1, -1, $iRow]] ; trick to get the right variable types into our array. Delimiter Adding only gets us string which can't be sorted....
 					_ArrayAdd($aAttackBar, $aTempElement)
 				EndIf
@@ -86,6 +92,7 @@ Func GetAttackBar($bRemaining = False, $pMatchMode = $DB, $bDebug = False)
 		;Sort the Arrays by X Position of the Results
 		_ArraySort($aAttackBar, 0, 0, 0, 1)
 		_ArraySort($aSlotAmountX)
+		$aSlotAmountX = MergeCloseSlotAnchors($aSlotAmountX)
 		If $bDoubleRow Then $aSlotAmountX = SortDoubleRowXElements($aSlotAmountX)
 
 		SetDebugLog("GetAttackBar(): Finished Image Search in: " & StringFormat("%.2f", __TimerDiff($iAttackbarStart)) & " ms")
@@ -142,7 +149,7 @@ Func GetAttackBar($bRemaining = False, $pMatchMode = $DB, $bDebug = False)
 
 			If StringRegExp($aAttackBar[$i][0], "(King)|(Queen)|(Prince)|(Warden)|(Champion)|(Duke)|(Castle)|(WallW)|(BattleB)|(StoneS)|(SiegeB)|(LogL)|(FlameF)|(BattleD)|(TroopL)", 0) Then
 				If Not $bRemoved Then $aAttackBar[$i][4] = 1
-				If ($pMatchMode = $DB Or $pMatchMode = $LB) And StringRegExp($aAttackBar[$i][0], "(WallW)|(BattleB)|(StoneS)|(SiegeB)|(LogL)|(FlameF)|(BattleD)|(TroopL)", 0) And $g_abAttackDropCC[$pMatchMode] And _
+				If ($pMatchMode = $DB Or $pMatchMode = $LB) And StringRegExp($aAttackBar[$i][0], "(WallW)|(BattleB)|(StoneS)|(SiegeB)|(LogL)|(FlameF)|(BattleD)|(TroopL)", 0) And $g_abAttackUseSiegeMachine[$pMatchMode] And _
 						$g_aiAttackUseSiege[$pMatchMode] > 0 And $g_aiAttackUseSiege[$pMatchMode] <= $eSiegeMachineCount + 1 Then
 					$g_iSiegeLevel = Number(getSiegeLevel(Number($aAttackBar[$i][5]) - 31, 643 + $g_iBottomOffsetY))
 					If $g_iSiegeLevel = "" Then $g_iSiegeLevel = 1
@@ -261,7 +268,13 @@ Func ExtendedAttackBarCheck($aAttackBarFirstSearch, $bRemaining, $sSearchDiamond
 					_ArrayAdd($aSlotAmountX, $aTempCoords[0] & "|" & $aTempCoords[1] & "|" & $iRow, 0, "|", @CRLF, $ARRAYFILL_FORCE_NUMBER)
 					$aiOCRLocation[$iRow - 1] = $aTempCoords[1]
 				Else
-					If StringRegExp($aTempArray[0], "(King)|(Queen)|(Prince)|(Warden)|(Champion)|(Duke)", 0) Then _ArrayAdd($aSlotAmountX, $aTempCoords[0] & "|" & $aTempCoords[1] & "|" & $iRow, 0, "|", @CRLF, $ARRAYFILL_FORCE_NUMBER)
+					; $aSlotAmountX holds one anchor per slot and is what gives every icon its slot number,
+					; so a slot that shows no "x N" amount has to add its own icon as the anchor. Only the
+					; heroes did: the siege machine shows a level, never an amount, so it had no anchor and
+					; was given the nearest one, the warden's. Both then reported the same slot number and
+					; PrepareAttack() kept one of the two, which is how a Stone Slammer was carried into
+					; every raid and never deployed.
+					If StringRegExp($aTempArray[0], "(King)|(Queen)|(Prince)|(Warden)|(Champion)|(Duke)|(WallW)|(BattleB)|(StoneS)|(SiegeB)|(LogL)|(FlameF)|(BattleD)|(TroopL)", 0) Then _ArrayAdd($aSlotAmountX, $aTempCoords[0] & "|" & $aTempCoords[1] & "|" & $iRow, 0, "|", @CRLF, $ARRAYFILL_FORCE_NUMBER)
 					Local $aTempElement[1][8] = [[$aTempArray[0], $aTempCoords[0], $aTempCoords[1], -1, -1, -1, -1, $iRow]]
 					_ArrayAdd($aAttackBar, $aTempElement)
 				EndIf
@@ -276,6 +289,7 @@ Func ExtendedAttackBarCheck($aAttackBarFirstSearch, $bRemaining, $sSearchDiamond
 		;Sort the Arrays by X Position of the Results
 		_ArraySort($aAttackBar, 0, 0, 0, 1)
 		_ArraySort($aSlotAmountX)
+		$aSlotAmountX = MergeCloseSlotAnchors($aSlotAmountX)
 
 		SetDebugLog("AttackBarCheck(): Finished Image Search in: " & StringFormat("%.2f", __TimerDiff($iAttackbarStart)) & " ms")
 		$iAttackbarStart = __TimerInit()
@@ -456,6 +470,27 @@ Func DragAttackBar($iTotalSlot = 20, $bBack = False)
 	$g_iCSVLastTroopPositionDropTroopFromINI = -1 ; after drag attack bar, need to clear last troop selected
 	Return $bAlreadyDrag
 EndFunc   ;==>DragAttackBar
+
+; Safety net for the anchor list above: one slot must never contribute two anchors, or every icon to
+; its right is numbered one slot too far. Slots sit about 78 px apart, so anything closer than 40 px on
+; the same row belongs to the same slot; the rightmost of the pair is kept because that is where the
+; "x N" amount is read from.
+Func MergeCloseSlotAnchors($aSlots)
+	If UBound($aSlots, 1) < 2 Then Return $aSlots
+	Local $aKept[0][3]
+	For $i = 0 To UBound($aSlots, 1) - 1
+		Local $iLast = UBound($aKept, 1) - 1
+		If $iLast >= 0 And $aKept[$iLast][2] = $aSlots[$i][2] And Abs($aSlots[$i][0] - $aKept[$iLast][0]) < 40 Then
+			SetDebugLog("GetAttackBar(): slot anchors " & $aKept[$iLast][0] & " and " & $aSlots[$i][0] & " are the same slot, keeping " & $aSlots[$i][0], $COLOR_DEBUG)
+			$aKept[$iLast][0] = $aSlots[$i][0]
+			$aKept[$iLast][1] = $aSlots[$i][1]
+			ContinueLoop
+		EndIf
+		Local $aRow[1][3] = [[$aSlots[$i][0], $aSlots[$i][1], $aSlots[$i][2]]]
+		_ArrayAdd($aKept, $aRow)
+	Next
+	Return $aKept
+EndFunc   ;==>MergeCloseSlotAnchors
 
 Func AttackSlot($iPosX, $iRow, $aSlots)
 	Local $aTempSlot[3] = [0, 0, 0]

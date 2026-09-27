@@ -1,0 +1,1 @@
+A new profile now leaves the siege choice on "Default", so the bot deploys the machine your Clan Castle actually carries. It used to start on "Battle Drill" and kept trying to switch to a machine the account may not own.

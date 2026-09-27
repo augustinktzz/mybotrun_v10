@@ -33,6 +33,7 @@ Func VillageReport($bBypass = False, $bSuppressLog = False)
 	; trophies are gone since CoC 18.600, the slot now carries the league tier read on the badge
 	$g_aiCurrentLoot[$eLootTrophy] = getLeagueTier($aLeagueTierMain)
 	If Not $bSuppressLog Then SetLog(" [League]: " & LeagueTierName($g_aiCurrentLoot[$eLootTrophy]), $COLOR_SUCCESS)
+	If $g_aiCurrentLoot[$eLootTrophy] >= 1 Then SaveLeagueBadge() ; keep the real badge for the Stats tab and the bottom bar
 	UpdateLeagueDisplay($g_aiCurrentLoot[$eLootTrophy])
 
 	If _CheckPixel($aVillageHasDarkElixir, $g_bCapturePixel) Then ; check if the village have a Dark Elixir Storage

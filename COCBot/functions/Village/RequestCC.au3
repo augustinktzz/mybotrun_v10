@@ -143,7 +143,7 @@ Func _makerequest($aRequestButtonPos)
 	Local $bSendFound = IsWindowOpen($g_sImgSendRequestButton, 20, 100, $sSendButtonArea)
 	If Not $bSendFound Then
 		; the green Send button of the CoC 18.600 dialog (455-635 x 440-515 measured) is found by colour
-		Local $aSend = FindGreenOkayButton()
+		Local $aSend = FindGreenOkayButton(True)
 		If IsArray($aSend) Then
 			$g_avWindowCoordinates = $aSend
 			$bSendFound = True
@@ -167,7 +167,7 @@ Func _makerequest($aRequestButtonPos)
 		If _Sleep($DELAYMAKEREQUEST2) Then Return ; wait time for text request to complete
 
 		If Not IsWindowOpen($g_sImgSendRequestButton, 20, 100, $sSendButtonArea) Then
-			Local $aSend2 = FindGreenOkayButton()
+			Local $aSend2 = FindGreenOkayButton(True)
 			If IsArray($aSend2) Then
 				$g_avWindowCoordinates = $aSend2
 			Else

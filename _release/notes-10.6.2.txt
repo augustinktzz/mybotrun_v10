@@ -1,0 +1,5 @@
+Spells are no longer thrown at an empty screen when a fast three star ends the battle while the heroes are still landing.
+The builder base report is only sent when the reading taken before the cycle worked, so the figures can no longer show the whole storage as if it had just been won, and its Telegram line no longer turns a plus sign into a space.
+The season pass check is no longer retried on every pass of the bot when the window fails to open, which used to flood the log.
+The two new siege tick boxes show their tooltip instead of an error code on a fresh install.
+README: added the siege machine, spell and builder base report sections.

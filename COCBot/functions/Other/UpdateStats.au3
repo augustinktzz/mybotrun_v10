@@ -804,7 +804,7 @@ Func WallsStatsMAJ()
 	$g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 4] -= Number($g_iNbrOfWallsUpped)
 	$g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 5] += Number($g_iNbrOfWallsUpped)
 	$g_iNbrOfWallsUpped = 0
-	For $i = 4 To 18
+	For $i = 4 To 19
 		GUICtrlSetData($g_ahWallsCurrentCount[$i], $g_aiWallsCurrentCount[$i])
 	Next
 	SaveConfig()
@@ -819,9 +819,41 @@ EndFunc   ;==>UpdateStats_ClearArray
 ; Stats tab league badge for the CoC 18.600 tiers: the old league icons stand in for the tier groups
 ; (Skeleton-Archer 1-9 bronze, Wizard silver, Valkyrie gold, Witch crystal, Golem master, P.E.K.K.A
 ; champion, Titan-Electro titan, Legend legend) and the small label below shows the tier number.
+; The league badges of CoC 18.600 (Skeleton, Barbarian, Archer... Legend) have no counterpart in the
+; icon library, and the game art cannot be read out of the asset pack. So the bot keeps a copy of the
+; real badge straight from the main screen, the 50 px tile at 15-65 x 67-117 with the league art and
+; the tier number, and shows that in the Stats tab and in the bottom bar of the Log tab. The copy is
+; refreshed with every village report and kept in the profile's Temp folder between runs.
+Func SaveLeagueBadge()
+	_CaptureRegion(15, 67, 65, 117)
+	If $g_hBitmap = 0 Then Return
+	Local $sFile = $g_sProfileTempPath & "league_badge.bmp"
+	_GDIPlus_ImageSaveToFile($g_hBitmap, $sFile)
+	ShowLeagueBadge($sFile)
+EndFunc   ;==>SaveLeagueBadge
+
+Func ShowLeagueBadge($sFile = "")
+	If $sFile = "" Then $sFile = $g_sProfileTempPath & "league_badge.bmp"
+	If Not FileExists($sFile) Then Return False
+	If $g_hPicLeagueBadge <> 0 Then
+		GUICtrlSetImage($g_hPicLeagueBadge, $sFile)
+		GUICtrlSetState($g_hPicLeagueBadge, $GUI_SHOW)
+	EndIf
+	If $g_hPicResultTrophyNow <> 0 Then GUICtrlSetImage($g_hPicResultTrophyNow, $sFile)
+	Return True
+EndFunc   ;==>ShowLeagueBadge
+
 Func UpdateLeagueDisplay($iTier)
 	If $g_hLblLeague = 0 Then Return ; Mini GUI has no league badge
 	$iTier = Number($iTier)
+	; the real badge copied from the screen wins; the old icons only stand in until a copy exists
+	If $iTier >= 1 And ShowLeagueBadge() Then
+		_GUI_Value_STATE("HIDE", $g_aGroupLeague)
+		GUICtrlSetData($g_hLblLeague, String($iTier))
+		_GUICtrlSetTip($g_hPicLeagueBadge, LeagueTierName($iTier))
+		Return
+	EndIf
+	If $g_hPicLeagueBadge <> 0 Then GUICtrlSetState($g_hPicLeagueBadge, $GUI_HIDE)
 	Local $iIcon = $eLeagueUnranked
 	If $iTier >= 34 Then
 		$iIcon = $eLeagueLegend

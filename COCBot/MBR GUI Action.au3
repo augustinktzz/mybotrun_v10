@@ -53,6 +53,9 @@ Func BotStart($bAutostartDelay = 0)
 	applyConfig(False) ; bot window redraw stays disabled!
 	CreaTableDB()
 
+	; after the config round trip only: SaveConfig() is what takes the application id out of its input box
+	DiscordRPCStart() ; Discord profile status, does nothing when the option is off
+
 	; Initial ObjEvents for the Autoit objects errors
 	__ObjEventIni()
 
@@ -178,6 +181,7 @@ EndFunc   ;==>BotStart
 Func BotStop()
 	CleanSuperchargeTemplates()
 	FuncEnter(BotStop)
+	DiscordRPCStop() ; clears the status on the Discord profile
 	NotifyDiscordLogFlush(True) ; full log to Discord option: do not keep the last lines waiting
 	; release bot slot
 	LockBotSlot(False)
