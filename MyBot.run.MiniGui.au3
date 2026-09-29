@@ -75,7 +75,7 @@ Global $hTimeoutAutoClose = 0 ; Timer Handle for $iTimeoutAutoClose
 Global $g_iMainLoopSleep = 50 ;
 ;Global $g_bBotLaunchOption_NoBotSlot = True
 
-Global $g_sBotTitle = "My Bot Mini " & $g_sBotVersion & " " ;~ Don't use any non file name supported characters like \ / : * ? " < > |
+Global $g_sBotTitle = "My Bot Mini " & $g_sBotVersion & ($g_sBotRelease <> "" ? " " & $g_sBotRelease : "") & " " ;~ Don't use any non file name supported characters like \ / : * ? " < > |
 Global $g_hFrmBot = 0
 Global $g_hFrmBotBackend = 0
 Global $g_bBotLaunched = False
@@ -130,7 +130,7 @@ Func _SleepMicro($iMicroSec)
 	;$hStruct_SleepMicro = 0
 EndFunc   ;==>_SleepMicro
 
-Func UpdateBotTitle($sTitle = "My Bot " & $g_sBotVersion)
+Func UpdateBotTitle($sTitle = "My Bot " & $g_sBotVersion & ($g_sBotRelease <> "" ? " " & $g_sBotRelease : ""))
 	$sTitle = StringReplace($sTitle, "My Bot", "My Bot Mini")
 	If $g_sBotTitle = $sTitle Then Return
 	$g_sBotTitle = $sTitle

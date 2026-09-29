@@ -66,7 +66,7 @@ getAllEmulators()
 MainLoop(CheckPrerequisites())
 
 Func UpdateBotTitle()
-	Local $sTitle = "My Bot " & $g_sBotVersion
+	Local $sTitle = "My Bot " & $g_sBotVersion & ($g_sBotRelease <> "" ? " " & $g_sBotRelease : "")
 	Local $sConsoleTitle ; Console title has also Android Emulator Name
 	If $g_sBotTitle = "" Then
 		$g_sBotTitle = $sTitle

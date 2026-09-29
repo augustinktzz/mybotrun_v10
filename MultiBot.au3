@@ -1,7 +1,7 @@
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: MultiBot
 ; Description ...: Launches and manages several bots at once: one MyBot.run.exe per profile, each on its own emulator instance.
-; Author ........: MyBot.run team, rewritten for MyBot v10 (2026)
+; Author ........: MyBot.run team, rewritten for MyBot v12 (2026)
 ; Remarks .......: This file is part of MyBot Copyright 2015-2025
 ;                  MyBot is distributed under the terms of the GNU GPL
 ;                  Every setup is a section of Profiles\MultiBot-Profiles.ini (Profile, Emulator, Instance, Parameters), the

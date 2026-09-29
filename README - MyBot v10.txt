@@ -1,5 +1,5 @@
-MyBot v10.10.4 - Clash of Clans bot (based on MyBot.run 8.2, updated for CoC 18.600 and BlueStacks 5)
-====================================================================================================
+MyBot v12.0.0 BETA - Clash of Clans bot (based on MyBot.run 8.2, updated for CoC 18.600 and BlueStacks 5)
+========================================================================================================
 
 Support: Telegram @augustinktzz
 

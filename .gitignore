@@ -168,3 +168,17 @@ build/au3Stripper/Au3Stripper.Log
 
 # the bot's own OpenCV templates (glyphs, walls, Return Home) are PNG files and part of the bot
 !imgcv/**/*.png
+
+# MyBot.run.dll sources: build output
+dllsrc/bin/
+dllsrc/obj/
+_tools/dll/*/bin/
+_tools/dll/*/obj/
+
+# DLL reverse-engineering work artifacts (IDA database, intermediate de4dot output)
+lib/MyBot.run-cleaned.dll
+lib/MyBot.run.dll.id0
+lib/MyBot.run.dll.id1
+lib/MyBot.run.dll.id2
+lib/MyBot.run.dll.nam
+lib/MyBot.run.dll.til
