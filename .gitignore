@@ -182,3 +182,7 @@ lib/MyBot.run.dll.id1
 lib/MyBot.run.dll.id2
 lib/MyBot.run.dll.nam
 lib/MyBot.run.dll.til
+
+# clean-room engine: build output
+enginesrc/bin/
+enginesrc/obj/
