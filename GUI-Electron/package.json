@@ -1,0 +1,37 @@
+{
+  "name": "mybot-gui",
+  "productName": "MyBot GUI",
+  "version": "0.1.0",
+  "description": "Interface Electron moderne pour MyBot v12 : pilote MyBot.run.exe, suit son journal et edite les profils",
+  "main": "main.js",
+  "private": true,
+  "license": "GPL-3.0",
+  "scripts": {
+    "start": "electron .",
+    "demo": "electron . --demo",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "run.mybot.gui",
+    "productName": "MyBot GUI",
+    "files": [
+      "main.js",
+      "preload.js",
+      "lib/**",
+      "bridge/**",
+      "renderer/**"
+    ],
+    "asarUnpack": [
+      "bridge/**"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "renderer/assets/MyBot.ico",
+      "requestedExecutionLevel": "requireAdministrator"
+    }
+  }
+}
