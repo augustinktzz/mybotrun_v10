@@ -1,5 +1,6 @@
 'use strict';
-// La page : navigation, tableau de bord, journal, formulaires de config.ini, profils et reglages.
+// La page : navigation, tableau de bord, journal, pages de reglages (form-engine.js + forms/*.js), strategies, profils
+// et reglages du GUI.
 // Tout passe par `backend` : window.mybot (preload.js) dans Electron, ou DemoBackend (demo.js) en demo / navigateur.
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -52,7 +53,9 @@ const app = {
   autoscroll: true,
   runSince: null,
   stats: null,
-  form: null, // { name, original: {id: value}, values: {id: value} }
+  logKind: 'bot', // journal affiche : 'bot' ou 'attack'
+  attackLog: [],
+  strategy: null, // strategie selectionnee dans la liste
   connected: false,
 };
 
@@ -126,16 +129,22 @@ systemDark.addEventListener('change', applyTheme);
 // ---------------------------------------------------------------------------------------------------------------------
 // navigation
 // ---------------------------------------------------------------------------------------------------------------------
+const PAGES = ['dashboard', 'log', 'village', 'army', 'attack', 'strategies', 'notify', 'bot', 'profiles', 'settings'];
+
+function confirmLeave() {
+  return !FormEngine.dirty().length || confirm('Des modifications ne sont pas enregistrées. Les abandonner ?');
+}
+
 async function go(page) {
   if (page === app.page) return;
-  if (app.form && dirtyIds().length && !confirm('Des modifications ne sont pas enregistrées. Les abandonner ?')) return;
+  if (!confirmLeave()) return;
   app.page = page;
   $$('#nav button').forEach((b) => b.classList.toggle('active', b.dataset.page === page));
   $$('.page').forEach((p) => p.classList.toggle('active', p.id === `page-${page}`));
   $('#main').scrollTop = 0;
-  app.form = null;
-  updateSavebar();
-  if (window.FORMS[page]) await loadForm(page);
+  FormEngine.leave();
+  if (FormEngine.has(page)) await FormEngine.load(page);
+  if (page === 'strategies') renderStrategies();
   if (page === 'profiles') renderProfiles();
   if (page === 'log') scrollLogToEnd();
 }
@@ -209,7 +218,7 @@ const RE_SEARCH = /^\d+>\s*\[G\]:/;
 const num = (s) => Number(String(s).replace(/\s/g, '')) || 0;
 
 function lineMatches(line) {
-  if (app.logFilter !== 'all' && line.level !== app.logFilter) return false;
+  if (app.logKind === 'bot' && app.logFilter !== 'all' && line.level !== app.logFilter) return false;
   if (app.logQuery && !line.text.toLowerCase().includes(app.logQuery)) return false;
   return true;
 }
@@ -256,14 +265,7 @@ function appendLog(lines) {
   if (app.log.length > MAX_LOG) app.log.splice(0, app.log.length - MAX_LOG);
   ingest(lines);
 
-  const box = $('#log');
-  const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
-  const frag = document.createDocumentFragment();
-  for (const line of lines) if (lineMatches(line)) frag.append(lineElement(line));
-  if (frag.childElementCount) box.querySelector('.empty')?.remove();
-  box.append(frag);
-  while (box.childElementCount > MAX_LOG) box.firstElementChild.remove();
-  if (app.autoscroll && (atEnd || app.page !== 'log')) box.scrollTop = box.scrollHeight;
+  if (app.logKind === 'bot') showLines(lines);
 
   const mini = $('#miniLog');
   mini.replaceChildren(...app.log.slice(-9).map(lineElement));
@@ -273,15 +275,42 @@ function appendLog(lines) {
   renderDashboard();
 }
 
+// ajoute des lignes au journal affiche
+function showLines(lines) {
+  const box = $('#log');
+  const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+  const frag = document.createDocumentFragment();
+  for (const line of lines) if (lineMatches(line)) frag.append(lineElement(line));
+  if (frag.childElementCount) box.querySelector('.empty')?.remove();
+  box.append(frag);
+  while (box.childElementCount > MAX_LOG) box.firstElementChild.remove();
+  if (app.autoscroll && (atEnd || app.page !== 'log')) box.scrollTop = box.scrollHeight;
+}
+
+// le tableau des attaques (AttackLog-AAAA-MM.log) : une ligne par attaque, sans niveau
+function appendAttackLog(lines) {
+  app.attackLog.push(...lines);
+  if (app.attackLog.length > MAX_LOG) app.attackLog.splice(0, app.attackLog.length - MAX_LOG);
+  if (app.logKind === 'attack') showLines(lines);
+}
+
 function renderLog() {
   const box = $('#log');
+  const source = app.logKind === 'attack' ? app.attackLog : app.log;
+  box.classList.toggle('attack-log', app.logKind === 'attack');
+  showLogFile(app.logFile);
+  $('#logFilters').classList.toggle('disabled', app.logKind === 'attack');
   const frag = document.createDocumentFragment();
-  for (const line of app.log) if (lineMatches(line)) frag.append(lineElement(line));
+  for (const line of source) if (lineMatches(line)) frag.append(lineElement(line));
   box.replaceChildren(frag);
   if (!box.childElementCount) {
     const empty = document.createElement('div');
     empty.className = 'empty';
-    empty.textContent = app.log.length ? 'Aucune ligne ne correspond au filtre.' : 'Le journal apparaîtra ici dès que le bot écrit.';
+    empty.textContent = source.length
+      ? 'Aucune ligne ne correspond au filtre.'
+      : app.logKind === 'attack'
+        ? 'Le tableau des attaques apparaîtra ici après la première attaque (Logs\\AttackLog-AAAA-MM.log).'
+        : 'Le journal apparaîtra ici dès que le bot écrit.';
     box.append(empty);
   }
   scrollLogToEnd();
@@ -352,124 +381,81 @@ function renderDashboard() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// formulaires config.ini (forms.js)
+// pages de reglages (form-engine.js) et barre d'enregistrement
 // ---------------------------------------------------------------------------------------------------------------------
-const isTrue = (v) => /^(1|true)$/i.test(String(v ?? '').trim());
-const fieldsOf = (name) => window.FORMS[name].flatMap((card) => card.fields);
-
-function fieldHTML(f) {
-  const hint = f.hint ? `<small>${f.hint}</small>` : '';
-  if (f.type === 'toggle') {
-    return `<label class="row-toggle" data-field="${f.id}">
-      <span class="row-text"><span>${f.label}</span>${hint}</span>
-      <input type="checkbox" class="switch" data-id="${f.id}">
-    </label>`;
-  }
-  let input;
-  if (f.type === 'select') {
-    input = `<select data-id="${f.id}">${f.options.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>`;
-  } else if (f.type === 'number') {
-    input = `<input type="number" min="${f.min ?? 0}" step="${f.step ?? 1}" data-id="${f.id}">`;
-  } else if (f.type === 'secret') {
-    input = `<div class="input-with-btn"><input type="password" spellcheck="false" autocomplete="off" placeholder="${f.placeholder ?? ''}" data-id="${f.id}">
-      <button type="button" class="icon-btn reveal" title="Afficher">${icon('i-eye')}</button></div>`;
-  } else {
-    input = `<input type="text" spellcheck="false" placeholder="${f.placeholder ?? ''}" data-id="${f.id}">`;
-  }
-  return `<div class="field" data-field="${f.id}"><label>${f.label}</label>${input}${hint}</div>`;
-}
-
-function buildForms() {
-  for (const [name, cards] of Object.entries(window.FORMS)) {
-    const box = $(`#page-${name} [data-cards]`);
-    box.innerHTML = cards
-      .map(
-        (card) => `<article class="card">
-          <div class="card-head"><h2>${icon(card.icon)}${card.title}</h2></div>
-          ${card.note ? `<p class="note">${icon('i-alert')}<span>${card.note}</span></p>` : ''}
-          <div class="fields">${card.fields.map(fieldHTML).join('')}</div>
-        </article>`,
-      )
-      .join('');
-  }
-  document.addEventListener('input', onFieldInput);
-  document.addEventListener('change', onFieldInput);
-  document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.reveal');
-    if (!btn) return;
-    const input = btn.parentElement.querySelector('input');
-    input.type = input.type === 'password' ? 'text' : 'password';
-  });
-}
-
-async function loadForm(name) {
-  const fields = fieldsOf(name);
-  const res = await guard(() => backend.getConfig(fields.map((f) => f.id)));
-  if (!res) return;
-  const original = {};
-  for (const f of fields) original[f.id] = res.values[f.id] ?? f.def ?? '';
-  app.form = { name, original, values: { ...original }, exists: res.exists };
-  const page = $(`#page-${name}`);
-  for (const f of fields) {
-    const input = page.querySelector(`[data-id="${CSS.escape(f.id)}"]`);
-    if (f.type === 'toggle') input.checked = isTrue(original[f.id]);
-    else input.value = original[f.id];
-  }
-  if (!res.exists) toast("Ce profil n'a pas encore de config.ini : lancez le bot une fois.", 'info');
-  refreshDependencies();
-  updateSavebar();
-}
-
-function onFieldInput(e) {
-  const id = e.target.dataset?.id;
-  if (!id || !app.form) return;
-  const f = fieldsOf(app.form.name).find((x) => x.id === id);
-  if (!f) return;
-  if (f.type === 'toggle') {
-    // garde l'ecriture d'origine de la cle : 1/0, ou True/False pour les options que le bot ecrit ainsi
-    const style = /^(true|false)$/i.test(app.form.original[id]) ? ['True', 'False'] : ['1', '0'];
-    app.form.values[id] = e.target.checked ? style[0] : style[1];
-    refreshDependencies();
-  } else {
-    app.form.values[id] = e.target.value;
-  }
-  updateSavebar();
-}
-
-function refreshDependencies() {
-  if (!app.form) return;
-  const page = $(`#page-${app.form.name}`);
-  for (const f of fieldsOf(app.form.name)) {
-    if (!f.needs) continue;
-    const on = f.needs.every((dep) => isTrue(app.form.values[dep]));
-    const wrap = page.querySelector(`[data-field="${CSS.escape(f.id)}"]`);
-    wrap.classList.toggle('disabled', !on);
-    wrap.querySelectorAll('input, select, button').forEach((i) => (i.disabled = !on));
-  }
-}
-
-function dirtyIds() {
-  if (!app.form) return [];
-  return Object.keys(app.form.values).filter((id) => String(app.form.values[id]) !== String(app.form.original[id]));
-}
-
-function updateSavebar() {
-  const dirty = dirtyIds();
-  $('#savebar').hidden = dirty.length === 0;
-  $('#main').classList.toggle('has-savebar', dirty.length > 0);
-  $('#dirtyCount').textContent = dirty.length;
+function updateSavebar(count) {
+  $('#savebar').hidden = count === 0;
+  $('#main').classList.toggle('has-savebar', count > 0);
+  $('#dirtyCount').textContent = count;
 }
 
 async function saveForm() {
-  const dirty = dirtyIds();
-  if (!dirty.length) return;
-  const values = Object.fromEntries(dirty.map((id) => [id, app.form.values[id]]));
-  const res = await guard(() => backend.setConfig(values));
-  if (!res) return;
-  if (!res.ok) return toast(res.error, 'error');
-  Object.assign(app.form.original, values);
-  updateSavebar();
-  toast(`${dirty.length} réglage(s) enregistré(s) dans config.ini`, 'success');
+  const n = await FormEngine.save();
+  if (n > 0) toast(`${n} réglage(s) enregistré(s) pour le profil ${app.settings.profile}`, 'success');
+}
+
+function reloadForm() {
+  const name = FormEngine.current();
+  if (name && confirmLeave()) FormEngine.load(name);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// strategies (Attack Plan > Strategies du bot)
+// ---------------------------------------------------------------------------------------------------------------------
+async function renderStrategies() {
+  const list = (await guard(() => backend.listStrategies())) ?? [];
+  $('#strategyCount').textContent = list.length ? `${list.length} dans Strategies\\` : '';
+  if (app.strategy && !list.some((s) => s.name === app.strategy)) app.strategy = null;
+  const box = $('#strategyList');
+  if (!list.length) {
+    box.innerHTML = '<div class="empty">Aucune stratégie : enregistrez les réglages actuels à droite.</div>';
+  } else {
+    box.replaceChildren(
+      ...list.map((s) => {
+        const item = document.createElement('button');
+        item.className = `strategy-item${s.name === app.strategy ? ' active' : ''}`;
+        item.innerHTML = `${icon('i-book')}<span class="strategy-name"></span><span class="muted small strategy-first"></span>`;
+        item.querySelector('.strategy-name').textContent = s.name;
+        item.querySelector('.strategy-first').textContent = s.info.split('\n')[0];
+        item.addEventListener('click', () => {
+          app.strategy = s.name;
+          renderStrategies();
+        });
+        return item;
+      }),
+    );
+  }
+  const current = list.find((s) => s.name === app.strategy);
+  $('#strategyInfo').hidden = !current;
+  if (current) $('#strategyNotes').textContent = current.info || '(pas de notes)';
+}
+
+async function loadStrategy() {
+  if (!app.strategy) return;
+  if (!confirm(`Remplacer les réglages d'armée et d'attaque du profil ${app.settings.profile} par « ${app.strategy} » ?`)) return;
+  const n = await guard(() => backend.loadStrategy(app.strategy));
+  if (n !== null) toast(`Stratégie « ${app.strategy} » chargée (${n} réglages)`, 'success');
+}
+
+async function saveStrategy() {
+  const name = $('#strategyName').value.trim();
+  if (!name) return toast('Donnez un nom à la stratégie', 'error');
+  const saved = await guard(() => backend.saveStrategy(name, $('#strategyNewNotes').value));
+  if (!saved) return;
+  toast(`Stratégie « ${saved} » enregistrée`, 'success');
+  $('#strategyName').value = '';
+  $('#strategyNewNotes').value = '';
+  app.strategy = saved;
+  renderStrategies();
+}
+
+async function deleteStrategy() {
+  if (!app.strategy || !confirm(`Supprimer la stratégie « ${app.strategy} » ?`)) return;
+  const res = await guard(() => backend.deleteStrategy(app.strategy));
+  if (res === null) return;
+  toast(`Stratégie « ${app.strategy} » supprimée`, 'success');
+  app.strategy = null;
+  renderStrategies();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -545,6 +531,46 @@ async function renderProfiles() {
   );
 }
 
+// Bot > Profils du bot : nouveau, copie, renommer, supprimer (le profil actif pour les deux derniers)
+async function profileAction(kind) {
+  const name = $('#profileNewName').value.trim();
+  const active = app.settings.profile;
+  if (kind !== 'delete' && !name) return toast('Tapez un nom de profil', 'error');
+  if (['rename', 'delete'].includes(kind) && !['off', 'error', 'unsupported'].includes(app.bot.state)) {
+    return toast(`Fermez d'abord le bot du profil ${active}`, 'error');
+  }
+  let res;
+  if (kind === 'create' || kind === 'duplicate') {
+    res = await guard(() => backend.createProfile(name, kind === 'duplicate' ? active : ''));
+    if (!res) return;
+    toast(kind === 'duplicate' ? `Profil ${res} créé à partir de ${active}` : `Profil ${res} créé`, 'success');
+  } else if (kind === 'rename') {
+    if (!confirm(`Renommer le profil ${active} en ${name} ?`)) return;
+    res = await guard(() => backend.renameProfile(active, name));
+    if (!res) return;
+    toast(`Profil renommé en ${res}`, 'success');
+    await profileSwitched();
+  } else {
+    if (!confirm(`Supprimer le profil ${active}, ses réglages et ses journaux ? C'est définitif.`)) return;
+    res = await guard(() => backend.deleteProfile(active));
+    if (res === null) return;
+    toast(`Profil ${active} supprimé`, 'success');
+    await profileSwitched();
+  }
+  $('#profileNewName').value = '';
+  renderProfiles();
+}
+
+// le processus principal a change de profil actif (renomme, supprime) : on repart de ses reglages
+async function profileSwitched() {
+  const info = await guard(() => backend.info());
+  if (!info) return;
+  setInfo(info);
+  await reloadLog(info.logFile);
+  const form = FormEngine.current();
+  if (form) await FormEngine.load(form);
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // reglages
 // ---------------------------------------------------------------------------------------------------------------------
@@ -553,7 +579,11 @@ async function applySettings(patch, message) {
   const info = await guard(() => backend.setSettings(patch), message);
   if (!info) return;
   setInfo(info);
-  if (profileChanged) await reloadLog(info.logFile); // le journal suivi est maintenant celui du nouveau profil
+  if (profileChanged) {
+    await reloadLog(info.logFile); // le journal suivi est maintenant celui du nouveau profil
+    const form = FormEngine.current();
+    if (form) await FormEngine.load(form);
+  }
 }
 
 function setInfo(info) {
@@ -647,14 +677,35 @@ function wire() {
     scrollLogToEnd();
   });
   $('#logClear').addEventListener('click', () => {
-    app.log = [];
+    if (app.logKind === 'attack') app.attackLog = [];
+    else app.log = [];
     renderLog();
   });
   $('#logOpenFolder').addEventListener('click', () => openPath('logs'));
+  $('#logKind').addEventListener('click', (e) => {
+    const kind = e.target.closest('button[data-kind]')?.dataset.kind;
+    if (!kind || kind === app.logKind) return;
+    app.logKind = kind;
+    $$('#logKind button').forEach((b) => b.classList.toggle('active', b.dataset.kind === kind));
+    renderLog();
+  });
 
-  $$('[data-reload]').forEach((b) => b.addEventListener('click', () => app.form && loadForm(app.form.name)));
+  $$('[data-reload]').forEach((b) => b.addEventListener('click', reloadForm));
   $('#saveBtn').addEventListener('click', saveForm);
-  $('#discardBtn').addEventListener('click', () => app.form && loadForm(app.form.name));
+  $('#discardBtn').addEventListener('click', () => {
+    const name = FormEngine.current();
+    if (name) FormEngine.load(name);
+  });
+
+  $('#strategiesFolder').addEventListener('click', () => openPath('strategies'));
+  $('#strategyLoad').addEventListener('click', loadStrategy);
+  $('#strategySave').addEventListener('click', saveStrategy);
+  $('#strategyDelete').addEventListener('click', deleteStrategy);
+
+  $('#profileCreate').addEventListener('click', () => profileAction('create'));
+  $('#profileDuplicate').addEventListener('click', () => profileAction('duplicate'));
+  $('#profileRename').addEventListener('click', () => profileAction('rename'));
+  $('#profileDelete').addEventListener('click', () => profileAction('delete'));
 
   $('#page-profiles').addEventListener('input', updateCmdPreview);
   $('#page-profiles').addEventListener('change', updateCmdPreview);
@@ -665,16 +716,19 @@ function wire() {
   });
   $('#profilesRefresh').addEventListener('click', renderProfiles);
 
-  const pages = ['dashboard', 'log', 'village', 'attack', 'notify', 'profiles', 'settings'];
+  // Ctrl+1 a Ctrl+9 puis Ctrl+0 : les pages dans l'ordre du menu ; Ctrl+S : enregistrer
   document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && /^[1-7]$/.test(e.key)) {
+    if (e.ctrlKey && /^[0-9]$/.test(e.key)) {
       e.preventDefault();
-      go(pages[Number(e.key) - 1]);
+      go(PAGES[(Number(e.key) + 9) % 10]);
     }
-    if (e.ctrlKey && e.key.toLowerCase() === 's' && app.form) {
+    if (e.ctrlKey && e.key.toLowerCase() === 's' && FormEngine.current()) {
       e.preventDefault();
       saveForm();
     }
+  });
+  window.addEventListener('beforeunload', (e) => {
+    if (FormEngine.dirty().length) e.preventDefault();
   });
 
   setInterval(updateUptime, 1000);
@@ -693,6 +747,7 @@ async function connect() {
   await reloadLog(info.logFile);
   unsubscribe = [
     backend.onLog(appendLog),
+    backend.onAttackLog(appendAttackLog),
     backend.onLogFile(showLogFile),
     backend.onState(setBotState),
   ];
@@ -704,6 +759,7 @@ async function connect() {
 async function reloadLog(logFile) {
   const history = await backend.logHistory();
   app.log = [];
+  app.attackLog = (await backend.attackLogHistory()) ?? [];
   resetStats();
   $('#miniLog').replaceChildren();
   if (history.length) appendLog(history);
@@ -713,8 +769,14 @@ async function reloadLog(logFile) {
 }
 
 function showLogFile(name) {
+  app.logFile = name;
   $('#sbFile').textContent = name || 'aucun journal';
-  $('#logFileName').textContent = name ? `Suivi en direct de ${name}` : 'Suivi en direct de Profiles\\<profil>\\Logs';
+  $('#logFileName').textContent =
+    app.logKind === 'attack'
+      ? 'Tableau des attaques du profil (Logs\\AttackLog-AAAA-MM.log)'
+      : name
+        ? `Suivi en direct de ${name}`
+        : 'Suivi en direct de Profiles\\<profil>\\Logs';
 }
 
 async function startDemo() {
@@ -725,7 +787,7 @@ async function startDemo() {
 
 async function init() {
   buildResourceTiles();
-  buildForms();
+  FormEngine.init({ backend: { getConfig: (ids) => backend.getConfig(ids), setConfig: (v) => backend.setConfig(v), list: (k) => backend.list(k), listProfiles: () => backend.listProfiles() }, toast, guard, onDirty: updateSavebar }, window.PAGES, $('#main'), $('#page-strategies'));
   buildSwitches();
   buildSettings();
   wire();

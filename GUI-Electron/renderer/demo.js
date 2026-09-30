@@ -44,16 +44,26 @@
         ...saved.settings,
       };
       this.config = saved.config ?? {};
+      this.profiles = saved.profiles ?? [
+        { name: 'MyVillage', hasConfig: true, emulator: 'BlueStacks5', instance: 'Pie64', multibot: true },
+        { name: 'Farm2', hasConfig: true, emulator: 'BlueStacks5', instance: 'Pie64_1', multibot: true },
+        { name: 'Rush TH12', hasConfig: false, emulator: '', instance: '', multibot: false },
+      ];
+      this.strategies = saved.strategies ?? {
+        'Farm Barch': { info: 'Barbares + archères, bases mortes seulement.\nLigue Cristal.', values: {} },
+        'Dragons TH12': { info: 'Dragons + sorts de rage, attaque scriptée.', values: {} },
+      };
       this.botState = 'off';
-      this.listeners = { log: [], file: [], state: [] };
+      this.listeners = { log: [], file: [], state: [], attack: [] };
       this.history = [];
+      this.attackHistory = [];
       this.loot = { gold: 4_512_330, elixir: 3_998_120, dark: 98_450, gems: 1_245 };
       this.script = [];
       this.timer = setInterval(() => this.tick(), 650);
     }
 
     persist() {
-      store.save({ settings: this.settings, config: this.config });
+      store.save({ settings: this.settings, config: this.config, profiles: this.profiles, strategies: this.strategies });
     }
 
     info() {
@@ -78,26 +88,96 @@
     }
 
     listProfiles() {
-      return Promise.resolve([
-        { name: 'MyVillage', hasConfig: true, emulator: 'BlueStacks5', instance: 'Pie64', multibot: true },
-        { name: 'Farm2', hasConfig: true, emulator: 'BlueStacks5', instance: 'Pie64_1', multibot: true },
-        { name: 'Rush TH12', hasConfig: false, emulator: '', instance: '', multibot: false },
-      ]);
+      return Promise.resolve(structuredClone(this.profiles));
     }
 
+    findProfile(name) {
+      return this.profiles.find((p) => p.name.toLowerCase() === String(name).toLowerCase());
+    }
+
+    async createProfile(name, copyFrom) {
+      const clean = String(name ?? '').replace(/[\\/:*?"<>|]/g, '_').trim();
+      if (!clean) throw new Error('Nom invalide');
+      if (this.findProfile(clean)) throw new Error(`Le profil ${clean} existe deja`);
+      this.profiles.push({ name: clean, hasConfig: Boolean(copyFrom), emulator: '', instance: '', multibot: false });
+      this.persist();
+      return clean;
+    }
+
+    async renameProfile(from, to) {
+      const p = this.findProfile(from);
+      if (!p) throw new Error(`Profil introuvable : ${from}`);
+      const name = String(to).trim();
+      if (this.config[p.name]) {
+        this.config[name] = this.config[p.name];
+        delete this.config[p.name];
+      }
+      if (p.name.toLowerCase() === this.settings.profile.toLowerCase()) this.settings.profile = name;
+      p.name = name;
+      this.persist();
+      return name;
+    }
+
+    async deleteProfile(name) {
+      this.profiles = this.profiles.filter((p) => p !== this.findProfile(name));
+      delete this.config[name];
+      if (name.toLowerCase() === this.settings.profile.toLowerCase()) {
+        this.settings.profile = (this.profiles.find((p) => p.hasConfig) ?? this.profiles[0])?.name ?? 'MyVillage';
+      }
+      this.persist();
+    }
+
+    // les valeurs de la demo sont celles du profil actif ; les cles "fichier:section/cle" sont gardees telles quelles
     getConfig(ids) {
       const values = {};
-      for (const id of ids) values[id] = this.config[id] ?? null;
-      return Promise.resolve({ file: `${this.settings.botDir}\\Profiles\\${this.settings.profile}\\config.ini`, exists: true, values });
+      const cfg = this.config[this.settings.profile] ?? {};
+      for (const id of ids) values[id] = cfg[id] ?? null;
+      return Promise.resolve({ values, files: { config: true } });
     }
 
     setConfig(values) {
       if (this.botState !== 'off') {
-        return Promise.resolve({ ok: false, error: "Fermez d'abord le bot de ce profil : il réécrit config.ini en quittant." });
+        return Promise.resolve({ ok: false, error: "Fermez d'abord le bot de ce profil : il réécrit ses fichiers en quittant." });
       }
-      Object.assign(this.config, values);
+      this.config[this.settings.profile] = { ...(this.config[this.settings.profile] ?? {}), ...values };
       this.persist();
       return Promise.resolve({ ok: true });
+    }
+
+    listStrategies() {
+      return Promise.resolve(Object.entries(this.strategies).map(([name, s]) => ({ name, info: s.info })).sort((a, b) => a.name.localeCompare(b.name)));
+    }
+
+    async loadStrategy(name) {
+      const s = this.strategies[name];
+      if (!s) throw new Error(`Strategie introuvable : ${name}`);
+      const res = await this.setConfig(s.values);
+      if (!res.ok) throw new Error(res.error);
+      return Object.keys(s.values).length;
+    }
+
+    async saveStrategy(name, notes) {
+      let base = String(name).trim() || 'Stratégie';
+      let final = base;
+      for (let i = 2; this.strategies[final]; i++) final = `${base} (${i})`;
+      const cfg = this.config[this.settings.profile] ?? {};
+      const values = Object.fromEntries(Object.entries(cfg).filter(([id]) => /^(search|attack|troop|spells|endbattle|collectors|droporder|smartzap|planned)\//i.test(id)));
+      this.strategies[final] = { info: notes ?? '', values };
+      this.persist();
+      return final;
+    }
+
+    async deleteStrategy(name) {
+      delete this.strategies[name];
+      this.persist();
+    }
+
+    list(kind) {
+      const lists = {
+        scripts: ['Barch four fingers', 'Dragons 2 sides', 'Giant Healers', 'LavaLoon', 'Mass Witch', 'Queen Walk Hybrid'],
+        languages: ['Chinese_S', 'English', 'French', 'German', 'Italian', 'Portuguese', 'Russian', 'Spanish'],
+      };
+      return Promise.resolve(lists[kind] ?? []);
     }
 
     async launch() {
@@ -150,6 +230,10 @@
       return Promise.resolve(this.history.slice());
     }
 
+    attackLogHistory() {
+      return Promise.resolve(this.attackHistory.slice());
+    }
+
     openPath() {
       return Promise.resolve('');
     }
@@ -160,6 +244,11 @@
 
     onLog(cb) {
       this.listeners.log.push(cb);
+      return () => {};
+    }
+
+    onAttackLog(cb) {
+      this.listeners.attack.push(cb);
       return () => {};
     }
 
@@ -191,6 +280,14 @@
       for (const cb of this.listeners.log) cb([line]);
     }
 
+    // une ligne du tableau des attaques (AttackReport.au3), comme dans AttackLog-AAAA-MM.log
+    attackLog(text) {
+      const d = new Date();
+      const atk = { time: `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${now().slice(0, 5)}`, level: 'info', text };
+      this.attackHistory.push(atk);
+      for (const cb of this.listeners.attack) cb([atk]);
+    }
+
     queue(lines) {
       this.script.push(...lines);
     }
@@ -198,7 +295,8 @@
     tick() {
       if (this.script.length) {
         const [level, text] = this.script.shift();
-        this.log(level, text);
+        if (level === 'atk') this.attackLog(text);
+        else this.log(level, text);
         return;
       }
       if (this.botState === 'running') this.queue(this.cycle());
@@ -230,6 +328,10 @@
         ['success', `Battle ended, 2 stars, ${Math.floor(rnd(55, 92))}% destruction`],
         ['info', 'Returning Home'],
       );
+      const n = this.attackHistory.length + 1;
+      const pct = Math.floor(rnd(55, 92));
+      const col = (v, w) => String(v).padStart(w);
+      lines.push(['atk', `|${col(n % 100, 2)}|${now().slice(0, 5)}|${col(22, 6)}|${col(tries, 3)}|DB|${col(fmt(gain.gold), 7)}|${col(fmt(gain.elixir), 7)}|${col(fmt(gain.dark), 5)}|${col(Math.floor(rnd(-5, 12)), 3)}|${col(pct >= 50 ? 2 : 1, 2)}|${col(pct, 3)}|${col(0, 6)}|${col(0, 4)}|${col(22, 2)}|`]);
       l.gold += gain.gold;
       l.elixir += gain.elixir;
       l.dark += gain.dark;

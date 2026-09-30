@@ -1644,3 +1644,437 @@ main.has-savebar {
     transition: none !important;
   }
 }
+
+/* ------------------------------------------------------------------ pages de reglages : onglets et champs */
+.tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  backdrop-filter: blur(16px);
+}
+
+.tabbar .tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: 600 13px var(--font);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tabbar .tab .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.tabbar .tab:hover {
+  color: var(--text);
+}
+
+.tabbar .tab.active {
+  background: var(--accent-soft);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.tabbar .tab.active .icon {
+  color: var(--accent);
+}
+
+.tab-group,
+.tab-panel {
+  display: none;
+}
+
+.tab-group.active {
+  display: block;
+}
+
+.tab-panel.active {
+  display: grid;
+  animation: page-in 0.2s ease;
+}
+
+.subtabs {
+  display: inline-flex;
+  margin-bottom: 16px;
+}
+
+.subtabs button {
+  flex: none;
+  padding: 0 16px;
+}
+
+.tab-intro {
+  margin: 0;
+  color: var(--muted);
+}
+
+.wide,
+.card-wide {
+  grid-column: 1 / -1;
+}
+
+.form-grid .card {
+  min-width: 0;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
+  gap: 2px 16px;
+}
+
+.fields > .row-toggle {
+  margin: 0 -12px;
+}
+
+.field.compact {
+  gap: 4px;
+  padding: 4px 0;
+}
+
+.field.compact label {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field.compact input,
+.field.compact select {
+  height: 34px;
+}
+
+.row-toggle.compact {
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.field-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.inline-label {
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.inline-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.inline-fields > * {
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.inline-fields > .row-toggle {
+  flex: 1 1 100%;
+}
+
+.field-inline > small {
+  color: var(--faint);
+  font-size: 12px;
+}
+
+.input-suffix {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-suffix span {
+  position: absolute;
+  right: 12px;
+  color: var(--faint);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.input-suffix input {
+  padding-right: 42px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  background: var(--input);
+  color: var(--text);
+  font: 13px/1.5 var(--font);
+  resize: vertical;
+  user-select: text;
+}
+
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.seg-wrap {
+  flex-wrap: wrap;
+}
+
+.seg-wrap button {
+  flex: 1 0 auto;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.hours,
+.flags {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.hours.days {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.flags {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.hours button,
+.flags button {
+  height: 30px;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input);
+  color: var(--faint);
+  font: 600 12px var(--font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.flags button {
+  text-align: left;
+}
+
+.hours button {
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.hours button.active,
+.flags button.active {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.hours-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: 600 12px var(--font);
+  cursor: pointer;
+}
+
+.range-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.range-row input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.range-row output {
+  min-width: 64px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.field-info {
+  display: flex;
+  gap: 8px;
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.field-info .icon {
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.field-info.warn,
+.field-info.warn .icon {
+  color: var(--log-warn);
+}
+
+.param {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.param select {
+  width: auto;
+  height: 36px;
+}
+
+.param[hidden] {
+  display: none;
+}
+
+[data-wrap][hidden] {
+  display: none !important;
+}
+
+.sidebar {
+  overflow-y: auto;
+}
+
+.pipe-selects {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px 12px;
+}
+
+.pipe-selects label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pipe-selects span {
+  min-width: 22px;
+  color: var(--faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pipe-selects select {
+  height: 34px;
+}
+
+input[readonly] {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------ journal des attaques */
+.log.attack-log .text {
+  white-space: pre;
+  word-break: normal;
+}
+
+.chips.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ strategies */
+.strategy-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow: auto;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+
+.strategy-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--text);
+  font: 13.5px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.strategy-item .strategy-name {
+  font-weight: 600;
+}
+
+.strategy-item .icon {
+  grid-row: span 2;
+  color: var(--text-2);
+}
+
+.strategy-item .strategy-first {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.strategy-item:hover {
+  background: var(--card-hover);
+}
+
+.strategy-item.active {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.strategy-item.active .icon {
+  color: var(--accent);
+}
+
+.strategy-info pre {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 180px;
+  overflow: auto;
+  border-radius: 10px;
+  background: var(--log-bg);
+  color: var(--text-2);
+  font: 12.5px/1.55 var(--mono);
+  white-space: pre-wrap;
+}

@@ -19,8 +19,8 @@ function encode(text, encoding) {
 const SECTION = /^\s*\[([^\]]+)\]\s*$/;
 const ENTRY = /^\s*([^=;#][^=]*?)\s*=(.*)$/;
 
-function load(file) {
-  if (!fs.existsSync(file)) return { encoding: 'latin1', lines: [] };
+function load(file, newEncoding = 'latin1') {
+  if (!fs.existsSync(file)) return { encoding: newEncoding, lines: [] };
   const { text, encoding } = decode(fs.readFileSync(file));
   return { encoding, lines: text.split(/\r?\n/) };
 }
@@ -66,9 +66,10 @@ function getValues(file, ids) {
   return out;
 }
 
-// values = { "section/key": valeur } ; les cles absentes sont ajoutees a la fin de leur section
-function setValues(file, values) {
-  const { encoding, lines } = load(file);
+// values = { "section/key": valeur } ; les cles absentes sont ajoutees a la fin de leur section.
+// Un fichier qui n'existe pas encore est cree dans newEncoding (utf16le comme _Ini_Save, latin1 comme IniWrite).
+function setValues(file, values, newEncoding = 'latin1') {
+  const { encoding, lines } = load(file, newEncoding);
   const pending = new Map();
   for (const [id, value] of Object.entries(values)) {
     const [section, key] = splitId(id);
@@ -122,4 +123,31 @@ function splitId(id) {
   return [id.slice(0, i), id.slice(i + 1)];
 }
 
-module.exports = { readAll, sectionNames, getValues, setValues, decode };
+// sections completes, dans l'ordre du fichier et avec leur casse : [{ name, entries: [[cle, valeur], ...] }]
+function readSections(file) {
+  const out = [];
+  let current = null;
+  for (const line of load(file).lines) {
+    const s = SECTION.exec(line);
+    if (s) {
+      current = { name: s[1].trim(), entries: [] };
+      out.push(current);
+      continue;
+    }
+    const e = ENTRY.exec(line);
+    if (e && current) current.entries.push([e[1], e[2]]);
+  }
+  return out;
+}
+
+function writeSections(file, sections, encoding = 'latin1') {
+  const lines = [];
+  for (const { name, entries } of sections) {
+    lines.push(`[${name}]`);
+    for (const [k, v] of entries) lines.push(`${k}=${v}`);
+  }
+  lines.push('');
+  fs.writeFileSync(file, encode(lines.join('\r\n'), encoding));
+}
+
+module.exports = { readAll, readSections, writeSections, sectionNames, getValues, setValues, decode };

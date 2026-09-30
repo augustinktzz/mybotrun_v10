@@ -1,12 +1,13 @@
 // Processus principal : la fenetre, les reglages de l'interface, et tout ce qui touche au disque et au bot
-// (journal, config.ini du profil, lancement et commandes). La page (renderer/) n'y accede que par preload.js.
+// (journaux, fichiers .ini des profils, strategies, lancement et commandes). La page (renderer/) n'y accede que par
+// preload.js.
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Settings } = require('./lib/settings');
-const ini = require('./lib/ini');
-const { LogTail } = require('./lib/log-tail');
+const { LogTail, parseAttackLine, ATTACK_LOG_NAME } = require('./lib/log-tail');
 const { BotBridge, botExecutable } = require('./lib/bot');
+const { ProfileStore } = require('./lib/profile-store');
 
 const DEMO = process.argv.includes('--demo');
 const HISTORY = 1500; // lignes de journal gardees pour une page rechargee
@@ -17,8 +18,11 @@ let pollTimer = null;
 let lastState = { state: 'off' };
 let logFile = '';
 const history = [];
+const attackHistory = [];
 const tail = new LogTail();
+const attackTail = new LogTail({ pattern: ATTACK_LOG_NAME, parse: parseAttackLine });
 const bridge = new BotBridge(path.join(__dirname, 'bridge', 'MyBotBridge.ps1'));
+const store = new ProfileStore(() => settings.get());
 
 // ---------------------------------------------------------------------------------------------------------------------
 // dossiers du bot
@@ -37,42 +41,15 @@ function detectBotDir() {
 }
 
 function paths() {
-  const { botDir, profile } = settings.get();
-  const profiles = path.join(botDir, 'Profiles');
-  const profileDir = path.join(profiles, profile);
+  const { botDir } = settings.get();
+  const profileDir = store.profileDir();
   return {
     botDir,
-    profiles,
     profileDir,
-    config: path.join(profileDir, 'config.ini'),
     logs: path.join(profileDir, 'Logs'),
-    multibot: path.join(profiles, 'MultiBot-Profiles.ini'),
+    strategies: store.strategiesDir,
+    scripts: path.join(botDir, 'CSV', 'Attack'),
   };
-}
-
-function listProfiles() {
-  const { botDir, profiles, multibot } = paths();
-  if (!botDir) return [];
-  const found = new Map();
-  try {
-    for (const entry of fs.readdirSync(profiles, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      const hasConfig = fs.existsSync(path.join(profiles, entry.name, 'config.ini'));
-      found.set(entry.name.toLowerCase(), { name: entry.name, hasConfig, emulator: '', instance: '', multibot: false });
-    }
-  } catch {
-    // pas encore de dossier Profiles : le bot le cree a son premier demarrage
-  }
-  // les reglages de MultiBot (une section par profil) donnent l'emulateur et l'instance de chacun
-  const data = ini.readAll(multibot);
-  for (const [section, keys] of Object.entries(data)) {
-    if (section === 'options') continue;
-    const name = keys.profile || section;
-    const key = name.toLowerCase();
-    const item = found.get(key) ?? { name, hasConfig: false };
-    found.set(key, { ...item, emulator: keys.emulator ?? '', instance: keys.instance ?? '', multibot: true });
-  }
-  return [...found.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -91,14 +68,22 @@ tail.on('file', (name) => {
   logFile = name;
   send('log:file', name);
 });
+attackTail.on('lines', (lines) => {
+  attackHistory.push(...lines);
+  if (attackHistory.length > HISTORY) attackHistory.splice(0, attackHistory.length - HISTORY);
+  send('atklog:lines', lines);
+});
 
 function restartWatchers() {
   history.length = 0;
+  attackHistory.length = 0;
   logFile = '';
   tail.stop();
+  attackTail.stop();
   clearInterval(pollTimer);
   if (DEMO || !settings.get().botDir) return;
   tail.start(paths().logs);
+  attackTail.start(paths().logs);
   if (bridge.supported) {
     pollTimer = setInterval(pollState, 2000);
     pollState();
@@ -164,25 +149,93 @@ ipcMain.handle('dialog:botDir', async () => {
   return info();
 });
 
-ipcMain.handle('profiles:list', () => listProfiles());
+// le bot reecrit tous ses .ini quand il enregistre (a la fermeture notamment) : une modification faite pendant qu'il
+// est ouvert serait perdue
+const CLOSE_FIRST = "Fermez d'abord le bot de ce profil : il reecrit ses reglages en quittant.";
+const botOpen = () => !['off', 'error'].includes(lastState.state);
 
-ipcMain.handle('config:get', (_e, ids) => {
-  const { botDir, config } = paths();
-  if (!botDir) return { file: '', exists: false, values: {} };
-  return { file: config, exists: fs.existsSync(config), values: ini.getValues(config, ids) };
-});
-
-ipcMain.handle('config:set', (_e, values) => {
-  // le bot reecrit tout config.ini quand il enregistre (a la fermeture notamment) : une modification faite pendant qu'il
-  // est ouvert serait perdue
-  if (!['off', 'error'].includes(lastState.state)) {
-    return { ok: false, error: "Fermez d'abord le bot de ce profil : il reecrit config.ini en quittant." };
+// le bot d'un autre profil que celui pilote : sa fenetre, s'il est ouvert
+async function otherBotOpen(profile) {
+  if (profile.toLowerCase() === settings.get().profile.toLowerCase()) return botOpen();
+  if (!bridge.supported || DEMO) return false;
+  try {
+    return Boolean(await bridge.find(profile, ''));
+  } catch {
+    return false;
   }
-  const { config } = paths();
-  if (!fs.existsSync(config)) return { ok: false, error: `Pas de config.ini pour ce profil (${config}). Lancez le bot une fois.` };
-  ini.setValues(config, values);
-  return { ok: true };
-});
+}
+
+function guarded(fn) {
+  return async (...args) => {
+    try {
+      return { ok: true, result: await fn(...args) };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  };
+}
+
+ipcMain.handle('profiles:list', () => store.listProfiles());
+
+ipcMain.handle('config:get', (_e, ids) => store.getValues(ids));
+
+ipcMain.handle(
+  'config:set',
+  guarded((_e, values) => {
+    if (botOpen()) throw new Error(CLOSE_FIRST);
+    store.setValues(values);
+  }),
+);
+
+ipcMain.handle(
+  'profiles:create',
+  guarded((_e, { name, copy }) => store.createProfile(name, copy ? settings.get().profile : null)),
+);
+
+ipcMain.handle(
+  'profiles:rename',
+  guarded(async (_e, { from, to }) => {
+    if (await otherBotOpen(from)) throw new Error(`Fermez d'abord le bot du profil ${from}`);
+    const name = store.renameProfile(from, to);
+    if (from.toLowerCase() === settings.get().profile.toLowerCase()) {
+      settings.set({ profile: name });
+      restartWatchers();
+    }
+    return name;
+  }),
+);
+
+ipcMain.handle(
+  'profiles:delete',
+  guarded(async (_e, name) => {
+    if (await otherBotOpen(name)) throw new Error(`Fermez d'abord le bot du profil ${name}`);
+    store.deleteProfile(name);
+    if (name.toLowerCase() === settings.get().profile.toLowerCase()) {
+      const next = store.listProfiles().find((p) => p.hasConfig) ?? store.listProfiles()[0];
+      settings.set({ profile: next?.name ?? 'MyVillage' });
+      restartWatchers();
+    }
+  }),
+);
+
+ipcMain.handle('strategies:list', () => store.listStrategies());
+ipcMain.handle(
+  'strategies:load',
+  guarded((_e, name) => {
+    if (botOpen()) throw new Error(CLOSE_FIRST);
+    return store.loadStrategy(name);
+  }),
+);
+ipcMain.handle(
+  'strategies:save',
+  guarded((_e, { name, notes }) => store.saveStrategy(name, notes)),
+);
+ipcMain.handle(
+  'strategies:delete',
+  guarded((_e, name) => store.deleteStrategy(name)),
+);
+
+ipcMain.handle('lists:get', (_e, kind) => store.list(kind));
 
 ipcMain.handle('bot:launch', async () => {
   const s = settings.get();
@@ -203,10 +256,11 @@ ipcMain.handle('bot:command', async (_e, name) => {
 
 ipcMain.handle('bot:state', () => lastState);
 ipcMain.handle('log:history', () => history);
+ipcMain.handle('atklog:history', () => attackHistory);
 
 ipcMain.handle('shell:open', (_e, what) => {
   const p = paths();
-  const target = { botDir: p.botDir, profile: p.profileDir, logs: p.logs }[what];
+  const target = { botDir: p.botDir, profile: p.profileDir, logs: p.logs, strategies: p.strategies, scripts: p.scripts }[what];
   if (target && fs.existsSync(target)) return shell.openPath(target);
   return `Dossier introuvable : ${target}`;
 });
@@ -272,6 +326,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('window-all-closed', () => {
     tail.stop();
+    attackTail.stop();
     clearInterval(pollTimer);
     bridge.dispose();
     app.quit();
