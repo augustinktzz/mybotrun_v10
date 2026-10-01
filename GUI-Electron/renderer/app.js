@@ -736,11 +736,15 @@ function setInfo(info) {
   applyTheme();
   fillLaunchForm();
   $('#demoTag').hidden = !info.demo;
-  $('#setupBanner').hidden = info.botFound || info.demo;
+  // the installed application manages the bot folder itself: on the first start the bot is still being copied there,
+  // which is not an error (the Updates page shows the progress)
+  $('#setupBanner').hidden = info.botFound || info.demo || info.packaged;
+  $('#pickBotDir').hidden = Boolean(info.packaged);
   $('#botDirPath').textContent = info.settings.botDir || 'Non défini';
   const tag = $('#botDirTag');
-  tag.textContent = info.botFound ? 'Trouvé' : 'Introuvable';
-  tag.className = `tag ${info.botFound ? 'ok' : 'bad'}`;
+  const installing = info.packaged && !info.botFound;
+  tag.textContent = installing ? 'Installing…' : info.botFound ? 'Trouvé' : 'Introuvable';
+  tag.className = `tag ${installing ? 'accent' : info.botFound ? 'ok' : 'bad'}`;
   $('#brandVersion').textContent = `v12 · GUI ${info.version}`;
   const about = [
     ['Version du GUI', info.version],

@@ -1,23 +1,32 @@
 {
   "name": "mybot-gui",
-  "productName": "MyBot GUI",
-  "version": "0.1.0",
-  "description": "Interface Electron moderne pour MyBot v12 : pilote MyBot.run.exe, suit son journal et edite les profils",
+  "productName": "MyBot",
+  "version": "12.0.0",
+  "description": "MyBot: Clash of Clans bot with its interface, installer and automatic updates",
+  "author": "augustinktzz",
   "main": "main.js",
   "private": true,
   "license": "GPL-3.0",
   "scripts": {
     "start": "electron .",
     "demo": "electron . --demo",
-    "dist": "electron-builder --win portable"
+    "release": "node scripts/build-release.js",
+    "release:publish": "node scripts/build-release.js --publish"
   },
   "devDependencies": {
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3"
   },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
   "build": {
     "appId": "run.mybot.gui",
-    "productName": "MyBot GUI",
+    "productName": "MyBot",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
     "files": [
       "main.js",
       "preload.js",
@@ -28,13 +37,58 @@
     "asarUnpack": [
       "bridge/**"
     ],
+    "extraResources": [
+      {
+        "from": "payload/bot",
+        "to": "bot"
+      }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "augustinktzz",
+        "repo": "mybotrun_v10",
+        "releaseType": "draft"
+      }
+    ],
     "win": {
-      "target": "portable",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "renderer/assets/MyBot.ico",
       "requestedExecutionLevel": "requireAdministrator"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "MyBot-Setup-${version}.${ext}",
+      "shortcutName": "MyBot",
+      "createDesktopShortcut": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "Game",
+      "artifactName": "MyBot-${version}.${ext}",
+      "extraResources": [
+        {
+          "from": "payload/bridge",
+          "to": "bridge"
+        }
+      ]
     }
-  },
-  "dependencies": {
-    "electron-updater": "^6.8.9"
   }
 }

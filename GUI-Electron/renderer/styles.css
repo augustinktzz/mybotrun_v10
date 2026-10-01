@@ -600,6 +600,12 @@ h1 {
   color: var(--log-success);
 }
 
+.tag.accent {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
 .tag.bad {
   border-color: color-mix(in srgb, var(--err) 35%, transparent);
   background: color-mix(in srgb, var(--err) 12%, transparent);
