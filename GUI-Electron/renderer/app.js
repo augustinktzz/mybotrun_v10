@@ -219,8 +219,10 @@ const RE_LEAGUE = /^\[League\]:\s*(.+)$/;
 const RE_SEARCH = /^\d+>\s*\[G\]:/;
 const num = (s) => Number(String(s).replace(/\s/g, '')) || 0;
 
+// the bot writes its debug lines to its log file whatever its settings: "all" leaves them out, as the bot's own window
+// did, and the Debug filter shows them
 function lineMatches(line) {
-  if (app.logKind === 'bot' && app.logFilter !== 'all' && line.level !== app.logFilter) return false;
+  if (app.logKind === 'bot' && (app.logFilter === 'all' ? line.level === 'debug' : line.level !== app.logFilter)) return false;
   if (app.logQuery && !line.text.toLowerCase().includes(app.logQuery)) return false;
   return true;
 }
@@ -270,9 +272,11 @@ function appendLog(lines) {
   if (app.logKind === 'bot') showLines(lines);
 
   const mini = $('#miniLog');
-  mini.replaceChildren(...app.log.slice(-9).map(lineElement));
+  const recent = [];
+  for (let i = app.log.length - 1; i >= 0 && recent.length < 9; i--) if (app.log[i].level !== 'debug') recent.unshift(app.log[i]);
+  mini.replaceChildren(...recent.map(lineElement));
 
-  const last = lines[lines.length - 1];
+  const last = lines.findLast((l) => l.level !== 'debug');
   if (last) $('#sbLast').textContent = `${last.time}  ${last.text}`;
   renderDashboard();
 }

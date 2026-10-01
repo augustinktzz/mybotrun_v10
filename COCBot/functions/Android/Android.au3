@@ -2873,7 +2873,10 @@ Func _AndroidScreencap($iLeft, $iTop, $iWidth, $iHeight, $iRetryCount = 0)
 					$iDataOffset = $iSize - $iPixelBytes
 				EndIf
 				If $iDataOffset <> $iHeaderSize Then
-					SetDebugLog("Screencap header is " & $iDataOffset & " bytes, not " & $iHeaderSize & "; seeking to pixel data")
+					; the header size does not change while the bot runs: said once, not at every capture
+					Local Static $iHeaderLogged = 0
+					If $iHeaderLogged <> $iDataOffset Then SetDebugLog("Screencap header is " & $iDataOffset & " bytes, not " & $iHeaderSize & "; seeking to pixel data")
+					$iHeaderLogged = $iDataOffset
 					_WinAPI_SetFilePointer($hFile, $iDataOffset)
 				EndIf
 
