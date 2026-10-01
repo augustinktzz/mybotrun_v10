@@ -2,3 +2,4 @@ node_modules/
 dist/
 payload/
 !build/icon.png
+payload.lock

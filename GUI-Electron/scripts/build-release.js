@@ -98,7 +98,22 @@ function aut2exe(dir, src, out, extra = []) {
 }
 
 // --------------------------------------------------------------------------------------------------------------- main
+// one build at a time: a second one would empty payload/ under the first
+const LOCK = path.join(GUI_DIR, 'payload.lock');
+function lock() {
+  try {
+    const pid = Number(fs.readFileSync(LOCK, 'utf8'));
+    process.kill(pid, 0); // throws when that build is no longer running
+    fail(`Another build is already running (process ${pid}). Wait for it to finish.`);
+  } catch (err) {
+    if (err.code !== 'ENOENT' && err.code !== 'ESRCH') throw err;
+  }
+  fs.writeFileSync(LOCK, String(process.pid));
+  process.on('exit', () => fs.rmSync(LOCK, { force: true }));
+}
+
 async function main() {
+  lock();
   step('Checks');
   const head = git('rev-parse', '--short', 'HEAD').trim();
   const versionFile = git('show', 'HEAD:MyBot.run.version.au3');
