@@ -21,7 +21,6 @@ Func WaitForClouds()
 	Local $iCount = 0
 	Local $bigCount = 0, $iLastTime = 0
 	Local $hMinuteTimer, $iSearchTime
-	Local $bEnabledGUI = False
 
 	Local $maxSearchCount = 360 ; $maxSearchCount * 250ms ($DELAYGETRESOURCES1) = seconds wait time before reset in lower leagues: 360*250ms = 1.5 minutes
 	Local $maxLongSearchCount = 3 ; $maxLongSearchCount * $maxSearchCount = seconds total wait time in higher leagues: ; 4.5 minutes, set a value here but is never used unless error
@@ -80,7 +79,6 @@ Func WaitForClouds()
 			CloseCoC(True)
 			ExitLoop
 		EndIf
-		If $g_bDebugSetLog Then _GUICtrlStatusBar_SetTextEx($g_hStatusBar, " Status: Loop to clean screen without Clouds, # " & $iCount)
 		$iSearchTime = __TimerDiff($hMinuteTimer) / 60000 ;get time since minute timer start in minutes
 		If $iSearchTime >= $iLastTime + 1 Then
 			SetLog("Cloud wait time " & StringFormat("%.1f", $iSearchTime) & " minute(s)", $COLOR_INFO)
@@ -97,26 +95,10 @@ Func WaitForClouds()
 				resetAttackSearch()
 				ExitLoop
 			EndIf
-			; attempt to enable GUI during long wait?
-			If $iSearchTime > 2 And Not $bEnabledGUI Then
-				AndroidShieldForceDown(True)
-				EnableGuiControls() ; enable bot controls is more than 2 minutes wait
-				SetLog("Enabled bot controls due to long wait time", $COLOR_SUCCESS)
-				$bEnabledGUI = True
-			EndIf
 		EndIf
 		If Not $g_bRunState Then ExitLoop
 		ForceCaptureRegion() ; ensure screenshots are not cached
 	WEnd
-
-	If $bEnabledGUI = True Then
-		SetLog("Disable bot controls after long wait time", $COLOR_SUCCESS)
-		AndroidShieldForceDown(False)
-		DisableGuiControls()
-		SaveConfig()
-		readConfig()
-		applyConfig()
-	EndIf
 
 	; add delay as few clouds might be still on screen (better to check for remaining clouds at top right?)
 	If _Sleep($DELAYCLOUDSCLEARED) Then Return

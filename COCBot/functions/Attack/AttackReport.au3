@@ -156,7 +156,6 @@ Func AttackReport()
 		; CoC 18.600: the league is the tier read on the badge, no longer derived from the loot bonus table
 		$g_asLeagueDetailsShort = LeagueTierShort($g_aiCurrentLoot[$eLootTrophy])
 		SetLog("League: " & LeagueTierName($g_aiCurrentLoot[$eLootTrophy]))
-		UpdateLeagueDisplay($g_aiCurrentLoot[$eLootTrophy])
 	Else
 		$g_iStatsBonusLast[$eLootGold] = 0
 		$g_iStatsBonusLast[$eLootElixir] = 0

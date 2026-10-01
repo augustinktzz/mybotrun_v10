@@ -39,7 +39,6 @@ Func TogglePauseUpdateState($Source)
 
 	$g_bTogglePauseUpdateState = False
     If $g_bBotPaused Then
-		AndroidShield("TogglePauseImpl paused", False)
 		TrayTip($g_sBotTitle, "", 1)
 		If Not $g_bDisableNotifications Then TrayTip($g_sBotTitle, "was Paused!", 1, $TIP_ICONEXCLAMATION)
 		SetLog("Bot was Paused!", $COLOR_ERROR)
@@ -49,14 +48,8 @@ Func TogglePauseUpdateState($Source)
 			;AdlibUnRegister("SetTime")
 		EndIf
 		PushMsg("Pause", $Source)
-		GUICtrlSetState($g_hBtnPause, $GUI_HIDE)
-		GUICtrlSetState($g_hBtnResume, $GUI_SHOW)
-		TrayItemSetText($g_hTiPause, GetTranslatedFileIni("MBR GUI Design - Loading", "StatusBar_Item_Resume", "Resume bot"))
-		_ITaskBar_UpdateTBButton($g_hTblResume, $THBF_ENABLED)
-		_ITaskBar_UpdateTBButton($g_hTblPause, $THBF_DISABLED)
 		;GUICtrlSetState($btnMakeScreenshot, $GUI_ENABLE)
 	Else
-		AndroidShield("TogglePauseImpl resumed")
 		TrayTip($g_sBotTitle, "", 1)
 		If Not $g_bDisableNotifications Then TrayTip($g_sBotTitle, "was Resumed.", 1, $TIP_ICONASTERISK)
 		SetLog("Bot was Resumed.", $COLOR_SUCCESS)
@@ -66,15 +59,9 @@ Func TogglePauseUpdateState($Source)
 			;AdlibRegister("SetTime", 1000)
 		EndIf
 		PushMsg("Resume", $Source)
-		GUICtrlSetState($g_hBtnPause, $GUI_SHOW)
-		GUICtrlSetState($g_hBtnResume, $GUI_HIDE)
-		TrayItemSetText($g_hTiPause, GetTranslatedFileIni("MBR GUI Design - Loading", "StatusBar_Item_Pause", "Pause bot"))
-		_ITaskBar_UpdateTBButton($g_hTblPause, $THBF_ENABLED)
-		_ITaskBar_UpdateTBButton($g_hTblResume, $THBF_DISABLED)
 		;GUICtrlSetState($btnMakeScreenshot, $GUI_DISABLE)
 		;ZoomOut()
 	EndIf
-	SetRedrawBotWindow(True, Default, Default, Default, "TogglePauseUpdateState")
 EndFunc	  ;==>TogglePauseUpdateState
 
 Func TogglePauseSleep()

@@ -357,38 +357,18 @@ Func _AutoUpgrade()
 			SetLog("Launched upgrade of " & $g_aUpgradeNameLevel[1] & " to level " & $g_aUpgradeNameLevel[2] + 1 & " successfully !", $COLOR_SUCCESS)
 			Switch $g_aUpgradeNameLevel[1]
 				Case "Barbarian King"
-					GUICtrlSetState($g_hPicKingGray, $GUI_HIDE)
-					GUICtrlSetState($g_hPicKingRed, $GUI_SHOW)
-					GUICtrlSetState($g_hPicKingBlue, $GUI_HIDE)
-					GUICtrlSetState($g_hPicKingGreen, $GUI_HIDE)
 					$g_iHeroUpgrading[0] = 1
 					$g_iHeroUpgradingBit = BitOR($g_iHeroUpgradingBit, $eHeroKing)
 				Case "Archer Queen"
-					GUICtrlSetState($g_hPicQueenGray, $GUI_HIDE)
-					GUICtrlSetState($g_hPicQueenRed, $GUI_SHOW)
-					GUICtrlSetState($g_hPicQueenBlue, $GUI_HIDE)
-					GUICtrlSetState($g_hPicQueenGreen, $GUI_HIDE)
 					$g_iHeroUpgrading[1] = 1
 					$g_iHeroUpgradingBit = BitOR($g_iHeroUpgradingBit, $eHeroQueen)
 				Case "Minion Prince"
-					GUICtrlSetState($g_hPicPrinceGray, $GUI_HIDE)
-					GUICtrlSetState($g_hPicPrinceRed, $GUI_SHOW)
-					GUICtrlSetState($g_hPicPrinceBlue, $GUI_HIDE)
-					GUICtrlSetState($g_hPicPrinceGreen, $GUI_HIDE)
 					$g_iHeroUpgrading[2] = 1
 					$g_iHeroUpgradingBit = BitOR($g_iHeroUpgradingBit, $eHeroPrince)
 				Case "Grand Warden"
-					GUICtrlSetState($g_hPicWardenGray, $GUI_HIDE)
-					GUICtrlSetState($g_hPicWardenRed, $GUI_SHOW)
-					GUICtrlSetState($g_hPicWardenBlue, $GUI_HIDE)
-					GUICtrlSetState($g_hPicWardenGreen, $GUI_HIDE)
 					$g_iHeroUpgrading[3] = 1
 					$g_iHeroUpgradingBit = BitOR($g_iHeroUpgradingBit, $eHeroWarden)
 				Case "Royal Champion"
-					GUICtrlSetState($g_hPicChampionGray, $GUI_HIDE)
-					GUICtrlSetState($g_hPicChampionRed, $GUI_SHOW)
-					GUICtrlSetState($g_hPicChampionBlue, $GUI_HIDE)
-					GUICtrlSetState($g_hPicChampionGreen, $GUI_HIDE)
 					$g_iHeroUpgrading[4] = 1
 					$g_iHeroUpgradingBit = BitOR($g_iHeroUpgradingBit, $eHeroChampion)
 			EndSwitch
@@ -427,13 +407,6 @@ Func _AutoUpgrade()
 				EndIf
 		EndSwitch
 
-		_GUICtrlEdit_AppendText($g_hTxtAutoUpgradeLog, _
-				@CRLF & _NowDate() & " " & _NowTime() & _
-				" - Upgrading " & $g_aUpgradeNameLevel[1] & _
-				" to level " & $g_aUpgradeNameLevel[2] + 1 & _
-				" for " & _NumberFormat($g_aUpgradeResourceCostDuration[1]) & _
-				" " & $g_aUpgradeResourceCostDuration[0] & _
-				" - Duration : " & $g_aUpgradeResourceCostDuration[2])
 
 		_FileWriteLog($g_sProfileLogsPath & "\AutoUpgradeHistory.log", _
 				"Upgrading " & $g_aUpgradeNameLevel[1] & _
@@ -469,8 +442,6 @@ EndFunc   ;==>_AutoUpgrade
 Func AutoWallsStatsMAJ($CurrentWallLevel = 10)
 	$g_aiWallsCurrentCount[$CurrentWallLevel + 1] = $g_aiWallsCurrentCount[$CurrentWallLevel + 1] + 1
 	$g_aiWallsCurrentCount[$CurrentWallLevel] = $g_aiWallsCurrentCount[$CurrentWallLevel] - 1
-	GUICtrlSetData($g_ahWallsCurrentCount[$CurrentWallLevel + 1], $g_aiWallsCurrentCount[$CurrentWallLevel + 1])
-	GUICtrlSetData($g_ahWallsCurrentCount[$CurrentWallLevel], $g_aiWallsCurrentCount[$CurrentWallLevel])
 	SaveConfig()
 EndFunc   ;==>AutoWallsStatsMAJ
 

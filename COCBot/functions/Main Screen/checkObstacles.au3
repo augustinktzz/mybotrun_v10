@@ -53,6 +53,9 @@ Func _checkObstacles($bBuilderBase = False, $bRecursive = False) ;Checks if some
 		If checkObstacles_GfxError() Then Return True
 	EndIf
 
+	; Generic Android: its own dialogs (inactivity, connection lost...) are read rather than matched, see AndroidGeneric.au3
+	If $g_sAndroidEmulator = "Generic" And Not TestCapture() And GenericSystemDialog() Then Return True
+
 	If UBound(decodeSingleCoord(FindImageInPlace2("Loading", $g_sImgLoading, 380, 570 + $g_iBottomOffsetY, 490, 620 + $g_iBottomOffsetY, False))) > 1 Then
 
 		;  Add check for banned account :(

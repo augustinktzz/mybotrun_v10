@@ -96,7 +96,6 @@ Func StarLaboratory($bTestRun = False)
 			SetLog("Research will finish in " & $sLabTimeOCR & " (" & $g_sStarLabUpgradeTime & ")")
 			$iStarLabFinishTimeMod = $iLabFinishTime
 			If ProfileSwitchAccountEnabled() Then SwitchAccountVariablesReload("Save") ; saving $asStarLabUpgradeTime[$g_iCurAccount] = $g_sStarLabUpgradeTime for instantly displaying in multi-stats
-			StarLabStatusGUIUpdate() ; Update GUI flag
 		ElseIf $g_bDebugSetLog Then
 			SetLog("Invalid getRemainTLaboratory OCR", $COLOR_DEBUG)
 		EndIf
@@ -268,8 +267,6 @@ Func StarLabUpgrade($iSelectedUpgrade, $bTestRun = False)
 					If $iSelectedUpgrade = $g_iCmbStarLaboratory Then
 						;HArchH When upgraded user's choice, reset to "Any" for the next time.
 						$g_iCmbStarLaboratory = 0 ; Reset user choice to "Any".
-						_GUICtrlComboBox_SetCurSel($g_hCmbStarLaboratory, $g_iCmbStarLaboratory)
-						_GUICtrlSetImage($g_hPicStarLabUpgrade, $g_sLibIconPath, $g_avStarLabTroops[$g_iCmbStarLaboratory][4]) ; Set the corresponding image.
 						SetLog("Upgraded user's choice. Resetting to Any.", $COLOR_INFO)
 						SaveBuildingConfig() ;Preserve the "Any" value.
 						If _Sleep($DELAYLABUPGRADE1) Then Return
@@ -285,7 +282,6 @@ Func StarLabUpgrade($iSelectedUpgrade, $bTestRun = False)
 					Return False
 				EndIf
 				SetLog("Upgrade " & $g_avStarLabTroops[$iSelectedUpgrade][3] & " in your star laboratory started with success...", $COLOR_SUCCESS)
-				StarLabStatusGUIUpdate()
 				PushMsg("StarLabSuccess")
 				If _Sleep($DELAYLABUPGRADE2) Then Return
 				Return True
@@ -502,7 +498,6 @@ Func StarLabGuiDisplay()
 			$g_sStarLabUpgradeTime = _DateAdd('n', Ceiling($iLabFinishTime), _NowCalc())
 			If @error Then _logErrorDateAdd(@error)
 			SetLog("Research will finish in " & $sLabTimeOCR & " (" & $g_sStarLabUpgradeTime & ")")
-			StarLabStatusGUIUpdate() ; Update GUI flag
 		ElseIf $g_bDebugSetLog Then
 			SetLog("Invalid getRemainTLaboratory OCR", $COLOR_DEBUG)
 			If ProfileSwitchAccountEnabled() Then SwitchAccountVariablesReload("Save") ; saving $asStarLabUpgradeTime[$g_iCurAccount] = $g_sStarLabUpgradeTime for instantly displaying in multi-stats
@@ -512,7 +507,6 @@ Func StarLabGuiDisplay()
 	Else
 		SetLog("No Star Laboratory Upgrade in progress", $COLOR_INFO)
 		$g_sStarLabUpgradeTime = ""
-		StarLabStatusGUIUpdate()
 		If ProfileSwitchAccountEnabled() Then SwitchAccountVariablesReload("Save") ; saving $asStarLabUpgradeTime[$g_iCurAccount] = $g_sStarLabUpgradeTime for instantly displaying in multi-stats
 		CloseWindow()
 		Return False

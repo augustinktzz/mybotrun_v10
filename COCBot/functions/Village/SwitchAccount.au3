@@ -52,7 +52,6 @@ EndFunc   ;==>AccountNoActive
 
 Func InitiateSwitchAcc() ; Checking profiles setup in Mybot, First matching CoC Acc with current profile, Reset all Timers relating to Switch Acc Mode.
 	If Not ProfileSwitchAccountEnabled() Or Not $g_bInitiateSwitchAcc Then Return
-	UpdateMultiStats()
 	$g_iNextAccount = -1
 	SetLog("Switch Account enable for " & $g_iTotalAcc + 1 & " accounts")
 	SetSwitchAccLog("Initiating: " & $g_iTotalAcc + 1 & " acc", $COLOR_SUCCESS)
@@ -273,7 +272,7 @@ Func SwitchCOCAcc($NextAccount)
 		If Not $g_bInitiateSwitchAcc Then SwitchAccountVariablesReload("Save")
 		If $g_ahTimerSinceSwitched[$g_iCurAccount] <> 0 Then
 			If Not $g_bReMatchAcc Then SetSwitchAccLog(" - Acc " & $g_iCurAccount + 1 & ", online: " & Int(__TimerDiff($g_ahTimerSinceSwitched[$g_iCurAccount]) / 1000 / 60) & "m")
-			SetTime(True)
+			SetTime()
 			$g_aiRunTime[$g_iCurAccount] += __TimerDiff($g_ahTimerSinceSwitched[$g_iCurAccount])
 			$g_ahTimerSinceSwitched[$g_iCurAccount] = 0
 		EndIf
@@ -285,17 +284,8 @@ Func SwitchCOCAcc($NextAccount)
 		$g_bInitiateSwitchAcc = False
 		If $g_sProfileCurrentName <> $g_asProfileName[$g_iNextAccount] Then
 			saveConfig() ;Always save before switch in case of any user changes
-			If $g_iGuiMode = 1 Then
-				; normal GUI Mode
-				_GUICtrlComboBox_SetCurSel($g_hCmbProfile, _GUICtrlComboBox_FindStringExact($g_hCmbProfile, $g_asProfileName[$g_iNextAccount]))
-				cmbProfile()
-				DisableGUI_AfterLoadNewProfile()
-			Else
-				; mini or headless GUI Mode
-				; saveConfig()
-				$g_sProfileCurrentName = $g_asProfileName[$g_iNextAccount]
-				LoadProfile(False)
-			EndIf
+			$g_sProfileCurrentName = $g_asProfileName[$g_iNextAccount]
+			LoadProfile(False)
 		EndIf
 		If $bSharedPrefs Then
 			SetLog("Please wait for loading CoC")
@@ -353,13 +343,8 @@ Func SwitchCOCAcc($NextAccount)
 	CheckObstacles()
 
 	SetLog("Switch Account Load Town Hall Level : " & $g_iTownHallLevel)
-	GUICtrlSetData($g_hGrpVillage, GetTranslatedFileIni("MBR Main GUI", "Tab_02", "Village") & "[TH" & $g_iTownHallLevel & "]" & ": " & $g_sProfileCurrentName)
 
 	;Display Level TH in Stats
-	GUICtrlSetData($g_hLblTHLevels, "")
-	_GUI_Value_STATE("HIDE", $g_aGroupListTHLevels)
-	GUICtrlSetState($g_ahPicTHLevels[$g_iTownHallLevel], $GUI_SHOW)
-	GUICtrlSetData($g_hLblTHLevels, $g_iTownHallLevel)
 
 	runBot()
 
@@ -622,18 +607,6 @@ Func CheckTroopTimeAllAccount($bExcludeCurrent = False) ; Return the minimum rem
 
 EndFunc   ;==>CheckTroopTimeAllAccount
 #ce
-
-Func DisableGUI_AfterLoadNewProfile()
-	$g_bGUIControlDisabled = True
-	For $i = $g_hFirstControlToHide To $g_hLastControlToHide
-		If IsAlwaysEnabledControl($i) Then ContinueLoop
-		If $i >= $g_hClanGamesTV And $i < $g_hChkForceBBAttackOnClanGames Then ContinueLoop
-		If $i >= $g_hChkForceBBAttackOnClanGames And $i <= $g_hBtnCGSettingsClose Then ContinueLoop
-		If BitAND(GUICtrlGetState($i), $GUI_ENABLE) Then GUICtrlSetState($i, $GUI_DISABLE)
-	Next
-	ControlEnable("", "", $g_hCmbGUILanguage)
-	$g_bGUIControlDisabled = False
-EndFunc   ;==>DisableGUI_AfterLoadNewProfile
 
 Func aquireSwitchAccountMutex($iSwitchAccountGroup = $g_iCmbSwitchAcc, $bReturnOnlyMutex = False, $bShowMsgBox = False)
 	Local $sMsg = GetTranslatedFileIni("MBR GUI Design Child Bot - Profiles", "Msg_SwitchAccounts_InUse", "My Bot with Switch Accounts Group %s is already in use or active.", $iSwitchAccountGroup)

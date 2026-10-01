@@ -13,49 +13,6 @@
 ; Example .......: No
 ; ===============================================================================================================================
 
-Func chkActivateBBSuggestedUpgrades()
-	; CheckBox Enable Suggested Upgrades [Update values][Update GUI State]
-	If GUICtrlRead($g_hChkBBSuggestedUpgrades) = $GUI_CHECKED Then
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreGold, $GUI_ENABLE)
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreElixir, $GUI_ENABLE)
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreHall, $GUI_ENABLE)
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreWall, $GUI_ENABLE)
-		GUICtrlSetState($g_hChkPlacingNewBuildings, $GUI_ENABLE)
-		GUICtrlSetState($g_hChkBBSaveWallBuilder, $GUI_ENABLE)
-		chkActivateBBSuggestedUpgradesGold()
-		chkActivateBBSuggestedUpgradesElixir()
-	Else
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreGold, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreElixir, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreHall, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreWall, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-		GUICtrlSetState($g_hChkPlacingNewBuildings, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-		GUICtrlSetState($g_hChkBBSaveWallBuilder, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-	EndIf
-EndFunc   ;==>chkActivateBBSuggestedUpgrades
-
-Func chkActivateBBSuggestedUpgradesGold()
-	If GUICtrlRead($g_hChkBBSuggestedUpgradesIgnoreGold) = $GUI_CHECKED Then
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreElixir, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreHall, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-	Else
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreElixir, $GUI_ENABLE)
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreHall, $GUI_ENABLE)
-	EndIf
-EndFunc   ;==>chkActivateBBSuggestedUpgradesGold
-
-Func chkActivateBBSuggestedUpgradesElixir()
-	If GUICtrlRead($g_hChkBBSuggestedUpgradesIgnoreElixir) = $GUI_CHECKED Then
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreGold, BitOR($GUI_UNCHECKED, $GUI_DISABLE))
-	Else
-		GUICtrlSetState($g_hChkBBSuggestedUpgradesIgnoreGold, $GUI_ENABLE)
-	EndIf
-EndFunc   ;==>chkActivateBBSuggestedUpgradesElixir
-
-Func chkPlacingNewBuildings()
-	$g_iChkPlacingNewBuildings = (GUICtrlRead($g_hChkPlacingNewBuildings) = $GUI_CHECKED) ? 1 : 0
-EndFunc   ;==>chkPlacingNewBuildings
-
 ; MAIN CODE
 ; --------------------------------------------------------------------------------------------------------------------
 ; Reading the suggestion lines of the builder base

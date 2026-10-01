@@ -207,7 +207,6 @@ Func BotCommand()
 					If ProfileSwitchAccountEnabled() Then
 						Local $aActiveAccount = _ArrayFindAll($g_abAccountNo, True)
 						If UBound($aActiveAccount) >= 2 Then
-							GUICtrlSetState($g_ahChkAccount[$g_iCurAccount], $GUI_UNCHECKED)
 							$g_iCommandStop = 1 ; Turn Idle
 							checkSwitchAcc()
 						Else

@@ -75,7 +75,7 @@ Func WM_MYBOTRUN_API_CLIENT($hWind, $iMsg, $wParam, $lParam)
 			$lParam = $g_hFrmBot
 			$wParam = $wParamLo + 1
 			If $g_bRunState = False Then
-				$wParamHi = 1
+				$wParamHi = ($g_bBotCanStart ? 1 : 0) ; not running when Start is refused, see CanBotStart()
 				;If $g_bBotPaused = True Then $wParamHi += 2
 				If IsBotLaunched() Then $wParamHi += 4 ; bot launched
 				btnStart()
@@ -349,8 +349,3 @@ Func ManagedMyBotHostsPostMessage($sExecutePrepare, $Value1 = Default, $Value2 =
 		EndIf
 	Next
 EndFunc   ;==>ManagedMyBotHostsPostMessage
-
-Func _GUICtrlStatusBar_SetTextEx($hWnd, $sText = "", $iPart = 0, $iUFlag = 0)
-	If $hWnd Then _GUICtrlStatusBar_SetText($hWnd, $sText, $iPart, $iUFlag)
-	StatusBarManagedMyBotHost($sText)
-EndFunc   ;==>_GUICtrlStatusBar_SetTextEx

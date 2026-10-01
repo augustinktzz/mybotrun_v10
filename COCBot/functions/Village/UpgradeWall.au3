@@ -740,16 +740,8 @@ Func WallSetWorkingLevel($iLevel)
 	Local $iIndex = Int($iLevel) - 4
 	If $iIndex < 0 Or $iIndex > UBound($g_aiWallCost) - 1 Then Return False
 	If $iIndex = $g_iCmbUpgradeWallsLevel Then Return True
-	; the globals first: the bot must follow the level even with no GUI (mini and GUI-less modes,
-	; where reading the combo would return -1 and index the cost table out of bounds)
 	$g_iCmbUpgradeWallsLevel = $iIndex
 	$g_iWallCost = $g_aiWallCost[$iIndex]
-	If $g_iGuiMode = 1 And $g_hCmbWalls <> 0 Then
-		EnableGuiControls()
-		_GUICtrlComboBox_SetCurSel($g_hCmbWalls, $iIndex)
-		cmbWalls() ; refreshes the cost label and the wall counters of the tab
-		DisableGuiControls()
-	EndIf
 	SaveConfig()
 	Return True
 EndFunc   ;==>WallSetWorkingLevel

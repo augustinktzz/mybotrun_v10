@@ -385,11 +385,12 @@ Func EditSetup($sProfile)
 	GUICtrlSetTip(-1, "The instance of the Multi-instance Manager (Pie64, Pie64_1...). One instance per bot.")
 	Local $ahParam[$g_iParameters]
 	Local $asParamLabel[$g_iParameters] = ["Debug log", "DPI aware", "Hide the emulator", "Mini GUI", "No Watchdog", "Start the run at once"]
-	Local $asParamTip[$g_iParameters] = ["Writes the detailed debug log", "For screens with a Windows zoom above 100%", "The emulator window is hidden while the bot runs (background mode)", "Small bot window", "No Watchdog: a crashed bot is not relaunched", "The run starts by itself once the bot is up (/autostart)"]
+	Local $asParamTip[$g_iParameters] = ["Writes the detailed debug log", "For screens with a Windows zoom above 100%", "The emulator window is hidden while the bot runs (background mode)", "No effect: the bot has no window any more, GUI-Electron is its interface", "No Watchdog: a crashed bot is not relaunched", "The run starts by itself once the bot is up (/autostart)"]
 	For $i = 0 To $g_iParameters - 1
 		$ahParam[$i] = GUICtrlCreateCheckbox($asParamLabel[$i], 20 + Mod($i, 3) * 130, 86 + Int($i / 3) * 22, 128, 20)
 		GUICtrlSetTip(-1, $asParamTip[$i])
 		If StringMid($sBits, $i + 1, 1) = "1" Then GUICtrlSetState(-1, $GUI_CHECKED)
+		If $g_asParamSwitch[$i] = "/minigui" Then GUICtrlSetState(-1, $GUI_DISABLE) ; the bot ignores it now, kept for the saved setups
 	Next
 	GUICtrlCreateGroup("", -99, -99, 1, 1)
 

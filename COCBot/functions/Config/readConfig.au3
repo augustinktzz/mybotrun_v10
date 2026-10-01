@@ -30,9 +30,62 @@ Func readConfig($inputfile = $g_sProfileConfigPath) ;Reads config and sets it to
 	If FileExists($g_sProfileBuildingPath) Then ReadBuildingConfig()
 	If FileExists($g_sProfileConfigPath) Then ReadRegularConfig()
 	If FileExists($g_sProfileClanGamesPath) Then ReadClanGamesConfig()
+	ApplyCustomOrders()
 
 	$g_bReadConfigIsActive = False
 EndFunc   ;==>readConfig
+
+; The custom train, brew and equipment upgrade orders of the profile take effect here (the former window applied
+; them when it showed the settings). An order that is incomplete or repeats an entry is turned off, as it was there.
+; The custom drop order needs nothing more: the attack reads $g_aiCmbCustomDropOrder itself.
+Func ApplyCustomOrders()
+	Local Static $aiDefaultTrainOrder = $g_aiTrainOrder, $aiDefaultBrewOrder = $g_aiBrewOrder, $aiDefaultEquipmentOrder = $g_aiEquipmentOrder
+
+	$g_aiTrainOrder = $aiDefaultTrainOrder
+	If $g_bCustomTrainOrderEnable Then
+		If IsCustomOrderValid($g_aiCmbCustomTrainOrder, $eTroopCount) Then
+			$g_aiTrainOrder = $g_aiCmbCustomTrainOrder
+		Else
+			SetLog("Custom troop training order is incomplete, default order used", $COLOR_ERROR)
+			$g_bCustomTrainOrderEnable = False
+		EndIf
+	EndIf
+
+	$g_aiBrewOrder = $aiDefaultBrewOrder
+	If $g_bCustomBrewOrderEnable Then
+		If IsCustomOrderValid($g_aiCmbCustomBrewOrder, $eSpellCount) Then
+			$g_aiBrewOrder = $g_aiCmbCustomBrewOrder
+		Else
+			SetLog("Custom spell brewing order is incomplete, default order used", $COLOR_ERROR)
+			$g_bCustomBrewOrderEnable = False
+		EndIf
+	EndIf
+
+	If $g_bCustomDropOrderEnable And Not IsCustomOrderValid($g_aiCmbCustomDropOrder, $eDropOrderCount) Then
+		SetLog("Custom troop drop order is incomplete, default order used", $COLOR_ERROR)
+		$g_bCustomDropOrderEnable = False
+	EndIf
+
+	; the equipment order is used whenever it is complete, the option only decides whether upgrades follow it
+	$g_aiEquipmentOrder = $aiDefaultEquipmentOrder
+	If IsCustomOrderValid($g_aiCmbCustomEquipmentOrder, $eEquipmentCount) Then
+		$g_aiEquipmentOrder = $g_aiCmbCustomEquipmentOrder
+	ElseIf $g_bChkCustomEquipmentOrderEnable Then
+		SetLog("Set your Equipment Upgrade Order!", $COLOR_ERROR)
+	EndIf
+EndFunc   ;==>ApplyCustomOrders
+
+; Every position set, each entry 0 .. $iCount - 1 once.
+Func IsCustomOrderValid(Const ByRef $aiOrder, $iCount)
+	If UBound($aiOrder) <> $iCount Then Return False
+	Local $abSeen[$iCount]
+	For $i = 0 To $iCount - 1
+		Local $iValue = Int($aiOrder[$i])
+		If $iValue < 0 Or $iValue >= $iCount Or $abSeen[$iValue] Then Return False
+		$abSeen[$iValue] = True
+	Next
+	Return True
+EndFunc   ;==>IsCustomOrderValid
 
 Func ReadProfileConfig($sIniFile = $g_sProfilePath & "\profile.ini")
 	If FileExists($sIniFile) = 0 Then Return False
@@ -304,7 +357,6 @@ Func ReadRegularConfig()
 
 	IniReadS($g_iThreads, $g_sProfileConfigPath, "general", "threads", $g_iThreads, "int")
 	If $g_iThreads < 0 Then $g_iThreads = 0
-	IniReadS($g_iBotDesignFlags, $g_sProfileConfigPath, "general", "botDesignFlags", 0, "int") ; Default for existing profiles is 0, for new is 3
 
 	; Window positions
 	IniReadS($g_iFrmBotPosX, $g_sProfileConfigPath, "general", "frmBotPosX", $g_iFrmBotPosX, "int")
@@ -476,12 +528,6 @@ Func ReadConfig_Android()
 	$g_bAndroidAdbClicksEnabled = Int(IniRead($g_sProfileConfigPath, "android", "adb.clicks.enabled", ($g_bAndroidAdbClicksEnabled ? 1 : 0))) = 1
 	$g_iAndroidAdbClicksTroopDeploySize = Int(IniRead($g_sProfileConfigPath, "android", "adb.clicks.troop.deploy.size", $g_iAndroidAdbClicksTroopDeploySize))
 	$g_bNoFocusTampering = Int(IniRead($g_sProfileConfigPath, "android", "no.focus.tampering", ($g_bNoFocusTampering ? 1 : 0))) = 1
-	$g_iAndroidShieldColor = Dec(IniRead($g_sProfileConfigPath, "android", "shield.color", Hex($g_iAndroidShieldColor, 6)))
-	$g_iAndroidShieldTransparency = Int(IniRead($g_sProfileConfigPath, "android", "shield.transparency", $g_iAndroidShieldTransparency))
-	$g_iAndroidActiveColor = Dec(IniRead($g_sProfileConfigPath, "android", "active.color", Hex($g_iAndroidActiveColor, 6)))
-	$g_iAndroidActiveTransparency = Int(IniRead($g_sProfileConfigPath, "android", "active.transparency", $g_iAndroidActiveTransparency))
-	$g_iAndroidInactiveColor = Dec(IniRead($g_sProfileConfigPath, "android", "inactive.color", Hex($g_iAndroidInactiveColor, 6)))
-	$g_iAndroidInactiveTransparency = Int(IniRead($g_sProfileConfigPath, "android", "inactive.transparency", $g_iAndroidInactiveTransparency))
 	$g_iAndroidSuspendModeFlags = Int(IniRead($g_sProfileConfigPath, "android", "suspend.mode", $g_iAndroidSuspendModeFlags))
 	$g_iAndroidRebootHours = Int(IniRead($g_sProfileConfigPath, "android", "reboot.hours", $g_iAndroidRebootHours))
 	$g_bAndroidCloseWithBot = Int(IniRead($g_sProfileConfigPath, "android", "close", $g_bAndroidCloseWithBot ? 1 : 0)) = 1

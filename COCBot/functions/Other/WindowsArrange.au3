@@ -14,137 +14,21 @@
 ; Example .......: No
 ; ===============================================================================================================================
 
-Func WindowsArrange($position, $offsetX = 0, $offsetY = 0)
-	WinGetAndroidHandle()
-	Local $AndroidPos = WinGetPos($g_hAndroidWindow)
-	Local $BotPos = WinGetPos($g_hFrmBot)
-	If IsArray($AndroidPos) And IsArray($BotPos) Then
-		Local $hTimer = __TimerInit()
-		WinSetState($g_hAndroidWindow, "", @SW_RESTORE)
-		While IsArray($AndroidPos) And __TimerDiff($hTimer) < 3000 And $AndroidPos[0] < -30000 And $AndroidPos[1] < -30000
-			$AndroidPos = WinGetPos($g_hAndroidWindow)
-			If _Sleep($DELAYSLEEP) Then Return False
-		WEnd
-		Local $x = $offsetX
-		Local $y = $offsetY
-		Local $AndroidX = $AndroidPos[0]
-		Local $AndroidY = $AndroidPos[1]
-		Local $AndroidW = $AndroidPos[2]
-		Local $AndroidH = $AndroidPos[3]
-		Local $BotX = $BotPos[0]
-		Local $BotY = $BotPos[1]
-		Local $BotW = $BotPos[2]
-		Local $BotH = $BotPos[3]
-		If Number($AndroidX) > -30000 And Number($AndroidY) > -30000 Then
-			Local $bAdjusted = False
-
-			If $position = "EMBED" Then
-
-				AndroidEmbed(True)
-				If Not ($offsetX == "" Or $offsetY == "") Then
-					$bAdjusted = $BotX <> $offsetX Or $BotY <> $offsetY
-					If $bAdjusted = True Then WinMove($g_hFrmBot, "", $offsetX, $offsetY)
-				EndIf
-
-			Else
-				If $g_bAndroidEmbedded = True Then
-					; not supported!
-					Return
-				EndIf
-				Switch $position
-					Case "BS-BOT" ; position left Android, right adjacent BOT
-						If $offsetX == "" Then
-							$x = $AndroidX
-							$offsetX = 0
-						EndIf
-						If $offsetY == "" Then
-							$y = $AndroidY
-							$offsetY = 0
-						EndIf
-						$bAdjusted = $AndroidX <> $x Or $AndroidY <> $y
-						If $bAdjusted Then
-							WinMove($g_hAndroidWindow, "", $x, $y)
-							If _Sleep($DELAYWINDOWSARRANGE1, True, False) Then Return
-						EndIf
-						$bAdjusted = $bAdjusted = True Or $BotX <> $AndroidW + $offsetX * 2 Or $BotY <> $y
-						If $bAdjusted Then WinMove($g_hFrmBot, "", $x + $AndroidW + $offsetX, $y)
-					Case "BOT-BS" ; position left BOT, right adjacent Android
-						If $offsetX == "" Then
-							$x = $BotX
-							$offsetX = 0
-						EndIf
-						If $offsetY == "" Then
-							$y = $BotY
-							$offsetY = 0
-						EndIf
-						$bAdjusted = $BotX <> $x Or $BotY <> $y
-						If $bAdjusted Then
-							WinMove($g_hFrmBot, "", $x, $y)
-							If _Sleep($DELAYWINDOWSARRANGE1, True, False) Then Return
-						EndIf
-						$bAdjusted = $bAdjusted Or $AndroidX <> $x + $BotW + $offsetX Or $AndroidY <> $y
-						If $bAdjusted Then WinMove($g_hAndroidWindow, "", $x + $BotW + $offsetX, $y)
-					Case "SNAP-TR" ; position BOT top right of Android, do not move Android
-						If $offsetX == "" Then $offsetX = 0
-						If $offsetY == "" Then $offsetY = 0
-						$bAdjusted = $BotX <> $AndroidX + $AndroidW + $offsetX Or $BotY <> $AndroidY + $offsetY
-						If $bAdjusted Then WinMove($g_hFrmBot, "", $AndroidX + $AndroidW + $offsetX, $AndroidY + $offsetY)
-					Case "SNAP-BR" ; position BOT botom right of BS, do not move Android
-						If $offsetX == "" Then $offsetX = 0
-						If $offsetY == "" Then $offsetY = 0
-						$bAdjusted = $AndroidX <> $AndroidX + $AndroidW + $offsetX Or $AndroidY <> $AndroidY + ($AndroidH - $BotH) + $offsetY
-						If $bAdjusted Then WinMove($g_hFrmBot, "", $AndroidX + $AndroidW + $offsetX, $AndroidY + ($AndroidH - $BotH) + $offsetY)
-					Case "SNAP-TL" ; position BOT top left of Android, do not move Android
-						If $offsetX == "" Then $offsetX = 0
-						If $offsetY == "" Then $offsetY = 0
-						$bAdjusted = $BotX <> $AndroidX - $BotW - $offsetX Or $BotY <> $AndroidY + $offsetY
-						If $bAdjusted Then WinMove($g_hFrmBot, "", $AndroidX - $BotW - $offsetX, $AndroidY + $offsetY)
-					Case "SNAP-BL" ; position BOT bottom left of Android, do not move Android
-						If $offsetX == "" Then $offsetX = 0
-						If $offsetY == "" Then $offsetY = 0
-						$bAdjusted = $BotX <> $AndroidX - $BotW - $offsetX Or $BotY <> $AndroidY + ($AndroidH - $BotH) + $offsetY
-						If $bAdjusted Then WinMove($g_hFrmBot, "", $AndroidX - $BotW - $offsetX, $AndroidY + ($AndroidH - $BotH) + $offsetY)
-				EndSwitch
-			EndIf
-			If $bAdjusted = True Then
-				SetDebugLog("WindowsArrange: " & $position & ", offsetX=" & $offsetX & ", offsetY=" & $offsetY & ", X=" & $x & ", Y=" & $y)
-				If _Sleep($DELAYWINDOWSARRANGE1, True, False) Then Return
-			EndIf
-		EndIf
-	EndIf
-
-EndFunc   ;==>WindowsArrange
-
+; The bot has no window any more: aligning the windows (Bot > Options) places the emulator window at the offsets of
+; the profile, MultiBot sets them to put the emulators side by side. An empty offset keeps the current position.
 Func DisposeWindows()
-	updateBtnEmbed()
-	; ensure bot window is visible
-	Local $aPos = WinGetPos($g_hFrmBot)
-	If IsArray($aPos) Then
-		If _CheckWindowVisibility($g_hFrmBot, $aPos) Then
-			SetDebugLog("Bot Window '" & $g_sAndroidTitle & "' not visible, moving to position: " & $aPos[0] & ", " & $aPos[1])
-			WinMove($g_hFrmBot, "", $aPos[0], $aPos[1])
-		EndIf
-	EndIf
-
 	CheckDpiAwareness() ; check if DPI is ok
-	If $g_bAutoAlignEnable Then
-		Switch $g_iAutoAlignPosition
-			Case 0
-				WindowsArrange("BS-BOT", $g_iAutoAlignOffsetX, $g_iAutoAlignOffsetY)
-			Case 1
-				WindowsArrange("BOT-BS", $g_iAutoAlignOffsetX, $g_iAutoAlignOffsetY)
-			Case 2
-				WindowsArrange("SNAP-TR", $g_iAutoAlignOffsetX, $g_iAutoAlignOffsetY)
-			Case 3
-				WindowsArrange("SNAP-TL", $g_iAutoAlignOffsetX, $g_iAutoAlignOffsetY)
-			Case 4
-				WindowsArrange("SNAP-BR", $g_iAutoAlignOffsetX, $g_iAutoAlignOffsetY)
-			Case 5
-				WindowsArrange("SNAP-BL", $g_iAutoAlignOffsetX, $g_iAutoAlignOffsetY)
-			Case 6
-				WindowsArrange("EMBED", $g_iAutoAlignOffsetX, $g_iAutoAlignOffsetY)
-		EndSwitch
-	EndIf
+	If Not $g_bAutoAlignEnable Then Return
+
+	WinGetAndroidHandle()
+	Local $aPos = WinGetPos($g_hAndroidWindow)
+	If Not IsArray($aPos) Or $aPos[0] < -30000 Or $aPos[1] < -30000 Then Return ; no window, or hidden: left as it is
+	Local $iX = ($g_iAutoAlignOffsetX == "" ? $aPos[0] : Number($g_iAutoAlignOffsetX))
+	Local $iY = ($g_iAutoAlignOffsetY == "" ? $aPos[1] : Number($g_iAutoAlignOffsetY))
+	If $aPos[0] = $iX And $aPos[1] = $iY Then Return
+	WinMove($g_hAndroidWindow, "", $iX, $iY)
+	SetDebugLog("DisposeWindows: " & $g_sAndroidEmulator & " window moved to " & $iX & ", " & $iY)
+	_Sleep($DELAYWINDOWSARRANGE1, True, False)
 EndFunc   ;==>DisposeWindows
 
 ; WinMove2 resizes Window without triggering a change event in target process.
@@ -152,7 +36,7 @@ EndFunc   ;==>DisposeWindows
 ; Parameter [, speed] is not supported and is actually $hAfter!
 Func WinMove2($WinTitle, $WinText, $x = -1, $y = -1, $w = -1, $h = -1, $hAfter = 0, $iFlags = 0, $bCheckAfterPos = True, $bIconCheck = True)
 	;If $s <> 0 And $g_bDebugSetLog Then SetLog("WinMove2(" & $WinTitle & "," & $WinText & "," & $x & "," & $y & "," & $w & "," & $h & "," & $s & "): speed parameter '" & $s & "' is not supported!", $COLOR_ERROR);
-	If $WinTitle = $g_hFrmBot And $g_iGuiMode = 0 Then Return $WinTitle
+	If $WinTitle = $g_hFrmBot Then Return $WinTitle
 	Local $hWin = WinGetHandle($WinTitle, $WinText)
 	If @error Then Return 0
 
@@ -267,7 +151,7 @@ EndFunc   ;==>WinGetClientPos
 
 Func WinGetPos2($title, $text = "")
 	Local $aPos = 0
-	If $title = $g_hFrmBot And $g_iGuiMode = 0 Then Return $aPos
+	If $title = $g_hFrmBot Then Return $aPos
 	If IsHWnd($title) = 0 Then $title = WinGetHandle($title, $text)
 	While IsHWnd($title) And (IsArray($aPos) = 0 Or $aPos[2] < 200)
 		If _WinAPI_IsIconic($title) Then WinSetState($title, "", @SW_RESTORE)
@@ -278,7 +162,7 @@ EndFunc   ;==>WinGetPos2
 
 Func ControlGetPos2($title, $text, $controlID)
 	Local $aPos = 0
-	If $title = $g_hFrmBot And $g_iGuiMode = 0 Then Return $aPos
+	If $title = $g_hFrmBot Then Return $aPos
 	If IsHWnd($title) = 0 Then $title = WinGetHandle($title, $text)
 	While IsHWnd($title) And (IsArray($aPos) = 0 Or $aPos[2] < 200)
 		If _WinAPI_IsIconic($title) Then WinSetState($title, "", @SW_RESTORE)

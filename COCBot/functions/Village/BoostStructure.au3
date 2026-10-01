@@ -1,7 +1,7 @@
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: Boost any structure (King, Queen, Warden, Champion)
 ; Description ...:
-; Syntax ........: BoostStructure($sName, $sOcrName, $aPos, ByRef $icmbBoostValue, $cmbBoostCtrl)
+; Syntax ........: BoostStructure($sName, $sOcrName, $aPos, ByRef $icmbBoostValue)
 ; Parameters ....:
 ; Return values .: True if boosted, False if not
 ; Author ........: Cosote Oct. 2016
@@ -13,7 +13,7 @@
 ; Example .......: No
 ; ===============================================================================================================================
 
-Func BoostStructure($sName, $sOcrName, $aPos, ByRef $icmbBoostValue, $cmbBoostCtrl)
+Func BoostStructure($sName, $sOcrName, $aPos, ByRef $icmbBoostValue)
 	Local $boosted = False
 	Local $ok = False
 
@@ -51,7 +51,6 @@ Func BoostStructure($sName, $sOcrName, $aPos, ByRef $icmbBoostValue, $cmbBoostCt
 					If $icmbBoostValue <= 24 Then
 						$icmbBoostValue -= 1
 						SetLog($sName & ' Boost completed. Remaining iterations: ' & $icmbBoostValue, $COLOR_SUCCESS)
-						_GUICtrlComboBox_SetCurSel($cmbBoostCtrl, $icmbBoostValue)
 					Else
 						SetLog($sName & ' Boost completed. Remaining iterations: Unlimited', $COLOR_SUCCESS)
 					EndIf
@@ -86,7 +85,7 @@ Func AllowBoosting($sName, $icmbBoost)
 
 EndFunc   ;==>AllowBoosting
 
-Func BoostPotion($sName, $sOcrName, $aPos, ByRef $icmbBoostValue, $cmbBoostCtrl)
+Func BoostPotion($sName, $sOcrName, $aPos, ByRef $icmbBoostValue)
 	Local $boosted = False
 	Local $ok = False
 
@@ -135,7 +134,6 @@ Func BoostPotion($sName, $sOcrName, $aPos, ByRef $icmbBoostValue, $cmbBoostCtrl)
 					If $icmbBoostValue <= 5 Then
 						$icmbBoostValue -= 1
 						SetLog($sName & ' Boost completed. Remaining iterations: ' & $icmbBoostValue, $COLOR_SUCCESS)
-						_GUICtrlComboBox_SetCurSel($cmbBoostCtrl, $icmbBoostValue)
 					EndIf
 					$boosted = True
 				Else

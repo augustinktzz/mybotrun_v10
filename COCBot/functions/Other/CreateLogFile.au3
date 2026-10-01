@@ -72,7 +72,7 @@ Func CreateLogFile()
 	SetDebugLog("@OSServicePack: " & @OSServicePack)
 	SetDebugLog("Primary Display: " & @DesktopWidth & " x " & @DesktopHeight & " - " & @DesktopDepth & "bit")
 
-	FlushGuiLog($g_hTxtLog, $g_oTxtLogInitText)
+	FlushPendingLog()
 EndFunc   ;==>CreateLogFile
 
 ; #FUNCTION# ====================================================================================================================

@@ -104,7 +104,7 @@ Func getBSPos()
 			Return SetError(0, 0, 0)
 		EndIf
 
-		_WinAPI_ClientToScreen(GetCurrentAndroidHWnD(), $tPoint)
+		_WinAPI_ClientToScreen($g_hAndroidWindow, $tPoint)
 		If @error <> 0 Then
 			$tPoint = 0
 			Return SetError(0, 0, 0)
@@ -138,11 +138,11 @@ Func getAndroidPos($FastCheck = False, $RetryCount1 = 0, $RetryCount2 = 0, $bWid
 	Static $asControlSize[6][4]
 	If $g_bAndroidControlUseParentPos Then
 		; If true, control pos is used from parent control (only used to fix docking for Nox in DirectX mode)
-		Local $hCtrl = ControlGetHandle(GetCurrentAndroidHWnD(), $g_sAppPaneName, GetAndroidControlClass(True))
+		Local $hCtrl = ControlGetHandle($g_hAndroidWindow, $g_sAppPaneName, GetAndroidControlClass(True))
 		Local $hCtrlParent = _WinAPI_GetParent($hCtrl)
-		Local $aControlSize = ControlGetPos(GetCurrentAndroidHWnD(), "", $hCtrlParent)
+		Local $aControlSize = ControlGetPos($g_hAndroidWindow, "", $hCtrlParent)
 	Else
-		Local $aControlSize = ControlGetPos(GetCurrentAndroidHWnD(), $g_sAppPaneName, GetAndroidControlClass(True))
+		Local $aControlSize = ControlGetPos($g_hAndroidWindow, $g_sAppPaneName, GetAndroidControlClass(True))
 	EndIf
 	If IsArray($aControlSize) Then
 		If $aControlSize[2] = 859 Then $aControlSize[2] = 860
@@ -151,8 +151,6 @@ Func getAndroidPos($FastCheck = False, $RetryCount1 = 0, $RetryCount2 = 0, $bWid
 
 	;If Not $g_bRunState Or $FastCheck Then Return $aControlSize
 	If $FastCheck Then Return $aControlSize
-
-	If AndroidMakeDpiAware() Then AndroidDpiAwareness() ; enforce DPI Awareness if required
 
 	Local $sPre = "(" & $RetryCount1 & "/" & $RetryCount2 & ") "
 	Local $bResizedOk = False
@@ -247,10 +245,7 @@ Func getAndroidPos($FastCheck = False, $RetryCount1 = 0, $RetryCount2 = 0, $bWid
 					EndIf
 				Case 4
 					; it can happen that in hires DPI the Android Control cannot be resized to 860x732, so make Android DPI aware
-					If CheckDpiAwareness(True) = False Then
-						CheckDpiAwareness(False, True)
-						AndroidDpiAwareness()
-					EndIf
+					If CheckDpiAwareness(True) = False Then CheckDpiAwareness(False, True)
 				Case 5
 					; do both
 			EndSwitch

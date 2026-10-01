@@ -71,7 +71,6 @@ Func DoubleCannonUpgrade($test = False)
 				If $aDoubleCannonLevel >= 4 Then ; BOB Control Requirement
 					SetLog("Your Double Cannon is at level needed for BOB Control upgrade!", $COLOR_INFO)
 					$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-					GUICtrlSetState($g_hChkDoubleCannonUpgrade, $GUI_UNCHECKED)
 					ClearScreen("Defaut", False)
 					If _Sleep(1000) Then Return
 					SwitchToBuilderbase()
@@ -208,7 +207,6 @@ Func ArcherTowerUpgrade($test = False)
 				If $aArcherTowerLevel >= 6 Then ; BOB Control Requirement
 					SetLog("Your Archer Tower is at level needed for BOB Control upgrade!", $COLOR_INFO)
 					$g_bArcherTowerUpgrade = False ; turn Off the Archer Tower upgrade
-					GUICtrlSetState($g_hChkArcherTowerUpgrade, $GUI_UNCHECKED)
 					ClearScreen("Defaut", False)
 					If _Sleep(1000) Then Return
 					SwitchToBuilderbase()
@@ -346,7 +344,6 @@ Func MultiMortarUpgrade($test = False)
 				If $aMultiMortarLevel >= 8 Then ; BOB Control Requirement
 					SetLog("Your Multi Mortar is at level needed for BOB Control upgrade!", $COLOR_INFO)
 					$g_bMultiMortarUpgrade = False ; turn Off the Multi Mortar upgrade
-					GUICtrlSetState($g_hChkMultiMortarUpgrade, $GUI_UNCHECKED)
 					ClearScreen("Defaut", False)
 					If _Sleep(1000) Then Return
 					SwitchToBuilderbase()
@@ -484,7 +481,6 @@ Func AnyDefUpgrade($test = False)
 				If $aCannonLevel >= 9 Then ; BOB Control Requirement
 					SetLog("Your Cannon is at level needed for BOB Control upgrade!", $COLOR_INFO)
 					$g_bAnyDefUpgrade = False ; turn Off the Cannon upgrade
-					GUICtrlSetState($g_hChkAnyDefUpgrade, $GUI_UNCHECKED)
 					ClearScreen("Defaut", False)
 					If _Sleep(1000) Then Return
 					SwitchToBuilderbase()

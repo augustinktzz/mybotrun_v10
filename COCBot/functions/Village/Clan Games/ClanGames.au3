@@ -1470,12 +1470,10 @@ Func StartsEvent($sEventName, $sEventPoints, $getCapture = True, $g_bChkClanGame
 		If $Timer > 0 Then
 			SetLog("Starting Challenge" & " [" & $Timer & " mins] [" & $sEventPoints & " pts]", $COLOR_SUCCESS)
 			Click($g_iQuickMISX, $g_iQuickMISY)
-			GUICtrlSetData($g_hTxtClanGamesLog, @CRLF & _NowTime() & " [" & $g_sProfileCurrentName & "] - Starting " & $sEventName & " for " & $Timer & " mins and " & $sEventPoints & " pts", 1)
 			_FileWriteLog($g_sProfileLogsPath & "\ClanGames.log", " [" & $g_sProfileCurrentName & "] - Starting " & $sEventName & " for " & $Timer & " mins and " & $sEventPoints & " pts")
 		Else
 			SetLog("Starting Event" & " [" & $sTimeCG & " mins] [" & $sEventPoints & " pts]", $COLOR_SUCCESS)
 			Click($g_iQuickMISX, $g_iQuickMISY)
-			GUICtrlSetData($g_hTxtClanGamesLog, @CRLF & _NowTime() & " [" & $g_sProfileCurrentName & "] - Starting " & $sEventName & " for " & $sTimeCG & " mins and " & $sEventPoints & " pts", 1)
 			_FileWriteLog($g_sProfileLogsPath & "\ClanGames.log", " [" & $g_sProfileCurrentName & "] - Starting " & $sEventName & " for " & $sTimeCG & " mins and " & $sEventPoints & " pts")
 		EndIf
 
@@ -1906,7 +1904,6 @@ Func PurgeEvent($bTest = False, $startFirst = True, $NoMistake = True, $iRow = 1
 			If ClickB("Okay") Then
 				SetLog("Click OK", $COLOR_INFO)
 				If _Sleep(1500) Then Return
-				GUICtrlSetData($g_hTxtClanGamesLog, @CRLF & _NowTime() & " [" & $g_sProfileCurrentName & "] - PurgeEvent: Purge a Wrong Challenge ", 1)
 				_FileWriteLog($g_sProfileLogsPath & "\ClanGames.log", " [" & $g_sProfileCurrentName & "] - PurgeEvent: Purge a Wrong Challenge ")
 				SetCGCoolDownTime()
 				If _Sleep(1000) Then Return
@@ -1935,7 +1932,6 @@ Func StartAndPurgeEvent($bTest = False)
 			If ClickB("Okay") Then
 				SetLog("Click OK", $COLOR_INFO)
 				SetLog("Purge Challenge!", $COLOR_SUCCESS)
-				GUICtrlSetData($g_hTxtClanGamesLog, @CRLF & _NowTime() & " [" & $g_sProfileCurrentName & "] - Start And Purge Any Challenge", 1)
 				_FileWriteLog($g_sProfileLogsPath & "\ClanGames.log", " [" & $g_sProfileCurrentName & "] - Start And Purge Any Challenge")
 			Else
 				SetLog("$g_sImgOkayPurge Issue", $COLOR_ERROR)

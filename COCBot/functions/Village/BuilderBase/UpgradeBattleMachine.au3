@@ -51,7 +51,6 @@ Func BattleMachineUpgrade($test = False)
 				If $aHeroLevel = $g_iMaxBattleMachineLevel Then ; max hero
 					SetLog("Your Battle Machine is at max level, cannot upgrade anymore!", $COLOR_INFO)
 					$g_bBattleMachineUpgrade = False ; turn Off the Battle Machine upgrade
-					GUICtrlSetState($g_hChkBattleMachineUpgrade, $GUI_UNCHECKED)
 					ClearScreen("Defaut", False)
 					Return
 				EndIf
@@ -60,8 +59,6 @@ Func BattleMachineUpgrade($test = False)
 					SetLog("Your combined machine level is enough !", $COLOR_INFO)
 					$g_bBattleMachineUpgrade = False ; turn Off the Battle Machine upgrade
 					$g_bBattleCopterUpgrade = False ; turn Off the Battle Copter upgrade
-					GUICtrlSetState($g_hChkBattleMachineUpgrade, $GUI_UNCHECKED)
-					GUICtrlSetState($g_hChkBattleCopterUpgrade, $GUI_UNCHECKED)
 					$g_CombinedMachineLevel = 0 ; If user wants to continue upgrade despite the combined level
 					ClearScreen("Defaut", False)
 					Return
@@ -266,5 +263,4 @@ Func DeleteBattleMachineCoord()
 	IniWrite($g_sProfileBuildingPath, "other", "BattleMachinePosX", $g_aiBattleMachinePos[0])
 	IniWrite($g_sProfileBuildingPath, "other", "BattleMachinePosY", $g_aiBattleMachinePos[1])
 	$g_bBattleMachineUpgrade = False ; turn Off the Battle Machine upgrade
-	GUICtrlSetState($g_hChkBattleMachineUpgrade, $GUI_UNCHECKED)
 EndFunc   ;==>DeleteBattleMachineCoord

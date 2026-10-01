@@ -439,7 +439,7 @@ EndFunc   ;==>HideNoxWindow
 
 Func EmbedNox($bEmbed = Default, $hHWndAfter = Default)
 
-	If $bEmbed = Default Then $bEmbed = $g_bAndroidEmbedded
+	If $bEmbed = Default Then $bEmbed = False
 	If $hHWndAfter = Default Then $hHWndAfter = $HWND_TOPMOST
 
 	; Find QTool Parent Window

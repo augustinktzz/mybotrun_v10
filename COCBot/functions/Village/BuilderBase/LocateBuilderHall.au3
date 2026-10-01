@@ -142,11 +142,9 @@ Func LocateDoubleCannon($bCollect = False)
 	Local $wasRunState = $g_bRunState
 	$g_bRunState = True
 
-	AndroidShield("LocateDoubleCannon 1") ; Update shield status due to manual $g_bRunState
 	Local $Result = _LocateDoubleCannon($bCollect)
 
 	$g_bRunState = $wasRunState
-	AndroidShield("LocateDoubleCannon 2") ; Update shield status due to manual $g_bRunState
 	Return $Result
 EndFunc   ;==>LocateDoubleCannon
 
@@ -196,7 +194,6 @@ Func _LocateDoubleCannon($bCollect = False)
 						If $aDoubleCannonLevel >= 4 Then ; BOB Control Requirement
 							SetLog("Double Cannon is at level needed for BOB Control upgrade!", $COLOR_INFO)
 							$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-							GUICtrlSetState($g_hChkDoubleCannonUpgrade, $GUI_UNCHECKED)
 						EndIf
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
@@ -236,7 +233,6 @@ Func _LocateDoubleCannon($bCollect = False)
 		$g_aiDoubleCannonPos[1] = -1
 		$g_aiDoubleCannonPos[2] = -1
 		$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-		GUICtrlSetState($g_hChkDoubleCannonUpgrade, $GUI_UNCHECKED)
 		SwitchToBuilderbase()
 		Return False
 	EndIf
@@ -271,7 +267,6 @@ Func _LocateDoubleCannon($bCollect = False)
 					Case $iStupid > 4
 						SetLog(" Operator Error - Bad Double Cannon Location: " & "(" & $g_aiDoubleCannonPos[0] & "," & $g_aiDoubleCannonPos[1] & ")", $COLOR_ERROR)
 						$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-						GUICtrlSetState($g_hChkDoubleCannonUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -282,7 +277,6 @@ Func _LocateDoubleCannon($bCollect = False)
 						$g_aiDoubleCannonPos[1] = -1
 						$g_aiDoubleCannonPos[2] = -1
 						$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-						GUICtrlSetState($g_hChkDoubleCannonUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -297,7 +291,6 @@ Func _LocateDoubleCannon($bCollect = False)
 			EndIf
 		Else
 			$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-			GUICtrlSetState($g_hChkDoubleCannonUpgrade, $GUI_UNCHECKED)
 			SetLog("Locate Double Cannon Cancelled", $COLOR_INFO)
 			ClearScreen("Defaut", False)
 			If _Sleep(1000) Then Return
@@ -345,7 +338,6 @@ Func _LocateDoubleCannon($bCollect = False)
 						$g_aiDoubleCannonPos[1] = -1
 						$g_aiDoubleCannonPos[2] = -1
 						$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-						GUICtrlSetState($g_hChkDoubleCannonUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -358,7 +350,6 @@ Func _LocateDoubleCannon($bCollect = False)
 			$g_aiDoubleCannonPos[1] = -1
 			$g_aiDoubleCannonPos[2] = -1
 			$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-			GUICtrlSetState($g_hChkDoubleCannonUpgrade, $GUI_UNCHECKED)
 			ClearScreen("Defaut", False)
 			If _Sleep(1000) Then Return
 			SwitchToBuilderbase()
@@ -383,10 +374,8 @@ EndFunc   ;==>_LocateDoubleCannon
 Func LocateArcherTower($bCollect = False)
 	Local $wasRunState = $g_bRunState
 	$g_bRunState = True
-	AndroidShield("LocateArcherTower 1") ; Update shield status due to manual $g_bRunState
 	Local $Result = _LocateArcherTower($bCollect)
 	$g_bRunState = $wasRunState
-	AndroidShield("LocateArcherTower 2") ; Update shield status due to manual $g_bRunState
 	Return $Result
 EndFunc   ;==>LocateArcherTower
 
@@ -437,7 +426,6 @@ Func _LocateArcherTower($bCollect = False)
 						If $iArcherTowerLevel >= 6 Then ; BOB Control Requirement
 							SetLog("Archer Tower is at level needed for BOB Control upgrade!", $COLOR_INFO)
 							$g_bArcherTowerUpgrade = False ; turn Off the Archer Tower upgrade
-							GUICtrlSetState($g_hChkArcherTowerUpgrade, $GUI_UNCHECKED)
 						EndIf
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
@@ -477,7 +465,6 @@ Func _LocateArcherTower($bCollect = False)
 		$g_aiArcherTowerPos[1] = -1
 		$g_aiArcherTowerPos[2] = -1
 		$g_bArcherTowerUpgrade = False ; turn Off the Double Cannon upgrade
-		GUICtrlSetState($g_hChkArcherTowerUpgrade, $GUI_UNCHECKED)
 		SwitchToBuilderbase()
 		Return False
 	EndIf
@@ -512,7 +499,6 @@ Func _LocateArcherTower($bCollect = False)
 					Case $iStupid > 4
 						SetLog(" Operator Error - Bad  Archer Tower Location: " & "(" & $g_aiArcherTowerPos[0] & "," & $g_aiArcherTowerPos[1] & ")", $COLOR_ERROR)
 						$g_bArcherTowerUpgrade = False ; turn Off the Archer Tower upgrade
-						GUICtrlSetState($g_hChkArcherTowerUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -523,7 +509,6 @@ Func _LocateArcherTower($bCollect = False)
 						$g_aiArcherTowerPos[1] = -1
 						$g_aiArcherTowerPos[2] = -1
 						$g_bArcherTowerUpgrade = False ; turn Off the Archer Tower upgrade
-						GUICtrlSetState($g_hChkArcherTowerUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -538,7 +523,6 @@ Func _LocateArcherTower($bCollect = False)
 			EndIf
 		Else
 			$g_bArcherTowerUpgrade = False ; turn Off the Archer Tower upgrade
-			GUICtrlSetState($g_hChkArcherTowerUpgrade, $GUI_UNCHECKED)
 			SetLog("Locate Archer Tower Cancelled", $COLOR_INFO)
 			ClearScreen("Defaut", False)
 			If _Sleep(1000) Then Return
@@ -586,7 +570,6 @@ Func _LocateArcherTower($bCollect = False)
 						$g_aiArcherTowerPos[1] = -1
 						$g_aiArcherTowerPos[2] = -1
 						$g_bArcherTowerUpgrade = False ; turn Off the Archer Tower upgrade
-						GUICtrlSetState($g_hChkArcherTowerUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -599,7 +582,6 @@ Func _LocateArcherTower($bCollect = False)
 			$g_aiArcherTowerPos[1] = -1
 			$g_aiArcherTowerPos[2] = -1
 			$g_bArcherTowerUpgrade = False ; turn Off the Archer Tower upgrade
-			GUICtrlSetState($g_hChkArcherTowerUpgrade, $GUI_UNCHECKED)
 			ClearScreen("Defaut", False)
 			If _Sleep(1000) Then Return
 			SwitchToBuilderbase()
@@ -626,11 +608,9 @@ Func LocateMultiMortar($bCollect = False)
 	Local $wasRunState = $g_bRunState
 	$g_bRunState = True
 
-	AndroidShield("LocateMultiMortar 1") ; Update shield status due to manual $g_bRunState
 	Local $Result = _LocateMultiMortar($bCollect)
 
 	$g_bRunState = $wasRunState
-	AndroidShield("LocateMultiMortar 2") ; Update shield status due to manual $g_bRunState
 	Return $Result
 EndFunc   ;==>LocateMultiMortar
 
@@ -680,7 +660,6 @@ Func _LocateMultiMortar($bCollect = False)
 						If $aMultiMortarLevel >= 8 Then ; BOB Control Requirement
 							SetLog("Multi Mortar is at level needed for BOB Control upgrade!", $COLOR_INFO)
 							$g_bMultiMortarUpgrade = False ; turn Off the Multi Mortar upgrade
-							GUICtrlSetState($g_hChkMultiMortarUpgrade, $GUI_UNCHECKED)
 						EndIf
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
@@ -720,7 +699,6 @@ Func _LocateMultiMortar($bCollect = False)
 		$g_aiMultiMortarPos[1] = -1
 		$g_aiMultiMortarPos[2] = -1
 		$g_bMultiMortarUpgrade = False ; turn Off the Double Cannon upgrade
-		GUICtrlSetState($g_hChkMultiMortarUpgrade, $GUI_UNCHECKED)
 		SwitchToBuilderbase()
 		Return False
 	EndIf
@@ -755,7 +733,6 @@ Func _LocateMultiMortar($bCollect = False)
 					Case $iStupid > 4
 						SetLog(" Operator Error - Bad Multi Mortar Location: " & "(" & $g_aiMultiMortarPos[0] & "," & $g_aiMultiMortarPos[1] & ")", $COLOR_ERROR)
 						$g_bMultiMortarUpgrade = False ; turn Off the Multi Mortar upgrade
-						GUICtrlSetState($g_hChkMultiMortarUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -766,7 +743,6 @@ Func _LocateMultiMortar($bCollect = False)
 						$g_aiMultiMortarPos[1] = -1
 						$g_aiMultiMortarPos[2] = -1
 						$g_bMultiMortarUpgrade = False ; turn Off the Multi Mortar upgrade
-						GUICtrlSetState($g_hChkMultiMortarUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -782,7 +758,6 @@ Func _LocateMultiMortar($bCollect = False)
 		Else
 			SetLog("Locate Multi Mortar Cancelled", $COLOR_INFO)
 			$g_bMultiMortarUpgrade = False ; turn Off the Multi Mortar upgrade
-			GUICtrlSetState($g_hChkMultiMortarUpgrade, $GUI_UNCHECKED)
 			ClearScreen("Defaut", False)
 			If _Sleep(1000) Then Return
 			SwitchToBuilderbase()
@@ -829,7 +804,6 @@ Func _LocateMultiMortar($bCollect = False)
 						$g_aiMultiMortarPos[1] = -1
 						$g_aiMultiMortarPos[2] = -1
 						$g_bMultiMortarUpgrade = False ; turn Off the Multi Mortar upgrade
-						GUICtrlSetState($g_hChkMultiMortarUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -842,7 +816,6 @@ Func _LocateMultiMortar($bCollect = False)
 			$g_aiMultiMortarPos[1] = -1
 			$g_aiMultiMortarPos[2] = -1
 			$g_bMultiMortarUpgrade = False ; turn Off the Multi Mortar upgrade
-			GUICtrlSetState($g_hChkMultiMortarUpgrade, $GUI_UNCHECKED)
 			ClearScreen("Defaut", False)
 			If _Sleep(1000) Then Return
 			SwitchToBuilderbase()
@@ -868,11 +841,9 @@ Func LocateAnyDef($bCollect = False)
 	Local $wasRunState = $g_bRunState
 	$g_bRunState = True
 
-	AndroidShield("LocateAnyDef 1") ; Update shield status due to manual $g_bRunState
 	Local $Result = _LocateAnyDef($bCollect)
 
 	$g_bRunState = $wasRunState
-	AndroidShield("LocateAnyDef 2") ; Update shield status due to manual $g_bRunState
 	Return $Result
 EndFunc   ;==>LocateAnyDef
 
@@ -922,7 +893,6 @@ Func _LocateAnyDef($bCollect = False)
 						If $aCannonLevel >= 9 Then ; BOB Control Requirement
 							SetLog("Cannon is at level needed for BOB Control upgrade!", $COLOR_INFO)
 							$g_bAnyDefUpgrade = False ; turn Off the Multi Mortar upgrade
-							GUICtrlSetState($g_hChkAnyDefUpgrade, $GUI_UNCHECKED)
 						EndIf
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
@@ -962,7 +932,6 @@ Func _LocateAnyDef($bCollect = False)
 		$g_aiAnyDefPos[1] = -1
 		$g_aiAnyDefPos[2] = -1
 		$g_bDoubleCannonUpgrade = False ; turn Off the Double Cannon upgrade
-		GUICtrlSetState($g_hChkAnyDefUpgrade, $GUI_UNCHECKED)
 		SwitchToBuilderbase()
 		Return False
 	EndIf
@@ -997,7 +966,6 @@ Func _LocateAnyDef($bCollect = False)
 					Case $iStupid > 4
 						SetLog(" Operator Error - Bad Cannon Location: " & "(" & $g_aiAnyDefPos[0] & "," & $g_aiAnyDefPos[1] & ")", $COLOR_ERROR)
 						$g_bAnyDefUpgrade = False ; turn Off the Cannon upgrade
-						GUICtrlSetState($g_hChkAnyDefUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -1008,7 +976,6 @@ Func _LocateAnyDef($bCollect = False)
 						$g_aiAnyDefPos[1] = -1
 						$g_aiAnyDefPos[2] = -1
 						$g_bAnyDefUpgrade = False ; turn Off the Cannon upgrade
-						GUICtrlSetState($g_hChkAnyDefUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -1019,7 +986,6 @@ Func _LocateAnyDef($bCollect = False)
 		Else
 			SetLog("Locate Cannon Cancelled", $COLOR_INFO)
 			$g_bAnyDefUpgrade = False ; turn Off the Cannon upgrade
-			GUICtrlSetState($g_hChkAnyDefUpgrade, $GUI_UNCHECKED)
 			ClearScreen("Defaut", False)
 			If _Sleep(1000) Then Return
 			SwitchToBuilderbase()
@@ -1066,7 +1032,6 @@ Func _LocateAnyDef($bCollect = False)
 						$g_aiAnyDefPos[1] = -1
 						$g_aiAnyDefPos[1] = -1
 						$g_bAnyDefUpgrade = False ; turn Off the Cannon upgrade
-						GUICtrlSetState($g_hChkAnyDefUpgrade, $GUI_UNCHECKED)
 						ClearScreen("Defaut", False)
 						If _Sleep(1000) Then Return
 						SwitchToBuilderbase()
@@ -1079,7 +1044,6 @@ Func _LocateAnyDef($bCollect = False)
 			$g_aiAnyDefPos[1] = -1
 			$g_aiAnyDefPos[1] = -1
 			$g_bAnyDefUpgrade = False ; turn Off the Cannon upgrade
-			GUICtrlSetState($g_hChkAnyDefUpgrade, $GUI_UNCHECKED)
 			ClearScreen("Defaut", False)
 			If _Sleep(1000) Then Return
 			SwitchToBuilderbase()

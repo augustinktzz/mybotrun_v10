@@ -67,16 +67,13 @@ Func Click($x, $y, $times = 1, $speed = 120, $debugtxt = "")
 EndFunc   ;==>Click
 
 Func _ControlClick($x, $y)
-	;Local $hWin = ($g_bAndroidEmbedded = False ? $g_hAndroidWindow : $g_aiAndroidEmbeddedCtrlTarget[1])
-	Local $useHWnD = $g_iAndroidControlClickWindow = 1 And $g_bAndroidEmbedded = False
+	Local $useHWnD = $g_iAndroidControlClickWindow = 1
 	Local $hWin = (($useHWnD) ? ($g_hAndroidWindow) : ($g_hAndroidControl))
 	$x = Int($x) + $g_aiMouseOffset[0]
 	$y = Int($y) + $g_aiMouseOffset[1]
-	If $g_bAndroidEmbedded = False Then
-		; special fix for incorrect mouse offset in Android Window (undocked)
-		$x += $g_aiMouseOffsetWindowOnly[0]
-		$y += $g_aiMouseOffsetWindowOnly[1]
-	EndIf
+	; special fix for incorrect mouse offset in Android Window
+	$x += $g_aiMouseOffsetWindowOnly[0]
+	$y += $g_aiMouseOffsetWindowOnly[1]
 	If $hWin = $g_hAndroidWindow Then
 		$x += $g_aiBSrpos[0]
 		$y += $g_aiBSrpos[1]

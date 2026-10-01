@@ -18,5 +18,4 @@ Func _StatusUpdateTime($hTimer, $sWhyWait = "")
 	Local $iMinCalc = Int($iCurTime / (60 * 1000))
 	Local $iSecCalc = Int(($iCurTime - ($iMinCalc * 60 * 1000)) / 1000)
 	Local $sString = $sWhyWait & " Wait Time = " & StringFormat("%02u" & ":" & "%02u", $iMinCalc, $iSecCalc)
-	_GUICtrlStatusBar_SetTextEx($g_hStatusBar, " Status: " & $sString)
 EndFunc   ;==>_StatusUpdateTime

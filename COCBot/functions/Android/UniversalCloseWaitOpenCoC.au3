@@ -88,26 +88,13 @@ Func UniversalCloseWaitOpenCoC($iWaitTime = 0, $sSource = "Unknown", $StopEmulat
 			EndIf
 			If _Sleep(3000) Then Return False ; Wait 3 sec.
 			If $iWaitTime > 0 Then
-				If $iWaitTime > 30000 Then
-					AndroidShieldForceDown(True)
-					EnableGuiControls() ; enable bot controls is more than 30 seconds wait time
-					SetLog("Enabled bot controls due to long wait time", $COLOR_SUCCESS)
-				EndIf
 				LockBotSlot(False)
 				WaitnOpenCoC($iWaitTime, $bFullRestart, $bSuspendComputer, True)
-				AndroidShieldForceDown(False)
 				If $g_bRunState = False Then Return False
 			Else
 				WaitnOpenCoC($DELAYWAITNOPENCOC10000, $bFullRestart) ; if waittime = 0 then only wait 10 seconds before restart
 			EndIf
 			If _Sleep($DELAYRESPOND) Then Return False
-			If $iWaitTime > 30000 Then
-				; ensure possible changes are populated
-				SaveConfig()
-				readConfig()
-				applyConfig()
-				DisableGuiControls()
-			EndIf
 		Case 2 ; Close emulator
 			PoliteCloseCoC($sSource)
 			If _Sleep(3000) Then Return False ; Wait 3 sec.
@@ -115,22 +102,11 @@ Func UniversalCloseWaitOpenCoC($iWaitTime = 0, $sSource = "Unknown", $StopEmulat
 			ReduceBotMemory()
 			If $iWaitTime > 0 Then
 				SetLog("Waiting " & $sWaitTime & "before starting CoC", $COLOR_SUCCESS)
-				If $iWaitTime > 30000 Then
-					EnableGuiControls() ; enable bot controls is more than 30 seconds wait time
-					SetLog("Enabled bot controls due to long wait time", $COLOR_SUCCESS)
-				EndIf
 				Local $hTimer = __TimerInit()
 				LockBotSlot(False)
 				If $bSuspendComputer Then SuspendComputer($iWaitTime)
 				If _SleepStatus($iWaitTime, True, True, True, $hTimer) Then Return False ; Wait for set requested
 				LockBotSlot(True)
-				If $iWaitTime > 30000 Then
-					; ensure possible changes are populated
-					SaveConfig()
-					readConfig()
-					applyConfig()
-					DisableGuiControls()
-				EndIf
 			Else
 				If _SleepStatus($DELAYWAITNOPENCOC10000) Then Return False
 			EndIf
@@ -159,7 +135,7 @@ Func SuspendComputer($iMilliseconds)
 		InitAndroidTimeLag()
 		; put computer now to sleep
 		SetLog("Suspend computer now", $COLOR_INFO)
-		CheckPostponedLog(True)
+		CheckPostponedLog()
 		If SetSuspend() Then
 			Return True
 		EndIf

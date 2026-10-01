@@ -100,57 +100,22 @@ Func UpdateStats($bForceUpdate = False)
 
 	If $g_iFirstRun = 1 Then
 		;GUICtrlSetState($g_hLblResultStatsTemp, $GUI_HIDE)
-		GUICtrlSetState($g_hLblVillageReportTemp, $GUI_HIDE)
-		GUICtrlSetState($g_hPicResultGoldTemp, $GUI_HIDE)
-		GUICtrlSetState($g_hPicResultElixirTemp, $GUI_HIDE)
-		GUICtrlSetState($g_hPicResultDETemp, $GUI_HIDE)
 
-		GUICtrlSetState($g_hLblResultGoldNow, $GUI_SHOW + $GUI_DISABLE) ; $GUI_DISABLE to trigger default view in btnVillageStat
-		GUICtrlSetState($g_hPicResultGoldNow, $GUI_SHOW)
-		GUICtrlSetState($g_hLblResultElixirNow, $GUI_SHOW)
-		GUICtrlSetState($g_hPicResultElixirNow, $GUI_SHOW)
-		If $g_aiCurrentLoot[$eLootDarkElixir] <> "" Then
-			GUICtrlSetState($g_hLblResultDeNow, $GUI_SHOW)
-			GUICtrlSetState($g_hPicResultDeNow, $GUI_SHOW)
-		Else
-			GUICtrlSetState($g_hPicResultDEStart, $GUI_HIDE)
-			GUICtrlSetState($g_hPicDarkLoot, $GUI_HIDE)
-			GUICtrlSetState($g_hPicDarkLastAttack, $GUI_HIDE)
-			GUICtrlSetState($g_hPicHourlyStatsDark, $GUI_HIDE)
-		EndIf
-		GUICtrlSetState($g_hLblResultTrophyNow, $GUI_SHOW)
-		GUICtrlSetState($g_hLblResultBuilderNow, $GUI_SHOW)
-		GUICtrlSetState($g_hLblResultGemNow, $GUI_SHOW)
-		btnVillageStat("UpdateStats")
 		$g_iStatsStartedWith[$eLootGold] = $g_aiCurrentLoot[$eLootGold]
 		$g_iStatsStartedWith[$eLootElixir] = $g_aiCurrentLoot[$eLootElixir]
 		$g_iStatsStartedWith[$eLootDarkElixir] = $g_aiCurrentLoot[$eLootDarkElixir]
 		$g_iStatsStartedWith[$eLootTrophy] = $g_aiCurrentLoot[$eLootTrophy]
-		GUICtrlSetData($g_ahLblStatsStartedWith[$eLootGold], _NumberFormat($g_aiCurrentLoot[$eLootGold], True))
-		GUICtrlSetData($g_hLblResultGoldNow, _NumberFormat($g_aiCurrentLoot[$eLootGold], True))
 		$iOldCurrentLoot[$eLootGold] = $g_aiCurrentLoot[$eLootGold]
-		GUICtrlSetData($g_ahLblStatsStartedWith[$eLootElixir], _NumberFormat($g_aiCurrentLoot[$eLootElixir], True))
-		GUICtrlSetData($g_hLblResultElixirNow, _NumberFormat($g_aiCurrentLoot[$eLootElixir], True))
 		$iOldCurrentLoot[$eLootElixir] = $g_aiCurrentLoot[$eLootElixir]
 		If $g_iStatsStartedWith[$eLootDarkElixir] <> "" Then
-			GUICtrlSetData($g_ahLblStatsStartedWith[$eLootDarkElixir], _NumberFormat($g_aiCurrentLoot[$eLootDarkElixir], True))
-			GUICtrlSetData($g_hLblResultDeNow, _NumberFormat($g_aiCurrentLoot[$eLootDarkElixir], True))
 			$iOldCurrentLoot[$eLootDarkElixir] = $g_aiCurrentLoot[$eLootDarkElixir]
 		EndIf
-		GUICtrlSetData($g_ahLblStatsStartedWith[$eLootTrophy], _NumberFormat($g_aiCurrentLoot[$eLootTrophy], True))
-		GUICtrlSetData($g_hLblResultTrophyNow, _NumberFormat($g_aiCurrentLoot[$eLootTrophy], True))
 		$iOldCurrentLoot[$eLootTrophy] = $g_aiCurrentLoot[$eLootTrophy]
-		GUICtrlSetData($g_hLblResultGemNow, _NumberFormat($g_iGemAmount, True))
 		$iOldGemAmount = $g_iGemAmount
-		GUICtrlSetData($g_hLblResultBuilderNow, $g_iFreeBuilderCount & "/" & $g_iTotalBuilderCount)
 		$iOldFreeBuilderCount = $g_iFreeBuilderCount
 		$iOldTotalBuilderCount = $g_iTotalBuilderCount
 		$g_iFirstRun = 0
-		GUICtrlSetState($btnResetStats, $GUI_ENABLE)
-		If $g_iGuiMode = 0 Then
-			; send update to GUI process
-			UpdateStatsManagedMyBotHost()
-		EndIf
+		UpdateStatsManagedMyBotHost() ; send update to the managing processes (API)
 		Return
 	EndIf
 
@@ -161,299 +126,239 @@ Func UpdateStats($bForceUpdate = False)
 	If Number($g_iStatsLastAttack[$eLootGold]) > Number($topgoldloot) Then
 		$bStatsUpdated = True
 		$topgoldloot = $g_iStatsLastAttack[$eLootGold]
-		GUICtrlSetData($g_ahLblStatsTop[$eLootGold], _NumberFormat($topgoldloot))
 	EndIf
 
 	If Number($g_iStatsLastAttack[$eLootElixir]) > Number($topelixirloot) Then
 		$bStatsUpdated = True
 		$topelixirloot = $g_iStatsLastAttack[$eLootElixir]
-		GUICtrlSetData($g_ahLblStatsTop[$eLootElixir], _NumberFormat($topelixirloot))
 	EndIf
 
 	If Number($g_iStatsLastAttack[$eLootDarkElixir]) > Number($topdarkloot) Then
 		$bStatsUpdated = True
 		$topdarkloot = $g_iStatsLastAttack[$eLootDarkElixir]
-		GUICtrlSetData($g_ahLblStatsTop[$eLootDarkElixir], _NumberFormat($topdarkloot))
 	EndIf
 
 	If Number($g_iStatsLastAttack[$eLootTrophy]) > Number($topTrophyloot) Then
 		$bStatsUpdated = True
 		$topTrophyloot = $g_iStatsLastAttack[$eLootTrophy]
-		GUICtrlSetData($g_ahLblStatsTop[$eLootTrophy], _NumberFormat($topTrophyloot))
 	EndIf
 
 	If $ResetStats = 1 Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsStartedWith[$eLootGold], _NumberFormat($g_aiCurrentLoot[$eLootGold], True))
-		GUICtrlSetData($g_ahLblStatsStartedWith[$eLootElixir], _NumberFormat($g_aiCurrentLoot[$eLootElixir], True))
-		If $g_iStatsStartedWith[$eLootDarkElixir] <> "" Then
-			GUICtrlSetData($g_ahLblStatsStartedWith[$eLootDarkElixir], _NumberFormat($g_aiCurrentLoot[$eLootDarkElixir], True))
-		EndIf
-		GUICtrlSetData($g_ahLblStatsStartedWith[$eLootTrophy], _NumberFormat($g_aiCurrentLoot[$eLootTrophy], True))
-		GUICtrlSetData($g_ahLblStatsGainPerHour[$eLootGold], "")
-		GUICtrlSetData($g_ahLblStatsGainPerHour[$eLootElixir], "")
-		GUICtrlSetData($g_ahLblStatsGainPerHour[$eLootDarkElixir], "")
-		GUICtrlSetData($g_ahLblStatsGainPerHour[$eLootTrophy], "")
-		GUICtrlSetData($g_hLblResultGoldHourNow, "") ;GUI BOTTOM
-		GUICtrlSetData($g_hLblResultElixirHourNow, "") ;GUI BOTTOM
-		GUICtrlSetData($g_hLblResultDEHourNow, "") ;GUI BOTTOM
 
 	EndIf
 
 	If $iOldFreeBuilderCount <> $g_iFreeBuilderCount Or $iOldTotalBuilderCount <> $g_iTotalBuilderCount Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultBuilderNow, $g_iFreeBuilderCount & "/" & $g_iTotalBuilderCount)
 		$iOldFreeBuilderCount = $g_iFreeBuilderCount
 		$iOldTotalBuilderCount = $g_iTotalBuilderCount
 	EndIf
 
 	If $iOldGemAmount <> $g_iGemAmount Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultGemNow, _NumberFormat($g_iGemAmount, True))
 		$iOldGemAmount = $g_iGemAmount
 	EndIf
 
 	If $iOldCurrentLoot[$eLootGold] <> $g_aiCurrentLoot[$eLootGold] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultGoldNow, _NumberFormat($g_aiCurrentLoot[$eLootGold], True))
 		$iOldCurrentLoot[$eLootGold] = $g_aiCurrentLoot[$eLootGold]
 	EndIf
 
 	If $iOldCurrentLoot[$eLootElixir] <> $g_aiCurrentLoot[$eLootElixir] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultElixirNow, _NumberFormat($g_aiCurrentLoot[$eLootElixir], True))
 		$iOldCurrentLoot[$eLootElixir] = $g_aiCurrentLoot[$eLootElixir]
 	EndIf
 
 	If $iOldCurrentLoot[$eLootDarkElixir] <> $g_aiCurrentLoot[$eLootDarkElixir] And $g_iStatsStartedWith[$eLootDarkElixir] <> "" Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultDeNow, _NumberFormat($g_aiCurrentLoot[$eLootDarkElixir], False)) ; set $NullToZero = False for not displaying DE = 0 for accounts don't have DE.
 		$iOldCurrentLoot[$eLootDarkElixir] = $g_aiCurrentLoot[$eLootDarkElixir]
 	EndIf
 
 	If $iOldCurrentLoot[$eLootTrophy] <> $g_aiCurrentLoot[$eLootTrophy] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultTrophyNow, _NumberFormat($g_aiCurrentLoot[$eLootTrophy], True))
 		$iOldCurrentLoot[$eLootTrophy] = $g_aiCurrentLoot[$eLootTrophy]
 	EndIf
 
 	If $iOldTotalLoot[$eLootGold] <> $g_iStatsTotalGain[$eLootGold] And ($g_iFirstAttack = 2 Or $ResetStats = 1) Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsTotalGain[$eLootGold], _NumberFormat($g_iStatsTotalGain[$eLootGold]))
 		$iOldTotalLoot[$eLootGold] = $g_iStatsTotalGain[$eLootGold]
 	EndIf
 
 	If $iOldTotalLoot[$eLootElixir] <> $g_iStatsTotalGain[$eLootElixir] And ($g_iFirstAttack = 2 Or $ResetStats = 1) Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsTotalGain[$eLootElixir], _NumberFormat($g_iStatsTotalGain[$eLootElixir]))
 		$iOldTotalLoot[$eLootElixir] = $g_iStatsTotalGain[$eLootElixir]
 	EndIf
 
 	If $iOldTotalLoot[$eLootDarkElixir] <> $g_iStatsTotalGain[$eLootDarkElixir] And (($g_iFirstAttack = 2 And $g_iStatsStartedWith[$eLootDarkElixir] <> "") Or $ResetStats = 1) Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsTotalGain[$eLootDarkElixir], _NumberFormat($g_iStatsTotalGain[$eLootDarkElixir]))
 		$iOldTotalLoot[$eLootDarkElixir] = $g_iStatsTotalGain[$eLootDarkElixir]
 	EndIf
 
 	If $iOldTotalLoot[$eLootTrophy] <> $g_iStatsTotalGain[$eLootTrophy] And ($g_iFirstAttack = 2 Or $ResetStats = 1) Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsTotalGain[$eLootTrophy], _NumberFormat($g_iStatsTotalGain[$eLootTrophy]))
 		$iOldTotalLoot[$eLootTrophy] = $g_iStatsTotalGain[$eLootTrophy]
 	EndIf
 
 	If $iOldLastLoot[$eLootGold] <> $g_iStatsLastAttack[$eLootGold] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsLastAttack[$eLootGold], _NumberFormat($g_iStatsLastAttack[$eLootGold]))
 		$iOldLastLoot[$eLootGold] = $g_iStatsLastAttack[$eLootGold]
 	EndIf
 
 	If $iOldLastLoot[$eLootElixir] <> $g_iStatsLastAttack[$eLootElixir] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsLastAttack[$eLootElixir], _NumberFormat($g_iStatsLastAttack[$eLootElixir]))
 		$iOldLastLoot[$eLootElixir] = $g_iStatsLastAttack[$eLootElixir]
 	EndIf
 
 	If $iOldLastLoot[$eLootDarkElixir] <> $g_iStatsLastAttack[$eLootDarkElixir] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsLastAttack[$eLootDarkElixir], _NumberFormat($g_iStatsLastAttack[$eLootDarkElixir]))
 		$iOldLastLoot[$eLootDarkElixir] = $g_iStatsLastAttack[$eLootDarkElixir]
 	EndIf
 
 	If $iOldLastLoot[$eLootTrophy] <> $g_iStatsLastAttack[$eLootTrophy] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsLastAttack[$eLootTrophy], _NumberFormat($g_iStatsLastAttack[$eLootTrophy]))
 		$iOldLastLoot[$eLootTrophy] = $g_iStatsLastAttack[$eLootTrophy]
 	EndIf
 
 	If $iOldLastBonus[$eLootGold] <> $g_iStatsBonusLast[$eLootGold] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsBonusLast[$eLootGold], _NumberFormat($g_iStatsBonusLast[$eLootGold]))
 		$iOldLastBonus[$eLootGold] = $g_iStatsBonusLast[$eLootGold]
 	EndIf
 
 	If $iOldLastBonus[$eLootElixir] <> $g_iStatsBonusLast[$eLootElixir] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsBonusLast[$eLootElixir], _NumberFormat($g_iStatsBonusLast[$eLootElixir]))
 		$iOldLastBonus[$eLootElixir] = $g_iStatsBonusLast[$eLootElixir]
 	EndIf
 
 	If $iOldLastBonus[$eLootDarkElixir] <> $g_iStatsBonusLast[$eLootDarkElixir] Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsBonusLast[$eLootDarkElixir], _NumberFormat($g_iStatsBonusLast[$eLootDarkElixir]))
 		$iOldLastBonus[$eLootDarkElixir] = $g_iStatsBonusLast[$eLootDarkElixir]
 	EndIf
 
 	If $iOldCostGoldWall <> $g_iCostGoldWall Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblWallUpgCostGold, _NumberFormat($g_iCostGoldWall, True))
 		$iOldCostGoldWall = $g_iCostGoldWall
 	EndIf
 
 	If $iOldCostElixirWall <> $g_iCostElixirWall Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblWallUpgCostElixir, _NumberFormat($g_iCostElixirWall, True))
 		$iOldCostElixirWall = $g_iCostElixirWall
 	EndIf
 
 	If $iOldCostGoldBuilding <> $g_iCostGoldBuilding Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblBuildingUpgCostGold, _NumberFormat($g_iCostGoldBuilding, True))
 		$iOldCostGoldBuilding = $g_iCostGoldBuilding
 	EndIf
 
 	If $iOldCostElixirBuilding <> $g_iCostElixirBuilding Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblBuildingUpgCostElixir, _NumberFormat($g_iCostElixirBuilding, True))
 		$iOldCostElixirBuilding = $g_iCostElixirBuilding
 	EndIf
 
 	If $iOldCostDElixirBuilding <> $g_iCostDElixirBuilding Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblBuildingUpgCostDElixir, _NumberFormat($g_iCostDElixirBuilding, True))
 		$iOldCostDElixirBuilding = $g_iCostDElixirBuilding
 	EndIf
 
 	If $iOldCostDElixirHero <> $g_iCostDElixirHero Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblHeroUpgCost, _NumberFormat($g_iCostDElixirHero, True))
 		$iOldCostDElixirHero = $g_iCostDElixirHero
 	EndIf
 
 	If $iOldCostElixirWarden <> $g_iCostElixirWarden Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblWardenUpgCost, _NumberFormat($g_iCostElixirWarden, True))
 		$iOldCostElixirWarden = $g_iCostElixirWarden
 	EndIf
 
 	If $iOldSkippedVillageCount <> $g_iSkippedVillageCount Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultVillagesSkipped, _NumberFormat($g_iSkippedVillageCount, True))
-		GUICtrlSetData($g_hLblResultSkippedHourNow, _NumberFormat($g_iSkippedVillageCount, True))
 		$iOldSkippedVillageCount = $g_iSkippedVillageCount
 	EndIf
 
 	If $iOldDroppedTrophyCount <> $g_iDroppedTrophyCount Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultTrophiesDropped, _NumberFormat($g_iDroppedTrophyCount, True))
 		$iOldDroppedTrophyCount = $g_iDroppedTrophyCount
 	EndIf
 
 	If $iOldNbrOfWallsUppedGold <> $g_iNbrOfWallsUppedGold Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblWallGoldMake, $g_iNbrOfWallsUppedGold)
 		$iOldNbrOfWallsUppedGold = $g_iNbrOfWallsUppedGold
 		WallsStatsMAJ()
 	EndIf
 
 	If $iOldNbrOfWallsUppedElixir <> $g_iNbrOfWallsUppedElixir Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblWallElixirMake, $g_iNbrOfWallsUppedElixir)
 		$iOldNbrOfWallsUppedElixir = $g_iNbrOfWallsUppedElixir
 		WallsStatsMAJ()
 	EndIf
 
 	If $iOldNbrOfBuildingsUppedGold <> $g_iNbrOfBuildingsUppedGold Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblNbrOfBuildingUpgGold, $g_iNbrOfBuildingsUppedGold)
 		$iOldNbrOfBuildingsUppedGold = $g_iNbrOfBuildingsUppedGold
 	EndIf
 
 	If $iOldNbrOfBuildingsUppedElixir <> $g_iNbrOfBuildingsUppedElixir Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblNbrOfBuildingUpgElixir, $g_iNbrOfBuildingsUppedElixir)
 		$iOldNbrOfBuildingsUppedElixir = $g_iNbrOfBuildingsUppedElixir
 	EndIf
 
 	If $iOldNbrOfBuildingsUppedDElixir <> $g_iNbrOfBuildingsUppedDElixir Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblNbrOfBuildingUpgDElixir, $g_iNbrOfBuildingsUppedDElixir)
 		$iOldNbrOfBuildingsUppedDElixir = $g_iNbrOfBuildingsUppedDElixir
 	EndIf
 
 	If $iOldNbrOfHeroesUpped <> $g_iNbrOfHeroesUpped Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblNbrOfHeroUpg, $g_iNbrOfHeroesUpped)
 		$iOldNbrOfHeroesUpped = $g_iNbrOfHeroesUpped
 	EndIf
 
 	If $iOldNbrOfWardenUpped <> $g_iNbrOfwardenUpped Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblNbrOfWardenUpg, $g_iNbrOfWardenUpped)
 		$iOldNbrOfWardenUpped = $g_iNbrOfWardenUpped
 	EndIf
 
 	If $iOldSearchCost <> $g_iSearchCost Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblSearchCost, _NumberFormat($g_iSearchCost, True))
 		$iOldSearchCost = $g_iSearchCost
 	EndIf
 
 	If $iOldTrainCostElixir <> $g_iTrainCostElixir Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblTrainCostElixir, _NumberFormat($g_iTrainCostElixir, True))
 		$iOldTrainCostElixir = $g_iTrainCostElixir
 	EndIf
 
 	If $iOldTrainCostDElixir <> $g_iTrainCostDElixir Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblTrainCostDElixir, _NumberFormat($g_iTrainCostDElixir, True))
 		$iOldTrainCostDElixir = $g_iTrainCostDElixir
 	EndIf
 
 	If $iOldTrainCostGold <> $g_iTrainCostGold Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblTrainCostGold, _NumberFormat($g_iTrainCostGold, True))
 		$iOldTrainCostGold = $g_iTrainCostGold
 	EndIf
 
 	If $iOldNbrOfOoS <> $g_iNbrOfOoS Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblNbrOfOoS, $g_iNbrOfOoS)
 		$iOldNbrOfOoS = $g_iNbrOfOoS
 	EndIf
 
 	If $iOldGoldFromMines <> $g_iGoldFromMines Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblGoldFromMines, _NumberFormat($g_iGoldFromMines, True))
 		$iOldGoldFromMines = $g_iGoldFromMines
 	EndIf
 
 	If $iOldElixirFromCollectors <> $g_iElixirFromCollectors Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblElixirFromCollectors, _NumberFormat($g_iElixirFromCollectors, True))
 		$iOldElixirFromCollectors = $g_iElixirFromCollectors
 	EndIf
 
 	If $iOldDElixirFromDrills <> $g_iDElixirFromDrills Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblDElixirFromDrills, _NumberFormat($g_iDElixirFromDrills, True))
 		$iOldDElixirFromDrills = $g_iDElixirFromDrills
 	EndIf
 
 	For $i = 0 To $eTroopCount - 1
 		If $g_aiDonateStatsTroops[$i][0] <> $g_aiDonateStatsTroops[$i][1] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblDonTroop[$i], _NumberFormat($g_aiDonateStatsTroops[$i][0], True))
 			If $g_aiDonateStatsTroops[$i][0] > $g_aiDonateStatsTroops[$i][1] Then
 				$g_iTotalDonateStatsTroops += ($g_aiDonateStatsTroops[$i][0] - $g_aiDonateStatsTroops[$i][1])
 				$g_iTotalDonateStatsTroopsXP += (($g_aiDonateStatsTroops[$i][0] - $g_aiDonateStatsTroops[$i][1]) * $g_aiTroopDonateXP[$i])
@@ -464,15 +369,12 @@ Func UpdateStats($bForceUpdate = False)
 	Next
 	If $bDonateTroopsStatsChanged Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblTotalTroopsQ, _NumberFormat($g_iTotalDonateStatsTroops, True))
-		GUICtrlSetData($g_hLblTotalTroopsXP, _NumberFormat($g_iTotalDonateStatsTroopsXP, True))
 		$bDonateTroopsStatsChanged = False
 	EndIf
 
 	For $i = 0 To $eSpellCount - 1
 		If $g_aiDonateStatsSpells[$i][0] <> $g_aiDonateStatsSpells[$i][1] And $i <> $eSpellClone Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblDonSpell[$i], _NumberFormat($g_aiDonateStatsSpells[$i][0], True))
 			If $g_aiDonateStatsSpells[$i][0] > $g_aiDonateStatsSpells[$i][1] Then
 				$g_iTotalDonateStatsSpells += ($g_aiDonateStatsSpells[$i][0] - $g_aiDonateStatsSpells[$i][1])
 				$g_iTotalDonateStatsSpellsXP += (($g_aiDonateStatsSpells[$i][0] - $g_aiDonateStatsSpells[$i][1]) * $g_aiSpellDonateXP[$i])
@@ -484,15 +386,12 @@ Func UpdateStats($bForceUpdate = False)
 
 	If $bDonateSpellsStatsChanged Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblTotalSpellsQ, _NumberFormat($g_iTotalDonateStatsSpells, True))
-		GUICtrlSetData($g_hLblTotalSpellsXP, _NumberFormat($g_iTotalDonateStatsSpellsXP, True))
 		$bDonateSpellsStatsChanged = False
 	EndIf
 
 	For $i = 0 To $eSiegeMachineCount - 1
 		If $g_aiDonateStatsSieges[$i][0] <> $g_aiDonateStatsSieges[$i][1] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblDonSiegel[$i], _NumberFormat($g_aiDonateStatsSieges[$i][0], True))
 			If $g_aiDonateStatsSieges[$i][0] > $g_aiDonateStatsSieges[$i][1] Then
 				$g_iTotalDonateStatsSiegeMachines += ($g_aiDonateStatsSieges[$i][0] - $g_aiDonateStatsSieges[$i][1])
 				$g_iTotalDonateStatsSiegeMachinesXP += (($g_aiDonateStatsSieges[$i][0] - $g_aiDonateStatsSieges[$i][1]) * $g_aiSiegeMachineDonateXP[$i])
@@ -504,26 +403,21 @@ Func UpdateStats($bForceUpdate = False)
 
 	If $bDonateSiegeStatsChanged Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblTotalSiegesQ, _NumberFormat($g_iTotalDonateStatsSiegeMachines, True))
-		GUICtrlSetData($g_hLblTotalSiegesXP, _NumberFormat($g_iTotalDonateStatsSiegeMachinesXP, True))
 		$bDonateSiegeStatsChanged = False
 	EndIf
 
 	If $s_iOldSmartZapGain <> $g_iSmartZapGain Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblSmartZap, _NumberFormat($g_iSmartZapGain, True))
 		$s_iOldSmartZapGain = $g_iSmartZapGain
 	EndIf
 
 	If $s_iOldNumLSpellsUsed <> $g_iNumLSpellsUsed Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblSmartLightningUsed, _NumberFormat($g_iNumLSpellsUsed, True))
 		$s_iOldNumLSpellsUsed = $g_iNumLSpellsUsed
 	EndIf
 
 	If $s_iOldNumEQSpellsUsed <> $g_iNumEQSpellsUsed Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblSmartEarthQuakeUsed, _NumberFormat($g_iNumEQSpellsUsed, True))
 		$s_iOldNumEQSpellsUsed = $g_iNumEQSpellsUsed
 	EndIf
 
@@ -533,32 +427,27 @@ Func UpdateStats($bForceUpdate = False)
 
 		If $iOldAttackedVillageCount[$i] <> $g_aiAttackedVillageCount[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblAttacked[$i], _NumberFormat($g_aiAttackedVillageCount[$i], True))
 			$iOldAttackedVillageCount[$i] = $g_aiAttackedVillageCount[$i]
 		EndIf
 		$g_aiAttackedCount += $g_aiAttackedVillageCount[$i]
 
 		If $iOldTotalGoldGain[$i] <> $g_aiTotalGoldGain[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblTotalGoldGain[$i], _NumberFormat($g_aiTotalGoldGain[$i], True))
 			$iOldTotalGoldGain[$i] = $g_aiTotalGoldGain[$i]
 		EndIf
 
 		If $iOldTotalElixirGain[$i] <> $g_aiTotalElixirGain[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblTotalElixirGain[$i], _NumberFormat($g_aiTotalElixirGain[$i], True))
 			$iOldTotalElixirGain[$i] = $g_aiTotalElixirGain[$i]
 		EndIf
 
 		If $iOldTotalDarkGain[$i] <> $g_aiTotalDarkGain[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblTotalDElixirGain[$i], _NumberFormat($g_aiTotalDarkGain[$i], True))
 			$iOldTotalDarkGain[$i] = $g_aiTotalDarkGain[$i]
 		EndIf
 
 		If $iOldTotalTrophyGain[$i] <> $g_aiTotalTrophyGain[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblTotalTrophyGain[$i], _NumberFormat($g_aiTotalTrophyGain[$i], True))
 			$iOldTotalTrophyGain[$i] = $g_aiTotalTrophyGain[$i]
 		EndIf
 
@@ -566,8 +455,6 @@ Func UpdateStats($bForceUpdate = False)
 
 	If $iOldAttackedCount <> $g_aiAttackedCount Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_hLblResultVillagesAttacked, _NumberFormat($g_aiAttackedCount, True))
-		GUICtrlSetData($g_hLblResultAttackedHourNow, _NumberFormat($g_aiAttackedCount, True))
 		$iOldAttackedCount = $g_aiAttackedCount
 	EndIf
 
@@ -575,19 +462,16 @@ Func UpdateStats($bForceUpdate = False)
 
 		If $iOldNbrOfDetectedMines[$i] <> $g_aiNbrOfDetectedMines[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblNbrOfDetectedMines[$i], $g_aiNbrOfDetectedMines[$i])
 			$iOldNbrOfDetectedMines[$i] = $g_aiNbrOfDetectedMines[$i]
 		EndIf
 
 		If $iOldNbrOfDetectedCollectors[$i] <> $g_aiNbrOfDetectedCollectors[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblNbrOfDetectedCollectors[$i], $g_aiNbrOfDetectedCollectors[$i])
 			$iOldNbrOfDetectedCollectors[$i] = $g_aiNbrOfDetectedCollectors[$i]
 		EndIf
 
 		If $iOldNbrOfDetectedDrills[$i] <> $g_aiNbrOfDetectedDrills[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_hLblNbrOfDetectedDrills[$i], $g_aiNbrOfDetectedDrills[$i])
 			$iOldNbrOfDetectedDrills[$i] = $g_aiNbrOfDetectedDrills[$i]
 		EndIf
 
@@ -595,51 +479,34 @@ Func UpdateStats($bForceUpdate = False)
 
 	If $g_iFirstAttack = 2 Then
 		$bStatsUpdated = True
-		GUICtrlSetData($g_ahLblStatsGainPerHour[$eLootGold], _NumberFormat(Round($g_iStatsTotalGain[$eLootGold] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600)) & "k / h")
-		GUICtrlSetData($g_ahLblStatsGainPerHour[$eLootElixir], _NumberFormat(Round($g_iStatsTotalGain[$eLootElixir] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600)) & "k / h")
-		If $g_iStatsStartedWith[$eLootDarkElixir] <> "" Then
-			GUICtrlSetData($g_ahLblStatsGainPerHour[$eLootDarkElixir], _NumberFormat(Round($g_iStatsTotalGain[$eLootDarkElixir] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600 * 1000)) & " / h")
-		EndIf
-		GUICtrlSetData($g_ahLblStatsGainPerHour[$eLootTrophy], _NumberFormat(Round($g_iStatsTotalGain[$eLootTrophy] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600 * 1000)) & " / h")
 
-		GUICtrlSetData($g_hLblResultGoldHourNow, _NumberFormat(Round($g_iStatsTotalGain[$eLootGold] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600)) & "k / h") ;GUI BOTTOM
-		GUICtrlSetData($g_hLblResultElixirHourNow, _NumberFormat(Round($g_iStatsTotalGain[$eLootElixir] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600)) & "k / h") ;GUI BOTTOM
-		If $g_iStatsStartedWith[$eLootDarkElixir] <> "" Then
-			GUICtrlSetData($g_hLblResultDEHourNow, _NumberFormat(Round($g_iStatsTotalGain[$eLootDarkElixir] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600 * 1000)) & " / h") ;GUI BOTTOM
-		EndIf
 	EndIf
 
 	If Number($g_iStatsLastAttack[$eLootGold]) > Number($topgoldloot) Then
 		$bStatsUpdated = True
 		$topgoldloot = $g_iStatsLastAttack[$eLootGold]
-		GUICtrlSetData($g_ahLblStatsTop[$eLootGold], _NumberFormat($topgoldloot))
 	EndIf
 
 	If Number($g_iStatsLastAttack[$eLootElixir]) > Number($topelixirloot) Then
 		$bStatsUpdated = True
 		$topelixirloot = $g_iStatsLastAttack[$eLootElixir]
-		GUICtrlSetData($g_ahLblStatsTop[$eLootElixir], _NumberFormat($topelixirloot))
 	EndIf
 
 	If Number($g_iStatsLastAttack[$eLootDarkElixir]) > Number($topdarkloot) Then
 		$bStatsUpdated = True
 		$topdarkloot = $g_iStatsLastAttack[$eLootDarkElixir]
-		GUICtrlSetData($g_ahLblStatsTop[$eLootDarkElixir], _NumberFormat($topdarkloot))
 	EndIf
 
 	If Number($g_iStatsLastAttack[$eLootTrophy]) > Number($topTrophyloot) Then
 		$bStatsUpdated = True
 		$topTrophyloot = $g_iStatsLastAttack[$eLootTrophy]
-		GUICtrlSetData($g_ahLblStatsTop[$eLootTrophy], _NumberFormat($topTrophyloot))
 	EndIf
 
 	If $g_sClanGamesTimeRemaining <> $sOldClanGameTimeRemaining Then
-		GUICtrlSetData($g_hLblRemainTime, $g_sClanGamesTimeRemaining)
 		$sOldClanGameTimeRemaining = $g_sClanGamesTimeRemaining
 	EndIf
 
 	If $g_sClanGamesScore <> $sOldClanGamesScore Then
-		GUICtrlSetData($g_hLblYourScore, $g_sClanGamesScore)
 		$sOldClanGamesScore = $g_sClanGamesScore
 	EndIf
 
@@ -647,64 +514,29 @@ Func UpdateStats($bForceUpdate = False)
 	For $i = 0 To UBound($g_aiCurrentLootBB) - 1
 		If $iOldCurrentLootBB[$i] <> $g_aiCurrentLootBB[$i] Then
 			$bStatsUpdated = True
-			GUICtrlSetData($g_alblBldBaseStats[$i], _NumberFormat($g_aiCurrentLootBB[$i], True))
 			$iOldCurrentLootBB[$i] = $g_aiCurrentLootBB[$i]
 		EndIf
 	Next
 
-	If Not _DateIsValid($g_sLabUpgradeTime) Then GUICtrlSetData($g_hLbLLabTime, "")
-	If Not _DateIsValid($g_sPetUpgradeTime) Then GUICtrlSetData($g_hLbLPetTime, "")
 
 	If ProfileSwitchAccountEnabled() Then
 		;village report
-		GUICtrlSetData($g_ahLblResultGoldNowAcc[$g_iCurAccount], _NumberFormat($g_aiCurrentLoot[$eLootGold], True))
-		GUICtrlSetData($g_ahLblResultElixirNowAcc[$g_iCurAccount], _NumberFormat($g_aiCurrentLoot[$eLootElixir], True))
-		GUICtrlSetData($g_ahLblResultDENowAcc[$g_iCurAccount], _NumberFormat($g_aiCurrentLoot[$eLootDarkElixir], False))
-		GUICtrlSetData($g_ahLblResultTrophyNowAcc[$g_iCurAccount], _NumberFormat($g_aiCurrentLoot[$eLootTrophy], True))
-		GUICtrlSetData($g_ahLblResultBuilderNowAcc[$g_iCurAccount], $g_iFreeBuilderCount & "/" & $g_iTotalBuilderCount)
 		Local $TempGemDisplay = $g_iGemAmount < 10000 ? $g_iGemAmount : Round($g_iGemAmount / 1000, 1)
-		GUICtrlSetData($g_ahLblResultGemNowAcc[$g_iCurAccount], _NumberFormat($TempGemDisplay, True))
 
 		;gain stats
 		SwitchAccountVariablesReload("UpdateStats")
-		GUICtrlSetData($g_ahLblResultAttacked[$g_iCurAccount], $g_aiAttackedCount)
-		GUICtrlSetData($g_ahLblResultSkipped[$g_iCurAccount], $g_iSkippedVillageCount)
 
 		;Clan Capital
-		If ($g_iLootCCGold And $g_iLootCCMedal And $g_iCCTrophies) = 0 Then
-			GUICtrlSetData($g_ahLbLLootCCGold[$g_iCurAccount], "")
-			GUICtrlSetData($g_ahLbLLootCCMedal[$g_iCurAccount], "")
-			GUICtrlSetData($g_ahLblTrophiesCC[$g_iCurAccount], "")
-		Else
-			GUICtrlSetData($g_ahLbLLootCCGold[$g_iCurAccount], _NumberFormat($g_iLootCCGold, True))
-			GUICtrlSetData($g_ahLbLLootCCMedal[$g_iCurAccount], _NumberFormat($g_iLootCCMedal, True))
-			GUICtrlSetData($g_ahLblTrophiesCC[$g_iCurAccount], _NumberFormat($g_iCCTrophies, True))
-		EndIf
 
 		;Builders Base
-		If $g_iTotalBuilderCountBB = 0 Then
-			GUICtrlSetData($g_ahLblResultBBuilderNowAcc[$g_iCurAccount], "")
-		Else
-			GUICtrlSetData($g_ahLblResultBBuilderNowAcc[$g_iCurAccount], $g_iFreeBuilderCountBB & "/" & $g_iTotalBuilderCountBB)
-		EndIf
 
-		For $i = 0 To UBound($g_aiCurrentLootBB) - 1
-			If $g_aiCurrentLootBB[$i] = 0 Then
-				GUICtrlSetData($g_ahLbLLootBB[$g_iCurAccount][$i], "")
-			Else
-				GUICtrlSetData($g_ahLbLLootBB[$g_iCurAccount][$i], _NumberFormat($g_aiCurrentLootBB[$i], True))
-			EndIf
-		Next
 	EndIf
 
 	If $ResetStats = 1 Then
 		$ResetStats = 0
 	EndIf
 
-	If $bStatsUpdated And $g_iGuiMode = 0 Then
-		; send update to GUI process
-		UpdateStatsManagedMyBotHost()
-	EndIf
+	If $bStatsUpdated Then UpdateStatsManagedMyBotHost() ; send update to the managing processes (API)
 
 EndFunc   ;==>UpdateStats
 
@@ -713,8 +545,6 @@ Func ResetStats()
 	$g_iFirstAttack = 0
 	$g_iTimePassed = 0
 	$g_hTimerSinceStarted = __TimerInit()
-	GUICtrlSetData($g_hLblResultRuntime, "00:00:00")
-	GUICtrlSetData($g_hLblResultRuntimeNow, "00:00:00")
 	$g_iStatsStartedWith[$eLootGold] = $g_aiCurrentLoot[$eLootGold]
 	$g_iStatsStartedWith[$eLootElixir] = $g_aiCurrentLoot[$eLootElixir]
 	$g_iStatsStartedWith[$eLootDarkElixir] = $g_aiCurrentLoot[$eLootDarkElixir]
@@ -791,10 +621,7 @@ Func ResetStats()
 	If ProfileSwitchAccountEnabled() Then
 		SwitchAccountVariablesReload("Reset")
 		For $i = 0 To 7
-			GUICtrlSetData($g_ahLblResultRuntimeNowAcc[$i], "00:00:00")
 			$g_aiRunTime[$i] = 0
-			GUICtrlSetData($g_hLbLLabTime, "")
-			GUICtrlSetData($g_hLbLPetTime, "")
 		Next
 	EndIf
 	UpdateStats()
@@ -804,9 +631,6 @@ Func WallsStatsMAJ()
 	$g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 4] -= Number($g_iNbrOfWallsUpped)
 	$g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 5] += Number($g_iNbrOfWallsUpped)
 	$g_iNbrOfWallsUpped = 0
-	For $i = 4 To 19
-		GUICtrlSetData($g_ahWallsCurrentCount[$i], $g_aiWallsCurrentCount[$i])
-	Next
 	SaveConfig()
 EndFunc   ;==>WallsStatsMAJ
 
@@ -816,64 +640,3 @@ Func UpdateStats_ClearArray(ByRef $a)
 	Next
 EndFunc   ;==>UpdateStats_ClearArray
 
-; Stats tab league badge for the CoC 18.600 tiers: the old league icons stand in for the tier groups
-; (Skeleton-Archer 1-9 bronze, Wizard silver, Valkyrie gold, Witch crystal, Golem master, P.E.K.K.A
-; champion, Titan-Electro titan, Legend legend) and the small label below shows the tier number.
-; The league badges of CoC 18.600 (Skeleton, Barbarian, Archer... Legend) have no counterpart in the
-; icon library, and the game art cannot be read out of the asset pack. So the bot keeps a copy of the
-; real badge straight from the main screen, the 50 px tile at 15-65 x 67-117 with the league art and
-; the tier number, and shows that in the Stats tab and in the bottom bar of the Log tab. The copy is
-; refreshed with every village report and kept in the profile's Temp folder between runs.
-Func SaveLeagueBadge()
-	_CaptureRegion(15, 67, 65, 117)
-	If $g_hBitmap = 0 Then Return
-	Local $sFile = $g_sProfileTempPath & "league_badge.bmp"
-	_GDIPlus_ImageSaveToFile($g_hBitmap, $sFile)
-	ShowLeagueBadge($sFile)
-EndFunc   ;==>SaveLeagueBadge
-
-Func ShowLeagueBadge($sFile = "")
-	If $sFile = "" Then $sFile = $g_sProfileTempPath & "league_badge.bmp"
-	If Not FileExists($sFile) Then Return False
-	If $g_hPicLeagueBadge <> 0 Then
-		GUICtrlSetImage($g_hPicLeagueBadge, $sFile)
-		GUICtrlSetState($g_hPicLeagueBadge, $GUI_SHOW)
-	EndIf
-	If $g_hPicResultTrophyNow <> 0 Then GUICtrlSetImage($g_hPicResultTrophyNow, $sFile)
-	Return True
-EndFunc   ;==>ShowLeagueBadge
-
-Func UpdateLeagueDisplay($iTier)
-	If $g_hLblLeague = 0 Then Return ; Mini GUI has no league badge
-	$iTier = Number($iTier)
-	; the real badge copied from the screen wins; the old icons only stand in until a copy exists
-	If $iTier >= 1 And ShowLeagueBadge() Then
-		_GUI_Value_STATE("HIDE", $g_aGroupLeague)
-		GUICtrlSetData($g_hLblLeague, String($iTier))
-		_GUICtrlSetTip($g_hPicLeagueBadge, LeagueTierName($iTier))
-		Return
-	EndIf
-	If $g_hPicLeagueBadge <> 0 Then GUICtrlSetState($g_hPicLeagueBadge, $GUI_HIDE)
-	Local $iIcon = $eLeagueUnranked
-	If $iTier >= 34 Then
-		$iIcon = $eLeagueLegend
-	ElseIf $iTier >= 25 Then
-		$iIcon = $eLeagueTitan
-	ElseIf $iTier >= 22 Then
-		$iIcon = $eLeagueChampion
-	ElseIf $iTier >= 19 Then
-		$iIcon = $eLeagueMaster
-	ElseIf $iTier >= 16 Then
-		$iIcon = $eLeagueCrystal
-	ElseIf $iTier >= 13 Then
-		$iIcon = $eLeagueGold
-	ElseIf $iTier >= 10 Then
-		$iIcon = $eLeagueSilver
-	ElseIf $iTier >= 1 Then
-		$iIcon = $eLeagueBronze
-	EndIf
-	_GUI_Value_STATE("HIDE", $g_aGroupLeague)
-	GUICtrlSetState($g_ahPicLeague[$iIcon], $GUI_SHOW)
-	GUICtrlSetData($g_hLblLeague, ($iTier >= 1 ? String($iTier) : ""))
-	_GUICtrlSetTip($g_ahPicLeague[$iIcon], LeagueTierName($iTier))
-EndFunc   ;==>UpdateLeagueDisplay

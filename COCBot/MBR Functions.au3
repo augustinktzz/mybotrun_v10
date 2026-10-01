@@ -154,9 +154,9 @@
 #include "functions\Android\AndroidBlueStacks5.au3"
 #include "functions\Android\AndroidMEmu.au3"
 #include "functions\Android\AndroidNox.au3"
+#include "functions\Android\AndroidGeneric.au3"
 #include "functions\Android\getBSPos.au3"
 #include "functions\Android\UniversalCloseWaitOpenCoC.au3"
-#include "functions\Android\AndroidEmbed.au3"
 
 #include "functions\Other\WerFaultClose.au3"
 #include "functions\Other\TcpTable.au3"
@@ -296,11 +296,9 @@
 
 #include "functions\Other\Api.au3"
 #include "functions\Other\ApiClient.au3"
-#include "functions\Other\ForumAuthentication.au3"
 
 ; moved to the end to avoid any global declare issues
 #include "functions\Config\profileFunctions.au3"
 #include "functions\Config\_Ini_Table.au3"
-#include "functions\Config\applyConfig.au3"
 #include "functions\Config\readConfig.au3"
 #include "functions\Config\saveConfig.au3"

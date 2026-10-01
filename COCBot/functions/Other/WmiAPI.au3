@@ -14,6 +14,9 @@
 ; ===============================================================================================================================
 #include-once
 #include <Array.au3>
+#include <StringConstants.au3>
+#include <WinAPIProc.au3>
+#include "Wine.au3"
 
 Global $g_oWMI = 0
 Global $g_WmiAPI_External = False ; True retrieves the process list by calling MyBot.run.Wmi.exe
@@ -36,6 +39,11 @@ Func CloseWmiObject()
 EndFunc   ;==>CloseWmiObject
 
 Func WmiQuery($sQuery)
+	; Wine's WMI provider accepts a Win32_Process query but never finishes enumerating it, which
+	; froze the bot on its first process lookup. Answer from the process list instead. This is
+	; checked before the external MyBot.run.Wmi path on purpose: that helper would hang the same way.
+	If IsRunningUnderWine() Then Return WineProcessQuery($sQuery)
+
 	If $g_WmiAPI_External = True Then
 		Local $sAppFile = @ScriptDir & "\MyBot.run.Wmi." & ((@Compiled) ? ("exe") : ("au3"))
 		If FileExists($sAppFile) Then
@@ -103,3 +111,41 @@ Func StringBetween(ByRef $s, $sStartTag, $sEndTag, $iStartPos = 1)
     EndIf
 	Return SetError(1, 0, "")
 EndFunc
+
+; Answers, under Wine, the Win32_Process queries the bot builds (see LaunchConsole.au3), without WMI.
+; Understood: no "where" clause, or any combination of "Handle = <pid>",
+; "ExecutablePath like '%...%'" and "CommandLine like '%...%'" - the only shapes the bot uses.
+; Rows follow $g_WmiFields: [Handle, ExecutablePath, CommandLine]. As with WMI, the command line
+; includes the quoted executable, and "like" compares case-insensitively.
+; Only processes running under Wine are listed, which covers everything the bot starts itself.
+Func WineProcessQuery($sQuery)
+	Local $aProcesses[0]
+	Local $iHandle = -1, $sPathLike = "", $sCmdLike = "", $aMatch
+
+	$aMatch = StringRegExp($sQuery, "(?i)\bHandle\s*=\s*(\d+)", $STR_REGEXPARRAYMATCH)
+	If Not @error Then $iHandle = Number($aMatch[0])
+	; WQL escapes "\" as "\\" inside the pattern; undo it to compare against real paths.
+	$aMatch = StringRegExp($sQuery, "(?i)\bExecutablePath\s+like\s+'%(.*?)%'", $STR_REGEXPARRAYMATCH)
+	If Not @error Then $sPathLike = StringReplace($aMatch[0], "\\", "\")
+	$aMatch = StringRegExp($sQuery, "(?i)\bCommandLine\s+like\s+'%(.*?)%'", $STR_REGEXPARRAYMATCH)
+	If Not @error Then $sCmdLike = StringReplace($aMatch[0], "\\", "\")
+
+	Local $aList = ProcessList()
+	Local $i
+	For $i = 1 To $aList[0][0]
+		Local $iPid = $aList[$i][1]
+		If $iHandle >= 0 And $iPid <> $iHandle Then ContinueLoop
+		Local $sPath = _WinAPI_GetProcessFileName($iPid)
+		If $sPath = "" Then $sPath = $aList[$i][0]
+		If $sPathLike <> "" And StringInStr($sPath, $sPathLike) = 0 Then ContinueLoop
+		; _WinAPI_GetProcessCommandLine returns the arguments only; WMI's CommandLine starts with
+		; the executable, and the callers compare against that full form.
+		Local $sArgs = _WinAPI_GetProcessCommandLine($iPid)
+		Local $sCmd = '"' & $sPath & '"' & ($sArgs = "" ? "" : " " & $sArgs)
+		If $sCmdLike <> "" And StringInStr($sCmd, $sCmdLike) = 0 Then ContinueLoop
+		Local $aRow[3] = [$iPid, $sPath, $sCmd]
+		ReDim $aProcesses[UBound($aProcesses) + 1]
+		$aProcesses[UBound($aProcesses) - 1] = $aRow
+	Next
+	Return $aProcesses
+EndFunc   ;==>WineProcessQuery

@@ -51,7 +51,6 @@ Func AcquireMutex($mutexName, $scope = Default, $timeout = Default, $sWaitMessag
 				$bLogged = True
 				SetLog($sWaitMessage)
 			EndIf
-			_GUICtrlStatusBar_SetTextEx($g_hStatusBar, $sWaitMessage)
 		EndIf
 		If $bUse_Sleep Then
 			If _Sleep($iDelay) Then Return
@@ -59,10 +58,6 @@ Func AcquireMutex($mutexName, $scope = Default, $timeout = Default, $sWaitMessag
 			Sleep($iDelay)
 		EndIf
 	WEnd
-	If $g_hMutex_MyBot Then
-		; protect the handle from getting closed by something else!
-		;_WinAPI_SetHandleInformation($g_hMutex_MyBot, $HANDLE_FLAG_PROTECT_FROM_CLOSE, $HANDLE_FLAG_PROTECT_FROM_CLOSE)
-	EndIf
 	Return $g_hMutex_MyBot
 EndFunc   ;==>AcquireMutex
 
@@ -102,7 +97,6 @@ Func LockSemaphore($Semaphore, $sWaitMessage = Default)
 				$bLogged = True
 				SetLog($sWaitMessage)
 			EndIf
-			_GUICtrlStatusBar_SetTextEx($g_hStatusBar, $sWaitMessage)
 		EndIf
 		If _Sleep($iDelay, True, False) Then Return
 		;Sleep($iDelay)
@@ -186,7 +180,6 @@ Func AcquireMutexTicket($sMutexName, $iMinTicketNo, $sWaitMessage = Default, $bC
 				$bLogged = True
 				SetLog($sWaitMessage)
 			EndIf
-			_GUICtrlStatusBar_SetTextEx($g_hStatusBar, $sWaitMessage)
 		EndIf
 		;SetDebugLog("Waiting for mutex ticket (" & $iTicket & "): " & $sTicketMutex)
 		If _Sleep($iDelay, True, False) Then Return

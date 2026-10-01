@@ -49,14 +49,8 @@ Func _Sleep($iDelay, $iSleep = True, $CheckRunState = True, $SleepWhenPaused = T
 	$b_Sleep_Active = True
 
 	debugGdiHandle("_Sleep")
-	CheckBotRequests() ; check if bot window should be moved, minized etc.
 
 	If SetCriticalMessageProcessing() = False Then
-
-		If $g_bMoveDivider Then
-			MoveDivider()
-			$g_bMoveDivider = False
-		EndIf
 
 		If $iDelay > 0 And __TimerDiff($g_hTxtLogTimer) >= $g_iTxtLogTimerTimeout Then
 
@@ -84,12 +78,6 @@ Func _Sleep($iDelay, $iSleep = True, $CheckRunState = True, $SleepWhenPaused = T
 			EndIf
 
 			CheckPostponedLog()
-
-			If BotCloseRequestProcessed() Then
-				BotClose() ; improve responsive bot close
-				$b_Sleep_Active = False
-				Return True
-			EndIf
 		EndIf
 	EndIf
 
@@ -121,8 +109,6 @@ Func _Sleep($iDelay, $iSleep = True, $CheckRunState = True, $SleepWhenPaused = T
 					SetTime()
 					$hTimer_SetTime = __TimerInit()
 				EndIf
-				AndroidEmbedCheck()
-				AndroidShieldCheck()
 				CheckPostponedLog()
 			EndIf
 		EndIf
@@ -132,7 +118,6 @@ Func _Sleep($iDelay, $iSleep = True, $CheckRunState = True, $SleepWhenPaused = T
 		Else
 			_SleepMilli($iRemaining)
 		EndIf
-		CheckBotRequests() ; check if bot window should be moved
 	WEnd
 	$b_Sleep_Active = False
 	Return False

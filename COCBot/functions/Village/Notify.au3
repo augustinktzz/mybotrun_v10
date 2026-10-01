@@ -685,12 +685,11 @@ Func NotifyRemoteControlProc()
 						EndIf
 						Local $day = 0, $hour = 0, $min = 0, $sec = 0
 						_TicksToDay(Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed), $day, $hour, $min, $sec)
-						GUICtrlSetData($g_hLblResultRuntime, $day > 0 ? StringFormat("%2u Day(s) %02i:%02i:%02i", $day, $hour, $min, $sec) : StringFormat("%02i:%02i:%02i", $hour, $min, $sec))
-						$txtStats &= "%0A" & GetTranslatedFileIni("MBR Func_Notify", "LOG_Info_07", "Run Time") & ": " & GUICtrlRead($g_hLblResultRuntime) ;This label only changes when on the stats screen, so update it here.
+						$txtStats &= "%0A" & GetTranslatedFileIni("MBR Func_Notify", "LOG_Info_07", "Run Time") & ": " & ($day > 0 ? StringFormat("%2u Day(s) %02i:%02i:%02i", $day, $hour, $min, $sec) : StringFormat("%02i:%02i:%02i", $hour, $min, $sec))
 						;Optionally show Clan Games stats
-						If (GUICtrlRead($g_hLblRemainTime) <> "N/A" And GUICtrlRead($g_hLblRemainTime) <> "0d 00h") Then
+						If ($g_sClanGamesTimeRemaining <> "N/A" And $g_sClanGamesTimeRemaining <> "0d 00h") Then
 							$txtStats &= "%0A%0A" & "Clan Games:"
-							$txtStats &= "%0A" & "[T]: " & GUICtrlRead($g_hLblRemainTime) & " [S]: " & GUICtrlRead($g_hLblYourScore)
+							$txtStats &= "%0A" & "[T]: " & $g_sClanGamesTimeRemaining & " [S]: " & $g_sClanGamesScore
 						EndIf
 						;Optionally show Clan Capitol Stats
 						If ($g_iStatsClanCapCollected > 0 Or $g_iStatsClanCapUpgrade > 0) Then
@@ -735,7 +734,7 @@ Func NotifyRemoteControlProc()
 						$g_bNotifyForced = False
 						NotifyPushToTelegram($g_sNotifyOrigin & " | " & GetTranslatedFileIni("MBR Func_Notify", "SHIELD_Info_02", "Chief, your request for Shield Info will be processed ASAP"))
 					Case GetTranslatedFileIni("MBR Func_Notify", "RESETSTATS", "RESETSTATS")
-						btnResetStats()
+						ResetStats()
 						SetLog("Notify Telegram: Your request has been received. Statistics resetted", $COLOR_SUCCESS)
 						NotifyPushToTelegram($g_sNotifyOrigin & " | " & GetTranslatedFileIni("MBR Func_Notify", "RESETSTATS_Info_02", "Statistics resetted."))
 					Case GetTranslatedFileIni("MBR Func_Notify", "TROOPS", "TROOPS"), '\UD83D\UDCAA ' & GetTranslatedFileIni("MBR Func_Notify", "TROOPS", "TROOPS")
@@ -762,14 +761,12 @@ Func NotifyRemoteControlProc()
 
 						NotifyPushToTelegram($g_sNotifyOrigin & $txtTroopStats)
 					Case GetTranslatedFileIni("MBR Func_Notify", "HALTATTACKON", "HALTATTACKON"), '\U274C ' & StringUpper(GetTranslatedFileIni("MBR Func_Notify", "ATTACK OFF", "ATTACK OFF"))
-						GUICtrlSetState($g_hChkBotStop, $GUI_CHECKED)
 						NotifyPushToTelegram($g_sNotifyOrigin & " | " & GetTranslatedFileIni("MBR Func_Notify", "ATTACK ON_Info_02", "Set Halt Attack ON."))
 						btnStop()
 						$g_bChkBotStop = True ; set halt attack variable
 						$g_iCmbBotCond = 18 ; set stay online
 						btnStart()
 					Case GetTranslatedFileIni("MBR Func_Notify", "HALTATTACKOFF", "HALTATTACKOFF"), '\U2705 ' & StringUpper(GetTranslatedFileIni("MBR Func_Notify", "ATTACK ON_Info_01", "ATTACK ON"))
-						GUICtrlSetState($g_hChkBotStop, $GUI_UNCHECKED)
 						NotifyPushToTelegram($g_sNotifyOrigin & " | " & GetTranslatedFileIni("MBR Func_Notify", "ATTACK OFF_Info_02", "Set Halt Attack OFF."))
 						btnStop()
 						btnStart()

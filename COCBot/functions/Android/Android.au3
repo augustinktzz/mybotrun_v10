@@ -79,7 +79,6 @@ Func InitAndroidConfig($bRestart = False)
 	$g_iAndroidSupportFeature = $g_avAndroidAppConfig[$g_iAndroidConfig][11] ; 0 = Not available, 1 = Available, 2 = Available using ADB (experimental!)
 	$g_sAndroidShellPrompt = $g_avAndroidAppConfig[$g_iAndroidConfig][12] ; empty string not available, '# ' for rooted and '$ ' for not rooted android
 	$g_sAndroidMouseDevice = $g_avAndroidAppConfig[$g_iAndroidConfig][13] ; empty string not available, can be direct device '/dev/input/event2' or name by getevent -p
-	$g_iAndroidEmbedMode = $g_avAndroidAppConfig[$g_iAndroidConfig][14] ; Android Dock Mode: -1 = Not available, 0 = Normal docking, 1 = Simulated docking
 	$g_iAndroidBackgroundModeDefault = $g_avAndroidAppConfig[$g_iAndroidConfig][15] ; Default Android Background Mode: 1 = WinAPI mode (faster, but requires Android DirectX), 2 = ADB screencap mode (slower, but alwasy works even if Monitor is off -> "True Brackground Mode")
 	$g_bAndroidAdbScreencap = $g_bAndroidAdbScreencapEnabled = True And BitAND($g_iAndroidSupportFeature, 2) = 2 ; Use Android ADB to capture screenshots in RGBA raw format
 	$g_bAndroidAdbClick = $g_bAndroidAdbClickEnabled = True And AndroidAdbClickSupported() ; Enable Android ADB mouse click
@@ -87,7 +86,6 @@ Func InitAndroidConfig($bRestart = False)
 	$g_bAndroidAdbInstance = $g_bAndroidAdbInstanceEnabled = True And BitAND($g_iAndroidSupportFeature, 16) = 16 ; Enable Android steady ADB shell instance when available
 	$g_bAndroidAdbClickDrag = $g_bAndroidAdbClickDragEnabled = True And BitAND($g_iAndroidSupportFeature, 32) = 32 ; Enable Android ADB Click Drag script or input swipe
 	$g_bAndroidPicturesPathAutoConfig = BitAND($g_iAndroidSupportFeature, 512) > 0
-	$g_bAndroidEmbed = $g_bAndroidEmbedEnabled = True And $g_iAndroidEmbedMode > -1 ; Enable Android Docking
 	$g_bAndroidBackgroundLaunch = $g_bAndroidBackgroundLaunchEnabled = True ; Enabled Android Background launch using Windows Scheduled Task
 	$g_bAndroidBackgroundLaunched = False ; True when Android was launched in headless mode without a window
 	$g_bUpdateAndroidWindowTitle = False ; If Android has always same title instance name will be added (iTools)
@@ -96,14 +94,14 @@ Func InitAndroidConfig($bRestart = False)
 	$g_sAndroidAdbShellOptions = "" ; Additional shell options when launch shell with command, only used by BlueStacks2 " /data/anr/../../system/xbin/bstk/su root"
 	$g_iAndroidRecoverStrategy = $g_iAndroidRecoverStrategyDefault
 	$g_iAndroidAdbMinitouchMode = $g_iAndroidAdbMinitouchModeDefault
+	; Only a Generic Android lacks a shared folder. Reset here so that switching from Generic back
+	; to BlueStacks5/MEmu/Nox restores the normal shared-folder path; InitGeneric() sets it again.
+	$g_bAndroidAdbNoSharedFolder = False
 	; reset shared prefs variables
 	$g_PushedSharedPrefsProfile = ""
 	$g_PushedSharedPrefsProfile_Timer = 0
-	; screencap might have disabled backgroundmode
-	If $g_bAndroidAdbScreencap Then
-		; update background checkbox
-		UpdateChkBackground()
-	EndIf
+	; screencap might have changed the background mode, and with it the DPI awareness needed
+	If $g_bAndroidAdbScreencap Then CheckDpiAwareness()
 
 	UpdateHWnD($g_hAndroidWindow, False) ; Ensure $g_sAppClassInstance is properly set
 	FuncReturn()
@@ -118,10 +116,6 @@ Func AndroidSupportFeaturesRemove($iValue, $iIdx = $g_iAndroidConfig)
 	$g_avAndroidAppConfig[$iIdx][11] = BitAND($g_avAndroidAppConfig[$iIdx][11], BitXOR(-1, $iValue))
 	$g_iAndroidSupportFeature = BitAND($g_iAndroidSupportFeature, BitXOR(-1, $iValue))
 EndFunc   ;==>AndroidSupportFeaturesRemove
-
-Func AndroidMakeDpiAware()
-	Return BitAND($g_iAndroidSupportFeature, 64) > 0 And $g_bAndroidAdbScreencap = False
-EndFunc   ;==>AndroidMakeDpiAware
 
 Func CleanSecureFiles($iAgeInUTCSeconds = 600)
 	If $g_sAndroidPicturesHostPath = "" Then Return
@@ -229,7 +223,7 @@ Func GetAndroidControlClass($bCheck = False, $bInit = False)
 	; Handle not found, try to update
 	$g_hAndroidControl = 0
 	$g_sAppClassInstance = $g_avAndroidAppConfig[$g_iAndroidConfig][3]
-	Local $hAndroidWin = GetCurrentAndroidHWnD()
+	Local $hAndroidWin = $g_hAndroidWindow
 	If IsHWnd($hAndroidWin) Then
 		; ok, Android Window exists
 		Local $hCtrl = ControlGetHandle2($hAndroidWin, $g_sAppPaneName, $g_sAppClassInstance, 100, 100)
@@ -282,7 +276,6 @@ Func UpdateHWnD($hWin, $bRestart = True)
 		EndIf
 	EndIf
 
-	_WindowAppId($hWin, "MyBot.run.Android")
 	$g_hAndroidWindow = $hWin
 	CheckDpiAwareness()
 	; reset time lag
@@ -307,7 +300,7 @@ Func WinGetAndroidHandle($bInitAndroid = Default, $bTestPid = False)
 		; Android Window found
 		Local $aPos = WinGetPos($g_hAndroidWindow)
 		If IsArray($aPos) Then
-			If $g_bAndroidEmbedded = False And _CheckWindowVisibility($g_hAndroidWindow, $aPos) Then
+			If _CheckWindowVisibility($g_hAndroidWindow, $aPos) Then
 				SetDebugLog("Android Window '" & $g_sAndroidTitle & "' not visible, moving to position: " & $aPos[0] & ", " & $aPos[1])
 				WinMove($g_hAndroidWindow, "", $aPos[0], $aPos[1])
 				$aPos = WinGetPos($g_hAndroidWindow)
@@ -321,7 +314,7 @@ Func WinGetAndroidHandle($bInitAndroid = Default, $bTestPid = False)
 		EndIf
 		If $currHWnD = 0 Or $currHWnD <> $g_hAndroidWindow Then
 			; Restore original Android Window position
-			If $g_bAndroidEmbedded = False And IsArray($aPos) = 1 And ($g_bIsHidden = False Or ($aPos[0] > -30000 Or $aPos[1] > -30000)) Then
+			If IsArray($aPos) = 1 And ($g_bIsHidden = False Or ($aPos[0] > -30000 Or $aPos[1] > -30000)) Then
 				SetDebugLog("Move Android Window '" & $g_sAndroidTitle & "' to position: " & $g_iAndroidPosX & ", " & $g_iAndroidPosY)
 				HideAndroidWindow(False, Default, Default, "WinGetAndroidHandle:1", 0)
 				$aPos[0] = $g_iAndroidPosX
@@ -335,7 +328,7 @@ Func WinGetAndroidHandle($bInitAndroid = Default, $bTestPid = False)
 			EndIf
 		EndIf
 		; update Android Window position
-		If $g_bAndroidEmbedded = False And IsArray($aPos) = 1 Then
+		If IsArray($aPos) = 1 Then
 			Local $posX = $g_iAndroidPosX
 			Local $posY = $g_iAndroidPosY
 			$g_iAndroidPosX = ($aPos[0] > -30000 ? $aPos[0] : $g_iAndroidPosX)
@@ -477,7 +470,6 @@ Func _WinGetAndroidHandle($bFindByTitle = False)
 							$g_bInitAndroid = True ; change window, re-initialize Android config
 							InitAndroid()
 						EndIf
-						AndroidEmbed(False, False)
 						setAndroidPID(GetAndroidPid())
 						Return $hWin
 					EndIf
@@ -502,7 +494,6 @@ Func _WinGetAndroidHandle($bFindByTitle = False)
 					$g_bInitAndroid = True ; change window, re-initialize Android config
 					InitAndroid()
 				EndIf
-				AndroidEmbed(False, False)
 				setAndroidPID(GetAndroidPid())
 				Return $hWin
 			Else
@@ -518,7 +509,6 @@ Func _WinGetAndroidHandle($bFindByTitle = False)
 			SetDebugLog($g_sAndroidEmulator & " Window not found")
 			If $ReInitAndroid = True Then $g_bInitAndroid = True ; no window anymore, re-initialize Android config
 			UpdateHWnD(0)
-			AndroidEmbed(False, False)
 			Return 0
 		EndIf
 		SetDebugLog("Found " & $aWinList[0][0] & " possible " & $g_sAndroidEmulator & " windows by title '" & $g_sAndroidTitle & "':")
@@ -539,7 +529,6 @@ Func _WinGetAndroidHandle($bFindByTitle = False)
 						$g_bInitAndroid = True ; change window, re-initialize Android config
 						InitAndroid()
 					EndIf
-					AndroidEmbed(False, False)
 					setAndroidPID(GetAndroidPid())
 					Return $hWin
 				EndIf
@@ -589,7 +578,6 @@ Func _WinGetAndroidHandle($bFindByTitle = False)
 							$g_bInitAndroid = True ; change window, re-initialize Android config
 							InitAndroid()
 						EndIf
-						AndroidEmbed(False, False)
 						setAndroidPID(GetAndroidPid())
 						Return $hWin
 					EndIf
@@ -612,7 +600,6 @@ Func _WinGetAndroidHandle($bFindByTitle = False)
 			$g_bInitAndroid = True ; change window, re-initialize Android config
 			InitAndroid()
 		EndIf
-		AndroidEmbed(False, False)
 		setAndroidPID(GetAndroidPid())
 		Return $hWin
 	EndIf
@@ -620,7 +607,6 @@ Func _WinGetAndroidHandle($bFindByTitle = False)
 	SetDebugLog($g_sAndroidEmulator & ($g_sAndroidInstance = "" ? "" : " (" & $g_sAndroidInstance & ")") & " Window not found in list")
 	If $ReInitAndroid = True Then $g_bInitAndroid = True ; no window anymore, re-initialize Android config
 	UpdateHWnD(0)
-	AndroidEmbed(False, False)
 	Return 0
 EndFunc   ;==>_WinGetAndroidHandle
 
@@ -1400,7 +1386,6 @@ Func CloseAndroid($sSource)
 	SetDebugLog("CloseAndroid, caller: " & $sSource)
 
 	; Un-dock Android
-	AndroidEmbed(False)
 
 	AndroidAdbTerminateShellInstance()
 
@@ -1921,9 +1906,13 @@ Func _AndroidAdbLaunchShellInstance($wasRunState = Default, $rebootAndroidIfNecc
 		EndIf
 
 		; check shared folder
-		Local $pathFound = False
+		; A "Generic" Android (see AndroidGeneric.au3) has no shared folder to probe: host and
+		; Android are different filesystems, and files are moved with adb pull/push at each use
+		; site instead. Treat the path as found and skip the mount probe entirely. Only
+		; InitGeneric() sets this flag, so every other emulator still probes as before.
+		Local $pathFound = $g_bAndroidAdbNoSharedFolder
 		Local $iMount
-		For $iMount = 0 To 2
+		For $iMount = 0 To ($g_bAndroidAdbNoSharedFolder ? -1 : 2)
 			$s = LaunchConsole($g_sAndroidAdbPath, AddSpace($g_sAndroidAdbGlobalOptions) & "-s " & $g_sAndroidAdbDevice & " shell" & $g_sAndroidAdbShellOptions & " mount|grep -E 'vboxsf|sharefolder'", $process_killed)
 			Local $path = $g_sAndroidPicturesPath
 			If StringRight($path, 1) = "/" Then $path = StringLeft($path, StringLen($path) - 1)
@@ -1992,6 +1981,21 @@ Func _AndroidAdbLaunchShellInstance($wasRunState = Default, $rebootAndroidIfNecc
 				If FileGetTime($srcFile, $FT_MODIFIED, $FT_STRING) <> FileGetTime($dstFile, $FT_MODIFIED, $FT_STRING) Then
 					FileCopy($srcFile, $dstFile, $FC_OVERWRITE)
 				EndIf
+			Next
+		EndIf
+
+		; On a "Generic" Android the copy above landed in a folder Android cannot see, so push the
+		; same tools onto the device and make them executable. /data/local/tmp is used because a
+		; shared folder is often mounted noexec, and it is where $g_sAndroidPicturesPath points for
+		; a Generic Android, so the existing minitouch call sites resolve to these very files.
+		; This runs only when the ADB shell instance is (re)created, not per capture.
+		If $g_bAndroidAdbNoSharedFolder Then
+			Local $aPushTools = ["toybox", "minitouch"]
+			Local $sPushTool
+			For $sPushTool In $aPushTools
+				LaunchConsole($g_sAndroidAdbPath, AddSpace($g_sAndroidAdbGlobalOptions) & "-s " & $g_sAndroidAdbDevice & " push """ & $g_sAdbScriptsPath & "\" & $sPushTool & """ " & $g_sAndroidAdbGenericTmpPath, $process_killed)
+				LaunchConsole($g_sAndroidAdbPath, AddSpace($g_sAndroidAdbGlobalOptions) & "-s " & $g_sAndroidAdbDevice & " shell chmod 555 " & $g_sAndroidAdbGenericTmpPath & $sPushTool, $process_killed)
+				SetDebugLog("Pushed " & $sPushTool & " to " & $g_sAndroidAdbGenericTmpPath)
 			Next
 		EndIf
 		If $g_bAndroidAdbInstance = True Then
@@ -2647,6 +2651,16 @@ Func AndroidAdbSendShellCommandScript($scriptFile, $variablesArray = Default, $c
 			FileSetTime($hostPath & $scriptFileSh, $scriptModifiedTime, $FT_MODIFIED) ; set modification date of source
 		EndIf
 
+		; On a "Generic" Android the script was just written to a host folder Android cannot see,
+		; so push it (and any companion files) before the shell runs it. Only InitGeneric() sets
+		; this flag, so emulators with a real shared folder still execute straight from it.
+		If $g_bAndroidAdbNoSharedFolder Then
+			AndroidAdbPushFile($hostPath & $scriptFileSh, $androidPath & $scriptFileSh)
+			For $i = 0 To $iAdditional - 1
+				AndroidAdbPushFile($hostPath & $additionalFilenames[$i], $androidPath & $additionalFilenames[$i])
+			Next
+		EndIf
+
 		If $bIsMinitouch Then
 			If $g_iAndroidVersionAPI = $g_iAndroidPie And $g_sAndroidEmulator = "Memu" Then
 				$s = AndroidAdbSendShellCommand("""" & $MemuMinitouchPath & "minitouch"" -v -d " & $g_sAndroidMouseDevice & " -f """ & $androidPath & $scriptFileSh & """", $timeout, $wasRunState, $EnsureShellInstance)
@@ -2788,6 +2802,11 @@ Func _AndroidScreencap($iLeft, $iTop, $iWidth, $iHeight, $iRetryCount = 0)
 	If $__TEST_ERROR_SLOW_ADB_SCREENCAP_DELAY > 0 Then Sleep($__TEST_ERROR_SLOW_ADB_SCREENCAP_DELAY)
 	Local $shellLogInfo = @extended
 
+	; "Generic" Android (see AndroidGeneric.au3) shares no folder with the host, so the capture
+	; screencap just wrote inside Android has to be fetched before the read loop below can see it.
+	; Only InitGeneric() sets this flag, so every emulator with a real shared folder is unaffected.
+	If $g_bAndroidAdbNoSharedFolder Then AndroidAdbPullFile($androidPath & $Filename, $hostPath & $Filename)
+
 	Local $hTimer = __TimerInit()
 	Local $hFile = 0
 	Local $iSize = 0
@@ -2833,19 +2852,39 @@ Func _AndroidScreencap($iLeft, $iTop, $iWidth, $iHeight, $iRetryCount = 0)
 						Sleep(10)
 					EndIf
 				WEnd
-				$g_iAndroidAdbScreencapWidth = DllStructGetData($tHeader, "w")
+				Local $iRawWidth = DllStructGetData($tHeader, "w")
+				Local $iRawHeight = DllStructGetData($tHeader, "h")
+				$g_iAndroidAdbScreencapWidth = $iRawWidth
 				If $g_iAndroidAdbScreencapWidth > $g_iGAME_WIDTH Then $g_iAndroidAdbScreencapWidth = $g_iGAME_WIDTH
-				$g_iAndroidAdbScreencapHeight = DllStructGetData($tHeader, "h")
+				$g_iAndroidAdbScreencapHeight = $iRawHeight
 				If $g_iAndroidAdbScreencapHeight > $g_iGAME_HEIGHT Then $g_iAndroidAdbScreencapHeight = $g_iGAME_HEIGHT
 				$iF = DllStructGetData($tHeader, "f")
+
+				; Android's screencap raw header grew a fourth field (the colour space) in newer
+				; releases: it is 16 bytes on Android 11, not the 12 this struct describes. Reading
+				; the pixels from the wrong offset shifts the image by a pixel and rotates the
+				; colour channels, which makes every image search fail. Derive the real offset from
+				; the file size instead of trusting the struct, and only believe a value within a
+				; few bytes of the expected one. On an Android that writes the 12-byte header this
+				; yields exactly $iHeaderSize, so nothing changes for the Windows emulators.
+				Local $iDataOffset = $iHeaderSize
+				Local $iPixelBytes = $iRawWidth * $iRawHeight * 4
+				If $iPixelBytes > 0 And $iSize - $iPixelBytes >= $iHeaderSize And $iSize - $iPixelBytes <= $iHeaderSize + 8 Then
+					$iDataOffset = $iSize - $iPixelBytes
+				EndIf
+				If $iDataOffset <> $iHeaderSize Then
+					SetDebugLog("Screencap header is " & $iDataOffset & " bytes, not " & $iHeaderSize & "; seeking to pixel data")
+					_WinAPI_SetFilePointer($hFile, $iDataOffset)
+				EndIf
+
 				$hTimer = __TimerInit()
-				If $iSize - $iHeaderSize < $iDataSize Then $iDataSize = $iSize - $iHeaderSize
+				If $iSize - $iDataOffset < $iDataSize Then $iDataSize = $iSize - $iDataOffset
 				While $iReadData < $iDataSize And __TimerDiff($hTimer) < $g_iAndroidAdbScreencapWaitFileTimeout
 					If _WinAPI_ReadFile($hFile, $g_aiAndroidAdbScreencapBuffer, $iDataSize, $iReadData) = True And $iReadData = $iDataSize Then
 						ExitLoop
 					Else
 						SetDebugLog("Error " & _WinAPI_GetLastError() & ", read " & $iReadData & " data bytes, file: " & $hostPath & $Filename, $COLOR_ERROR)
-						If $iReadData > 0 Then _WinAPI_SetFilePointer($hFile, $iHeaderSize)
+						If $iReadData > 0 Then _WinAPI_SetFilePointer($hFile, $iDataOffset)
 						Sleep(10)
 					EndIf
 				WEnd
@@ -3029,6 +3068,8 @@ Func AndroidZoomOut($loopCount = 0, $timeout = Default, $bMinitouch = Default, $
 		Local $iCounter = Random(0, 6, 1)
 		Local $sScript = "Normal" & $iCounter
 	EndIf
+	; Generic Android without a usable touch device (Waydroid): see GenericPinchZoomOut() in AndroidGeneric.au3
+	If $g_bAndroidAdbGenericInputTap And $g_sAndroidEmulator = "Generic" Then Return GenericPinchZoomOut($wasRunState)
 	SetDebugLog("Running minitouch script " & $sScript, $COLOR_INFO)
 	Return AndroidAdbScript($sScript, Default, $timeout, $bMinitouch, $wasRunState)
 EndFunc   ;==>AndroidZoomOut
@@ -3060,6 +3101,8 @@ Func AndroidClickDrag($x1, $y1, $x2, $y2, $wasRunState = Default, $bSCIDSwitch =
 	$y1 = Int($y1) + $g_aiMouseOffset[1]
 	$x2 = Int($x2) + $g_aiMouseOffset[0]
 	$y2 = Int($y2) + $g_aiMouseOffset[1]
+	; Generic Android without a usable touch device (Waydroid): see GenericInputDrag() in AndroidGeneric.au3
+	If $g_bAndroidAdbGenericInputTap And $g_sAndroidEmulator = "Generic" Then Return GenericInputDrag($x1, $y1, $x2, $y2, $wasRunState)
 	Execute($g_sAndroidEmulator & "AdjustClickCoordinates($x1,$y1)")
 	Execute($g_sAndroidEmulator & "AdjustClickCoordinates($x2,$y2)")
 	Local $swipe_coord[4][2] = [["{$x1}", $x1], ["{$y1}", $y1], ["{$x2}", $x2], ["{$y2}", $y2]]
@@ -3198,6 +3241,9 @@ Func AndroidClick($x, $y, $times = 1, $speed = 150, $checkProblemAffect = True)
 	If Not ($x = Default) Then $x = Int($x) + $g_aiMouseOffset[0]
 	If Not ($x = Default) Then $y = Int($y) + $g_aiMouseOffset[1]
 	ForceCaptureRegion()
+	; Generic Android without a usable touch device (Waydroid): Android's own input command, see
+	; GenericInputClick() in AndroidGeneric.au3. Never true for BlueStacks5, MEmu or Nox.
+	If $g_bAndroidAdbGenericInputTap And $g_sAndroidEmulator = "Generic" Then Return GenericInputClick($x, $y, $times, $speed)
 	;AndroidSlowClick($x, $y, $times, $speed)
 	;AndroidFastClick($x, $y, $times, $speed, $checkProblemAffect)
 	AndroidMinitouchClick($x, $y, $times, $speed, $checkProblemAffect)
@@ -3267,6 +3313,8 @@ Func AndroidMoveMouseAnywhere()
 	EndIf
 
 	$g_bSilentSetLog = True
+	; Generic Android: the event file was written host-side, push it before dd reads it.
+	If $g_bAndroidAdbNoSharedFolder Then AndroidAdbPushFile($hostPath & $Filename, $androidPath & $Filename)
 	AndroidAdbSendShellCommand("dd if=""" & $androidPath & $Filename & """ of=" & $g_sAndroidMouseDevice & " obs=" & $iToWrite & ">/dev/null 2>&1", Default)
 	If BitAND($g_iAndroidSecureFlags, 2) = 2 Then
 		; delete file
@@ -3490,6 +3538,8 @@ Func _AndroidFastClick($x, $y, $times = 1, $speed = 0, $checkProblemAffect = Tru
 			AndroidMoveMouseAnywhere()
 		EndIf
 		$g_bSilentSetLog = True
+		; Generic Android: the event file was written host-side, push it before dd reads it.
+		If $g_bAndroidAdbNoSharedFolder Then AndroidAdbPushFile($hostPath & $Filename, $androidPath & $Filename)
 		AndroidAdbSendShellCommand("dd if=""" & $androidPath & $Filename & """ of=" & $g_sAndroidMouseDevice & " obs=" & $iToWrite & ">/dev/null 2>&1", Default)
 		If BitAND($g_iAndroidSecureFlags, 2) = 2 Then
 			; delete file
@@ -4228,7 +4278,10 @@ Func GetAndroidProcessPID($sPackage = Default, $bForeground = True, $iRetryCount
 	;u0_a54    13303 84    1338548 188464 16    -4    0     0     sys_epoll_ b7725424 S com.supercell.clashofclans
 	If AndroidInvalidState() Then Return 0
 
-	If $g_iAndroidVersionAPI = $g_iAndroidPie Then
+	; A Generic Android can be newer than Pie (Waydroid: Android 13): its toybox ps also wants -A, and its
+	; focused window is listed by "dumpsys window displays" rather than "dumpsys window windows"
+	Local $bGenericAfterPie = ($g_sAndroidEmulator = "Generic" And $g_iAndroidVersionAPI > $g_iAndroidPie)
+	If $g_iAndroidVersionAPI = $g_iAndroidPie Or $bGenericAfterPie Then
 		$cmd = "set result=$(ps -A -o USER,PID,NAME|grep """ & $g_sAndroidGamePackage & """ >&2)"
 		; ps -A|grep "com.supercell.clashofclans" >&2
 		;USER           PID  PPID     VSZ    RSS WCHAN            ADDR S NAME
@@ -4281,7 +4334,7 @@ Func GetAndroidProcessPID($sPackage = Default, $bForeground = True, $iRetryCount
 
 			If $iCols = 3 And $aPkgList[$i - 1][$iCols - 1] = $g_sAndroidGamePackage Then ; ps -A
 				;$sDumpsys = AndroidAdbSendShellCommand("dumpsys window windows | grep -E 'mCurrentFocus.*" & $g_sAndroidGamePackage & "'")
-				$sDumpsys = AndroidAdbSendShellCommand("dumpsys window windows | grep -E 'mCurrentFocus'")
+				$sDumpsys = AndroidAdbSendShellCommand("dumpsys window " & ($bGenericAfterPie ? "displays" : "windows") & " | grep -E 'mCurrentFocus'")
 				;SetLog("Dumpsys : " & $sDumpsys)
 
 				If $bForeground = True And StringInStr($sDumpsys, $g_sAndroidGamePackage) = 0 Then
@@ -4360,8 +4413,8 @@ EndFunc   ;==>GetAndroidProcessPID1
 Func AndroidToFront($hHWndAfter = Default, $sSource = "Unknown")
 	If $hHWndAfter = Default Then $hHWndAfter = $HWND_TOPMOST
 	SetDebugLog("AndroidToFront: Source " & $sSource)
-	WinMove2(GetAndroidDisplayHWnD(), "", -1, -1, -1, -1, $hHWndAfter, 0, False)
-	If $g_bChkBackgroundMode And ($hHWndAfter = $HWND_TOPMOST Or $hHWndAfter = $HWND_TOP) Then WinMove2(GetAndroidDisplayHWnD(), "", -1, -1, -1, -1, $HWND_NOTOPMOST, 0, False)
+	WinMove2($g_hAndroidWindow, "", -1, -1, -1, -1, $hHWndAfter, 0, False)
+	If $g_bChkBackgroundMode And ($hHWndAfter = $HWND_TOPMOST Or $hHWndAfter = $HWND_TOP) Then WinMove2($g_hAndroidWindow, "", -1, -1, -1, -1, $HWND_NOTOPMOST, 0, False)
 EndFunc   ;==>AndroidToFront
 
 Func ShowAndroidWindow($hHWndAfter = Default, $bRestorePosAndActivateWindow = Default, $bFastCheck = Default, $sSource = "Unknown")
@@ -4380,7 +4433,7 @@ Func HideAndroidWindow($bHide = True, $bRestorePosAndActivateWhenShow = Default,
 		WinGetAndroidHandle() ; updates android position
 		WinGetPos($g_hAndroidWindow)
 	EndIf
-	If @error <> 0 Or AndroidEmbedded() Then Return SetError(0, 0, 0)
+	If @error <> 0 Then Return SetError(0, 0, 0)
 
 	If $bHide = True Then
 		WinMove($g_hAndroidWindow, "", -32000, -32000)
@@ -4689,8 +4742,7 @@ Func UpdateAndroidBackgroundMode()
 			SetLog("Unsupported Android Background Mode " & $iMode, $COLOR_ERROR)
 	EndSwitch
 
-	; update background checkbox
-	UpdateChkBackground()
+	CheckDpiAwareness() ; the DPI awareness needed depends on the background mode
 EndFunc   ;==>UpdateAndroidBackgroundMode
 
 

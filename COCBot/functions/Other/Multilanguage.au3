@@ -13,6 +13,17 @@
 ; Example .......: No
 ; ===============================================================================================================================
 
+#include "Wine.au3"
+
+; Whether the bot may write missing or changed texts back into the Languages\*.ini files.
+; Not under Wine: Wine's IniRead trims trailing spaces ("Army " is read as "Army"), so texts the
+; code defines with a trailing space always look changed and trigger a write, and Wine's IniWrite
+; then rewrites the whole file, trimming every value and dropping blank lines. That damages the
+; shipped language files the Windows build relies on. The returned text is the same either way.
+Func CanWriteLanguageFiles()
+	Return Not IsRunningUnderWine()
+EndFunc   ;==>CanWriteLanguageFiles
+
 Func GetTranslated($iSection = -1, $iKey = -1, $sText = "", $var1 = Default, $var2 = Default, $var3 = Default)
     Static $aLanguage[1][1] ;undimmed language array
 
@@ -45,7 +56,7 @@ Func GetTranslated($iSection = -1, $iKey = -1, $sText = "", $var1 = Default, $va
 		EndIf
 
 		If $sDefaultText <> $sText Then
-			IniWrite($g_sDirLanguages & $g_sDefaultLanguage & ".ini", $iSection, $iKey, $sText) ; Rewrite Default English.ini with new text value
+			If CanWriteLanguageFiles() Then IniWrite($g_sDirLanguages & $g_sDefaultLanguage & ".ini", $iSection, $iKey, $sText) ; Rewrite Default English.ini with new text value
 			$sText = GetTranslatedParsedText($sText, $var1, $var2, $var3)
 			$aLanguage[$iSection][$iKey] = $sText
 			Return $sText
@@ -71,7 +82,7 @@ Func GetTranslated($iSection = -1, $iKey = -1, $sText = "", $var1 = Default, $va
 		EndIf
 
 		If $g_sLanguageText = "-3" Then
-			IniWrite($g_sDirLanguages & $g_sLanguage & ".ini", $iSection, $iKey, $sText) ; Rewrite Language.ini with new untranslated Default text value
+			If CanWriteLanguageFiles() Then IniWrite($g_sDirLanguages & $g_sLanguage & ".ini", $iSection, $iKey, $sText) ; Rewrite Language.ini with new untranslated Default text value
 			$sText = GetTranslatedParsedText($sText, $var1, $var2, $var3)
 			$aLanguage[$iSection][$iKey] = $sText
 			Return $sText
@@ -1081,7 +1092,7 @@ Func GetTranslatedFileIni($iSection = -1, $iKey = -1, $sText = "", $var1 = Defau
 				Next
 			EndIf
 			_ArraySort($aSection, 0, 0, 0, 0)
-			IniWriteSection($ini_file, $iSection, $aSection, 0)
+			If CanWriteLanguageFiles() Then IniWriteSection($ini_file, $iSection, $aSection, 0)
 			$sText = GetTranslatedParsedText($sText, $var1, $var2, $var3)
 			Local $result = _ArraySearch($aNewLanguage, $SearchInLanguage, 0, 0, 0, 0, 0)
 			If $result <> -1 Then
@@ -1151,7 +1162,7 @@ Func GetTranslatedFileIni($iSection = -1, $iKey = -1, $sText = "", $var1 = Defau
 				Next
 			EndIf
 			_ArraySort($aSection, 0, 0, 0, 0)
-			IniWriteSection($ini_file, $iSection, $aSection, 0)
+			If CanWriteLanguageFiles() Then IniWriteSection($ini_file, $iSection, $aSection, 0)
 			$sText = GetTranslatedParsedText($sText, $var1, $var2, $var3)
 			Local $result = _ArraySearch($aNewLanguage, $SearchInLanguage, 0, 0, 0, 0, 0)
 			If $result <> -1 Then
@@ -1177,6 +1188,13 @@ Func GetTranslatedFileIni($iSection = -1, $iKey = -1, $sText = "", $var1 = Defau
 EndFunc   ;==>GetTranslatedFileIni
 
 Func _ReadFullIni()
+	; The array built below is a Static local of this function: nothing else can read it (the
+	; $aNewLanguage in GetTranslatedFileIni is a different Static). The loop is O(n^2) in the
+	; number of keys, and under Wine its case-insensitive _ArraySearch compares are slow enough
+	; that the 2500 keys of English.ini take about 12 minutes, freezing the bot at "Loading...".
+	; Skip it there; on Windows it runs exactly as before.
+	If IsRunningUnderWine() Then Return
+
 	Local $ini_file = $g_sDirLanguages & $g_sDefaultLanguage & ".ini"
 	Static $aNewLanguage[1][2] ;undimmed language array
 	Local $Count = 1 ; Initialisation compteur

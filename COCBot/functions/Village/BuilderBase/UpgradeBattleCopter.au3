@@ -51,7 +51,6 @@ Func BattleCopterUpgrade($test = False)
 				If $aHeroLevel = $g_iMaxBattleCopterLevel Then ; max hero
 					SetLog("Your Battle Copter is at max level, cannot upgrade anymore!", $COLOR_INFO)
 					$g_bBattleCopterUpgrade = False ; turn Off the Battle Copter upgrade
-					GUICtrlSetState($g_hChkBattleCopterUpgrade, $GUI_UNCHECKED)
 					ClearScreen("Defaut", False)
 					If _Sleep(500) Then Return
 					SwitchToBuilderbase()
@@ -62,8 +61,6 @@ Func BattleCopterUpgrade($test = False)
 					SetLog("Your combined machine level is enough !", $COLOR_INFO)
 					$g_bBattleMachineUpgrade = False ; turn Off the Battle Machine upgrade
 					$g_bBattleCopterUpgrade = False ; turn Off the Battle Copter upgrade
-					GUICtrlSetState($g_hChkBattleMachineUpgrade, $GUI_UNCHECKED)
-					GUICtrlSetState($g_hChkBattleCopterUpgrade, $GUI_UNCHECKED)
 					$g_CombinedMachineLevel = 0 ; If user wants to continue upgrade despite the combined level
 					ClearScreen("Defaut", False)
 					If _Sleep(500) Then Return
@@ -286,7 +283,6 @@ Func DeleteBattleCopterCoord()
 	IniWrite($g_sProfileBuildingPath, "other", "BattleCopterPosX", $g_aiBattleCopterPos[0])
 	IniWrite($g_sProfileBuildingPath, "other", "BattleCopterPosY", $g_aiBattleCopterPos[1])
 	$g_bBattleCopterUpgrade = False ; turn Off the Battle Machine upgrade
-	GUICtrlSetState($g_hChkBattleCopterUpgrade, $GUI_UNCHECKED)
 EndFunc   ;==>DeleteBattleCopterCoord
 
 Func SwitchToOttoVillage()

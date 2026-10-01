@@ -184,7 +184,6 @@ Func LaboratoryUpgrade($name, $aCoords, $sCostResult, $debug = False)
 	EndIf
 	If _Sleep($DELAYLABUPGRADE1) Then Return
 
-	LabStatusGUIUpdate()
 	If $debug = True Then ; if debugging, do not actually click it
 		SetLog("[debug mode] - Start Upgrade, Click (" & 630 & "," & 565 + $g_iMidOffsetY & ")", $COLOR_ACTION)
 		CloseWindow()
@@ -201,8 +200,6 @@ Func LaboratoryUpgrade($name, $aCoords, $sCostResult, $debug = False)
 				SetLog("Clearing user's upgrade choice.", $COLOR_INFO)
 				;HArchH Set the global that gets saved to building.ini
 				$g_iCmbLaboratory = 0 ;Set global
-				_GUICtrlComboBox_SetCurSel($g_hCmbLaboratory, $g_iCmbLaboratory) ;Apply to the GUI in case it gets saved again.
-				_GUICtrlSetImage($g_hPicLabUpgrade, $g_sLibIconPath, $g_avLabTroops[$g_iCmbLaboratory][1]) ; Set the corresponding image.
 				SaveBuildingConfig() ;Try to save for the future.
 			EndIf
 			If _Sleep(350) Then Return
@@ -322,7 +319,6 @@ Func ChkLabUpgradeInProgress($name = "")
 			SetLog("Research will finish in " & $sLabTimeOCR & " (" & $g_sLabUpgradeTime & ")")
 			$g_iLaboratoryElixirCost = 0
 			$g_iLaboratoryDElixirCost = 0
-			LabStatusGUIUpdate() ; Update GUI flag
 		ElseIf $g_bDebugSetLog Then
 			SetLog("Invalid getRemainTLaboratory OCR", $COLOR_DEBUG)
 		EndIf

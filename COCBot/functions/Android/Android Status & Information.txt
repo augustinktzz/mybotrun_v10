@@ -36,23 +36,49 @@ MyBot Command Line Key: Nox
 Default Instance Key: nox
 Second Instance Key:  Nox_1
 
+Generic (any ADB-reachable Android)
+===================================
+Not an emulator product: this is any Android that already answers on ADB and that the bot does
+not install, launch or own a window for.
+MyBot Command Line Key: Generic
+Default Instance Key: Android
+Intended for:
+  - an Android Studio AVD or Waydroid on Linux, with the bot itself running under Wine
+  - a physical device, or any emulator running outside the bot's own Windows session
+Requirements:
+  - start the Android yourself BEFORE the bot; the bot never starts or stops it
+  - the device must appear as "device" in: adb devices
+    (for a host:port device the bot issues "adb connect" itself)
+  - screen must be the resolution the bot expects; "Configure Android Screen" does this over
+    ADB with "wm size" / "wm density 160"
+Differences from the Windows emulators:
+  - no window at all, so no Dock Mode and no WinAPI/DirectX background mode; capture is always
+    ADB screencap ("background mode 2")
+  - no host<->Android shared folder, so captures, scripts and the toybox/minitouch binaries are
+    moved with "adb pull"/"adb push" instead (see $g_bAndroidAdbNoSharedFolder). Expect capture
+    to be slower than on an emulator with a real shared folder.
+  - the touch input device is found by "getevent -p", falling back to the first device whose
+    ABS_MT_POSITION_X/Y maxima match the expected screen size
+Set a non-default device with $g_sAndroidAdbGenericDevice, e.g. "emulator-5554" for an AVD.
+See COCBot\functions\Android\AndroidGeneric.au3.
+
 MyBot Feature & Functions Matrix (not complete yet!)
 ================================
 
-Feature/Function          | MEmu          | BlueStacks3/4   | Nox           | 
---------------------------|---------------|-----------------|---------------|
-DPI Support*              | Yes           | Yes             | Yes (limited) | 
-Dock Mode                 | Yes           | Yes             | Yes           | 
-Configure Android Screen  | Yes           | Yes             | Yes           | 
-Configure Android Window  | Yes           | Yes             | Yes           | 
-WinAPI/DirectX background | Yes, DirectX  | Yes, DirectX    | Yes, DirectX  | 
-AndroidScreencap          | Yes           | Yes             | Yes           | 
-AndroidZoomOut            | Yes           | Yes             | Yes           | 
-AndroidClick*             | Yes           | Yes             | Yes           | 
-_ControlClick             | Yes**         | Yes             | Yes           | 
-AndroidClickDrag          | Yes           | Yes             | Yes           | 
-_PostMessage_ClickDrag    | No            | Yes, not used   | No            | 
-AndroidSendText*          | Yes           | Yes             | Yes           | 
+Feature/Function          | MEmu          | BlueStacks3/4   | Nox           | Generic         |
+--------------------------|---------------|-----------------|---------------|-----------------|
+DPI Support*              | Yes           | Yes             | Yes (limited) | n/a (no window) |
+Dock Mode                 | Yes           | Yes             | Yes           | No              |
+Configure Android Screen  | Yes           | Yes             | Yes           | Yes, ADB wm     |
+Configure Android Window  | Yes           | Yes             | Yes           | No              |
+WinAPI/DirectX background | Yes, DirectX  | Yes, DirectX    | Yes, DirectX  | No, ADB only    |
+AndroidScreencap          | Yes           | Yes             | Yes           | Yes, via pull   |
+AndroidZoomOut            | Yes           | Yes             | Yes           | Yes, in-game    |
+AndroidClick*             | Yes           | Yes             | Yes           | Yes             |
+_ControlClick             | Yes**         | Yes             | Yes           | No              |
+AndroidClickDrag          | Yes           | Yes             | Yes           | Yes             |
+_PostMessage_ClickDrag    | No            | Yes, not used   | No            | No              |
+AndroidSendText*          | Yes           | Yes             | Yes           | Yes             |
 
 Feature & Functions Notes
 -------------------------

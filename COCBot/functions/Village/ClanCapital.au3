@@ -118,9 +118,6 @@ Func ClanCapitalReport($SetLog = True)
 	$g_iLootCCMedal = getOcrAndCapture("coc-ms", 670, 70, 160, 25, True)
 	$g_iCCTrophies = getOcrAndCapture("coc-cc-trophy", 75, 90, 60, 16, True)
 	PicCCTrophies()
-	GUICtrlSetData($g_lblCapitalGold, _NumberFormat($g_iLootCCGold, True))
-	GUICtrlSetData($g_lblCapitalMedal, _NumberFormat($g_iLootCCMedal, True))
-	GUICtrlSetData($g_lblCapitalTrophies, _NumberFormat($g_iCCTrophies, True))
 	UpdateStats()
 	If ProfileSwitchAccountEnabled() Then SwitchAccountVariablesReload("Save")
 
@@ -271,17 +268,14 @@ Func ForgeClanCapitalGold($bTest = False)
 			SetLog("TH Level Allows 3 Builders For Forge", $COLOR_DEBUG)
 			$iBuilderToUse = 3
 			$g_iCmbForgeBuilder = $iBuilderToUse - 1
-			_GUICtrlComboBox_SetCurSel($g_hCmbForgeBuilder, $g_iCmbForgeBuilder)
 		Case $g_iTownHallLevel = 11 And $iBuilderToUse > 2
 			SetLog("TH Level Allows 2 Builders For Forge", $COLOR_DEBUG)
 			$iBuilderToUse = 2
 			$g_iCmbForgeBuilder = $iBuilderToUse - 1
-			_GUICtrlComboBox_SetCurSel($g_hCmbForgeBuilder, $g_iCmbForgeBuilder)
 		Case $g_iTownHallLevel < 11 And $iBuilderToUse > 1
 			SetLog("TH Level Allows Only 1 Builder For Forge", $COLOR_DEBUG)
 			$iBuilderToUse = 1
 			$g_iCmbForgeBuilder = $iBuilderToUse - 1
-			_GUICtrlComboBox_SetCurSel($g_hCmbForgeBuilder, $g_iCmbForgeBuilder)
 	EndSelect
 
 	If Not $g_bRunState Then Return
@@ -1472,7 +1466,6 @@ EndFunc   ;==>IsUpgradeCCIgnore
 
 Func AutoUpgradeCCLog($BuildingName = "")
 	SetLog("Successfully upgrade " & $BuildingName, $COLOR_SUCCESS)
-	GUICtrlSetData($g_hTxtAutoUpgradeCCLog, @CRLF & _NowDate() & " " & _NowTime() & " [" & $g_sProfileCurrentName & "] - Upgrade " & $BuildingName, 1)
 EndFunc   ;==>AutoUpgradeCCLog
 
 Func IsIgnored($aUpgradeX, $aUpgradeY, $SetLog = True)
@@ -1497,81 +1490,6 @@ Func IsIgnored($aUpgradeX, $aUpgradeY, $SetLog = True)
 EndFunc   ;==>IsIgnored
 
 Func PicCCTrophies()
-	_GUI_Value_STATE("HIDE", $g_aGroupCCLeague)
-	If Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[21][1]) Then
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueLegend], $GUI_SHOW)
-		GUICtrlSetState($g_hLblCCLeague1, $GUI_HIDE)
-		GUICtrlSetState($g_hLblCCLeague2, $GUI_HIDE)
-		GUICtrlSetState($g_hLblCCLeague3, $GUI_HIDE)
-	ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[18][1]) Then
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueTitan], $GUI_SHOW)
-		If Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[20][1]) Then
-			GUICtrlSetState($g_hLblCCLeague1, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[19][1]) Then
-			GUICtrlSetState($g_hLblCCLeague2, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[18][1]) Then
-			GUICtrlSetState($g_hLblCCLeague3, $GUI_SHOW)
-		EndIf
-	ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[15][1]) Then
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueChampion], $GUI_SHOW)
-		If Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[17][1]) Then
-			GUICtrlSetState($g_hLblCCLeague1, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[16][1]) Then
-			GUICtrlSetState($g_hLblCCLeague2, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[15][1]) Then
-			GUICtrlSetState($g_hLblCCLeague3, $GUI_SHOW)
-		EndIf
-	ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[12][1]) Then
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueMaster], $GUI_SHOW)
-		If Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[14][1]) Then
-			GUICtrlSetState($g_hLblCCLeague1, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[13][1]) Then
-			GUICtrlSetState($g_hLblCCLeague2, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[12][1]) Then
-			GUICtrlSetState($g_hLblCCLeague3, $GUI_SHOW)
-		EndIf
-	ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[9][1]) Then
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueCrystal], $GUI_SHOW)
-		If Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[11][1]) Then
-			GUICtrlSetState($g_hLblCCLeague1, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[10][1]) Then
-			GUICtrlSetState($g_hLblCCLeague2, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[9][1]) Then
-			GUICtrlSetState($g_hLblCCLeague3, $GUI_SHOW)
-		EndIf
-	ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[6][1]) Then
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueGold], $GUI_SHOW)
-		If Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[8][1]) Then
-			GUICtrlSetState($g_hLblCCLeague1, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[7][1]) Then
-			GUICtrlSetState($g_hLblCCLeague2, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[6][1]) Then
-			GUICtrlSetState($g_hLblCCLeague3, $GUI_SHOW)
-		EndIf
-	ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[3][1]) Then
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueSilver], $GUI_SHOW)
-		If Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[5][1]) Then
-			GUICtrlSetState($g_hLblCCLeague1, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[4][1]) Then
-			GUICtrlSetState($g_hLblCCLeague2, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[3][1]) Then
-			GUICtrlSetState($g_hLblCCLeague3, $GUI_SHOW)
-		EndIf
-	ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[0][1]) Then
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueBronze], $GUI_SHOW)
-		If Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[2][1]) Then
-			GUICtrlSetState($g_hLblCCLeague1, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[1][1]) Then
-			GUICtrlSetState($g_hLblCCLeague2, $GUI_SHOW)
-		ElseIf Number($g_iCCTrophies) >= Number($g_asCCLeagueDetails[0][1]) Then
-			GUICtrlSetState($g_hLblCCLeague3, $GUI_SHOW)
-		EndIf
-	Else
-		GUICtrlSetState($g_ahPicCCLeague[$eLeagueUnranked], $GUI_SHOW)
-		GUICtrlSetState($g_hLblCCLeague1, $GUI_HIDE)
-		GUICtrlSetState($g_hLblCCLeague2, $GUI_HIDE)
-		GUICtrlSetState($g_hLblCCLeague3, $GUI_HIDE)
-	EndIf
 EndFunc   ;==>PicCCTrophies
 
 Func SortResources($iCurrentGold = 0, $iCurrentElix = 0, $iCurrentDE = 0, $g_aiCurrentGoldBB = 0, $g_aiCurrentElixBB = 0)

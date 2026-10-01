@@ -9,7 +9,8 @@ REQUIREMENTS
 - BlueStacks 5 (tested with 5.22). In the Multi-instance Manager, an Android 9 "Pie 64 bit"
   instance named  Pie64  (the default name of the first Pie 64 instance).
 - Clash of Clans installed and logged in on that instance, with the village loaded at least once.
-- Nothing else to install: no AutoIt, no Python. The bot sets the instance resolution itself
+- Node.js 20 or later (https://nodejs.org), once: the bot's interface (GUI-Electron) runs on it.
+  Nothing else to install: no AutoIt, no Python. The bot sets the instance resolution itself
   (860 x 732) on the first start; if it asks to restart BlueStacks, accept.
 
 INSTALL
@@ -18,12 +19,12 @@ INSTALL
 2. Add the folder to your antivirus exclusions: the bot reads the screen and clicks for you, which
    some antivirus products block.
 3. Start BlueStacks with CoC open on your village.
-4. Double-click  "Lancer MyBot v10.bat".
-   On the first start the bot creates the "MyVillage" profile. You can rename it in the
-   Bot > Profiles tab, or edit the .bat (arguments: <profile> <emulator> <instance>).
-5. Village tab: tick what the bot should handle (collecting, treasury, donations...).
-   Attack Plan tab: choose your army and your search strategy.
-   Then press  Start  at the bottom. The bot writes what it does in the log window.
+4. Double-click  "Lancer MyBot GUI.bat"  (the first time it installs Electron, about a minute).
+   The bot has no window of its own any more: this interface launches it and drives it.
+   Profiles page: profile (default "MyVillage", created on the first start), emulator, instance.
+5. Village page: tick what the bot should handle (collecting, treasury, donations...).
+   Army and Attack pages: choose your army and your search strategy. Save (Ctrl+S).
+   Dashboard: "Open the bot", then  Start . The Log page shows what the bot does.
 
 UPDATING
 --------
@@ -38,10 +39,11 @@ MultiBot.exe, next to the bot, runs one bot per village: each bot has its own pr
 BlueStacks instance (Multi-instance Manager > New instance, Android 9 Pie 64 bit, one instance per
 village, each with CoC logged into its village).
 - New setup: a profile name (created on the first start), the instance (the list comes from BlueStacks),
-  and the launch options: hide the emulator, mini GUI, no Watchdog, start the run at once.
+  and the launch options: hide the emulator, no Watchdog, start the run at once ("Mini GUI" no longer
+  does anything: the bot has no window).
   The lower groups are settings of that bot's profile: window arrangement and offsets to place the
   setups side by side, screen capture mode, dedicated ADB port (tick it with several instances),
-  processor cores and threads, and the Halt attack condition of Bot > Options.
+  processor cores and threads, and the Halt attack condition of the Bot page.
 - Start all bots / Close all bots, or per setup with the right click: start, close, restart, but
   also start the run, stop it, pause and resume without closing the bot, plus the instance itself.
 - The State column follows each bot (Off, Starting, Idle, Running, Paused).
@@ -49,21 +51,22 @@ village, each with CoC logged into its village).
   one on the Desktop.
 Close comes from the bot itself (as its Exit button): the settings are saved and the Watchdog ends
 with it. A bot killed from the task manager is relaunched by its Watchdog: use MultiBot instead.
-"Bots active at once" (Bot > Options) tells how many bots may search and attack at the same time;
+"Bots active at once" (Bot page) tells how many bots may search and attack at the same time;
 the others wait their turn. Half of the processor cores is a good value.
 
-NOTIFICATIONS (Village > Notify)
---------------------------------
+NOTIFICATIONS (Notifications page)
+----------------------------------
 Telegram: create a bot with @BotFather, paste its token, tick "Enable Telegram", open your bot in
-          Telegram and send it /start, then press  Test .
+          Telegram and send it /start, then save (Ctrl+S).
 Discord:  tick "Enable Discord", paste the webhook URL (Channel > Edit Channel > Integrations >
-          Webhooks > Copy Webhook URL), then press  Test .
+          Webhooks > Copy Webhook URL), then save (Ctrl+S).
+The first message comes when the bot starts.
 Both channels get the same messages: attack reports, stats and alerts. The last raid is posted to
 Discord as a card with loot, stars, destruction and league, and the raid screenshot attached.
 
 DISCORD STATUS ON YOUR PROFILE (Rich Presence)
 ----------------------------------------------
-Village > Notify > "Discord status" shows on your own Discord profile what the bot is doing: your Town
+Notifications page > "Discord status" shows on your own Discord profile what the bot is doing: your Town
 Hall level and profile name, the gold / elixir / dark elixir you have, and how long the bot has been
 running. Off by default. It needs the Discord application running on the same PC (nothing leaves your
 machine: the bot talks to Discord through a local pipe, Discord publishes the status).
@@ -91,7 +94,7 @@ conditions use that number.
 
 SIEGE MACHINES AND SPELLS
 -------------------------
-Attack Plan > Dead Base (and Active Base) > Attack with:
+Attack page > Dead Base (and Active Base) > Attack:
 - "Use siege machine" deploys the machine loaded in your Clan Castle, whichever one it is. Untick it
   to keep the machine for a war; the castle troops are still dropped by the "Clan Castle" option next
   to it. Leave the list beside them on "Default" unless you really want to force one machine.
@@ -101,14 +104,14 @@ Attack Plan > Dead Base (and Active Base) > Attack with:
 
 SEASON PASS
 -----------
-Village > Misc > "Collect Challenge Rewards": every few hours the bot opens the season pass, claims
+Village page > Misc > "Collect Challenge Rewards": every few hours the bot opens the season pass, claims
 the rewards you have reached (the green cards), scrolls the track back to catch the ones behind,
 and closes it. When a reward offers two options, the "Pass choice" list beside it decides: the
 resource (gold, elixir, dark elixir), the magic item, or always the left one.
 
 BUILDER BASE
 ------------
-Village > Notify has a "Builder Base raid" option: at the end of each builder base attack cycle the
+The Notifications page has a "Builder Base raid" option: at the end of each builder base attack cycle the
 bot posts the number of attacks, the gold, elixir and trophies the cycle brought in, and a screenshot
 of the base. It is a Discord card when a webhook is set, a plain message on Telegram.
 
@@ -135,6 +138,17 @@ right folder, no tool needed:
 A shadow.txt file in a folder makes the bot run both engines and only log the OpenCV result, which is
 how a migrated folder is validated before the switch. The folders shipped with shadow.txt are being
 validated: nothing changes for you, the log just shows "CV ..." lines. See imgcv\README.txt.
+
+THE INTERFACE (GUI-Electron, Windows and Linux)
+-----------------------------------------------
+GUI-Electron\ is the bot's interface: dashboard, live log, attack log, every setting of the profile,
+strategies and profiles. The former AutoIt window of the bot is gone: the bot runs without a window,
+the interface launches it, sends it Start / Pause / Stop / Close and edits the profile files.
+- Needs Node.js 20 or later (https://nodejs.org), once. The first start installs Electron.
+- Windows: double-click  "Lancer MyBot GUI.bat"  (it restarts as administrator, like the bot).
+- Linux: ./"Lancer MyBot GUI.sh"  with the bot in Wine (AutoIt + .NET 4.8 in the prefix) and the
+  Generic emulator. Details in GUI-Electron\README.md.
+- Settings are saved only while the bot of that profile is closed (the bot rewrites them on exit).
 
 IF SOMETHING GOES WRONG
 -----------------------

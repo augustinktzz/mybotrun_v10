@@ -92,7 +92,6 @@ Func StartClockTowerBoost($bSwitchToBB = False, $bSwitchToNV = False)
 					If $iStarLabFinishTimeMod > 0 Then
 						$g_sStarLabUpgradeTime = _DateAdd('n', Ceiling($iStarLabFinishTimeMod - $TimeGained), _NowCalc())
 						SetLog("Recalculate Research Time, Boosting Clock Tower (" & $g_sStarLabUpgradeTime & ")")
-						StarLabStatusGUIUpdate()
 					EndIf
 				Else
 					SetLog("Failed to find the BOOST window button", $COLOR_ERROR)

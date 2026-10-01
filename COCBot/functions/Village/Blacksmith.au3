@@ -241,7 +241,6 @@ Func Blacksmith($bTest = False)
 						SetLog($g_asEquipmentOrderList[$g_aiCmbCustomEquipmentOrder[$i]][0] & " has reached max level!", $COLOR_DEBUG)
 						If _Sleep(1500) Then Return
 						$g_bChkCustomEquipmentOrder[$i] = 0
-						GUICtrlSetState($g_hChkCustomEquipmentOrder[$i], $GUI_UNCHECKED)
 						CloseWindow2()
 						ContinueLoop 2
 					EndIf
@@ -267,7 +266,6 @@ Func Blacksmith($bTest = False)
 							SetLog($g_asEquipmentOrderList[$g_aiCmbCustomEquipmentOrder[$i]][0] & " has reached max level!", $COLOR_DEBUG)
 							If _Sleep(1500) Then Return
 							$g_bChkCustomEquipmentOrder[$i] = 0
-							GUICtrlSetState($g_hChkCustomEquipmentOrder[$i], $GUI_UNCHECKED)
 							CloseWindow2()
 							$Exitloop = True
 							ExitLoop

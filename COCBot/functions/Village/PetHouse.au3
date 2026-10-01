@@ -353,9 +353,6 @@ Func PetHouse($test = False)
 							CloseWindow() ; close pet upgrade window
 							; Update gui
 							;==========Hide Red  Show Green Hide Gray===
-							GUICtrlSetState($g_hPicPetGray, $GUI_HIDE)
-							GUICtrlSetState($g_hPicPetRed, $GUI_HIDE)
-							GUICtrlSetState($g_hPicPetGreen, $GUI_SHOW)
 							;===========================================
 							If _Sleep($DELAYLABORATORY1) Then Return
 							Local $sPetTimeOCR = getPetUpgradeTime(235, 242 + $g_iMidOffsetY)
@@ -450,10 +447,6 @@ Func PetGuiDisplay()
 	If $g_iTownHallLevel < 14 Then
 		SetLog("TH reads as Lvl " & $g_iTownHallLevel & ", has no Pet House.")
 		;============Hide Red  Hide Green  Show Gray==
-		GUICtrlSetState($g_hPicPetGreen, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetRed, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetGray, $GUI_SHOW)
-		GUICtrlSetData($g_hLbLPetTime, "")
 		;============================================
 		Return
 	EndIf
@@ -502,10 +495,6 @@ Func PetGuiDisplay()
 	If $g_aiPetHousePos[0] <= 0 Or $g_aiPetHousePos[1] <= 0 Then
 		SetLog("Pet House Location is unknown!", $COLOR_ERROR)
 		;============Hide Red  Hide Green  Show Gray==
-		GUICtrlSetState($g_hPicPetGreen, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetRed, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetGray, $GUI_SHOW)
-		GUICtrlSetData($g_hLbLPetTime, "")
 		;============================================
 		Return
 	EndIf
@@ -530,10 +519,6 @@ Func PetGuiDisplay()
 		SetLog("Cannot find the Pet House Button!", $COLOR_ERROR)
 		ClearScreen()
 		;===========Hide Red  Hide Green  Show Gray==
-		GUICtrlSetState($g_hPicPetGreen, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetRed, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetGray, $GUI_SHOW)
-		GUICtrlSetData($g_hLbLPetTime, "")
 		;===========================================
 		Return
 	EndIf
@@ -564,9 +549,6 @@ Func PetGuiDisplay()
 	If $IsRunning Then ; Look for light green in upper right corner of lab window.
 		SetLog("Pet House is Running", $COLOR_INFO)
 		;==========Hide Red  Show Green Hide Gray===
-		GUICtrlSetState($g_hPicPetGray, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetRed, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetGreen, $GUI_SHOW)
 		;===========================================
 		If _Sleep($DELAYLABORATORY2) Then Return
 		Local $sPetTimeOCR = getPetUpgradeTime(235, 242 + $g_iMidOffsetY)
@@ -584,10 +566,6 @@ Func PetGuiDisplay()
 		SetLog("Pet House has Stopped", $COLOR_INFO)
 		;If $g_bNotifyTGEnable And $g_bNotifyAlertLaboratoryIdle Then NotifyPushToTelegram($g_sNotifyOrigin & " | " & GetTranslatedFileIni("MBR Func_Notify", "Laboratory-Idle_Info_01", "Laboratory Idle") & "%0A" & GetTranslatedFileIni("MBR Func_Notify", "Laboratory-Idle_Info_02", "Laboratory has Stopped"))
 		;========Show Red  Hide Green  Hide Gray=====
-		GUICtrlSetState($g_hPicPetGray, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetGreen, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetRed, $GUI_SHOW)
-		GUICtrlSetData($g_hLbLPetTime, "")
 		;============================================
 		$g_sPetUpgradeTime = ""
 		$g_iMinDark4PetUpgrade = GetMinDark4PetUpgrade($BuildingInfo[2])
@@ -597,10 +575,6 @@ Func PetGuiDisplay()
 	Else
 		SetLog("Unable to determine Pet House Status", $COLOR_INFO)
 		;========Hide Red  Hide Green  Show Gray======
-		GUICtrlSetState($g_hPicPetGreen, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetRed, $GUI_HIDE)
-		GUICtrlSetState($g_hPicPetGray, $GUI_SHOW)
-		GUICtrlSetData($g_hLbLPetTime, "")
 		;=============================================
 		CloseWindow()
 		$iLastTimeChecked[$g_iCurAccount] = ""

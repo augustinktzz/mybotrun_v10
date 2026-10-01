@@ -399,7 +399,7 @@ Func CheckDiscountPerks()
 		Local $aDiscount = StringSplit($sDiscount, "%", $STR_NOCOUNT)
 		$g_iBuilderBoostDiscount = Number($aDiscount[0])
 		SetLog($g_iBuilderBoostDiscount > 0 ? "Current Builder boost: " & $g_iBuilderBoostDiscount & "%" : "Keep working hard on challenges", $COLOR_SUCCESS)
-		cmbWalls()
+		$g_iWallCost = $g_aiWallCost[$g_iCmbUpgradeWallsLevel] ; the cost of the level searched; the discount is applied where it is spent
 		If ProfileSwitchAccountEnabled() Then SwitchAccountVariablesReload("Save")
 	Else
 		SetLog("Cannot read builder boost", $COLOR_ERROR)

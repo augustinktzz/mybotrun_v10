@@ -26,7 +26,7 @@ Func ZoomOut() ;Zooms out
 		Return
 	EndIf
 	Local $Result
-	If ($g_iAndroidZoomoutMode = 0 Or $g_iAndroidZoomoutMode = 3) And ($g_bAndroidEmbedded = False Or $g_iAndroidEmbedMode = 1) Then
+	If $g_iAndroidZoomoutMode = 0 Or $g_iAndroidZoomoutMode = 3 Then
 		; default zoomout
 		$Result = Execute("ZoomOut" & $g_sAndroidEmulator & "()")
 		If $Result = "" And @error <> 0 Then
@@ -87,7 +87,6 @@ Func DefaultZoomOut($ZoomOutKey = "{DOWN}", $tryCtrlWheelScrollAfterCycles = 40,
 				SetDebugLog("Exit ZoomOut, bot not running")
 				Return
 			EndIf
-			AndroidShield("DefaultZoomOut") ; Update shield status
 			If $bAndroidZoomOut Then
 				AndroidZoomOut($i, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
 				If @error <> 0 Then $bAndroidZoomOut = False
@@ -141,7 +140,7 @@ Func ZoomOutCtrlWheelScroll($CenterMouseWhileZooming = True, $GlobalMouseWheel =
 	Local $delayCount = 20
 	Local $Result[4], $i = 0, $j
 	Local $ZoomActions[4] = ["ControlFocus", "Ctrl Down", "Mouse Wheel Scroll Down", "Ctrl Up"]
-	If $hWin = Default Then $hWin = ($g_bAndroidEmbedded = False ? $g_hAndroidWindow : $g_aiAndroidEmbeddedCtrlTarget[1])
+	If $hWin = Default Then $hWin = $g_hAndroidWindow
 	ForceCaptureRegion()
 	Local $aPicture = SearchZoomOut($aCenterHomeVillageClickDrag, True, "", True)
 
@@ -153,7 +152,6 @@ Func ZoomOutCtrlWheelScroll($CenterMouseWhileZooming = True, $GlobalMouseWheel =
 			SetLog("Zooming Out", $COLOR_INFO)
 		EndIf
 
-		AndroidShield("ZoomOutCtrlWheelScroll") ; Update shield status
 		If _Sleep($DELAYZOOMOUT1) Then Return True
 		If $AndroidZoomOut Then
 			AndroidZoomOut(0, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
@@ -257,7 +255,6 @@ Func ZoomOutCtrlClick($CenterMouseWhileZooming = False, $AlwaysControlFocus = Fa
 			SetLog("Zooming Out", $COLOR_INFO)
 		EndIf
 
-		AndroidShield("ZoomOutCtrlClick") ; Update shield status
 
 		If _Sleep($DELAYZOOMOUT1) Then Return True
 		Local $aMousePos = MouseGetPos()
@@ -355,7 +352,6 @@ Func AndroidOnlyZoomOut() ;Zooms out
 				Return
 			EndIf
 			If _Sleep(50) Then Return
-			AndroidShield("AndroidOnlyZoomOut") ; Update shield status
 			AndroidZoomOut($i, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
 			If $i > $exitCount Then Return
 			If Not $g_bRunState Then ExitLoop

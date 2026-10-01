@@ -297,6 +297,21 @@ EndFunc   ;==>RunPipe
 
 Func ClosePipe($pid, $hStdIn, $hStdOut, $hProcess, $hThread)
 
+	; Wine hands a dead process's PID out again quickly: by the time ProcessClose($pid) runs below, the PID
+	; can name another process (it was killing the ADB server). Under Wine, end the process through the
+	; handle we hold instead, which always names the process we started.
+	If $hProcess And IsRunningUnderWine() Then
+		Local $iClosed = 0
+		If _WinAPI_GetExitCodeProcess($hProcess) = 259 Then $iClosed = (_WinAPI_TerminateProcess($hProcess) ? 1 : 0) ; 259 = STILL_ACTIVE
+		_WinAPI_CloseHandle($hStdIn[0])
+		_WinAPI_CloseHandle($hStdIn[1])
+		_WinAPI_CloseHandle($hStdOut[0])
+		_WinAPI_CloseHandle($hStdOut[1])
+		_WinAPI_CloseHandle($hProcess)
+		If $hThread Then _WinAPI_CloseHandle($hThread)
+		Return $iClosed
+	EndIf
+
 	_WinAPI_CloseHandle($hStdIn[0])
 	_WinAPI_CloseHandle($hStdIn[1])
 	_WinAPI_CloseHandle($hStdOut[0])

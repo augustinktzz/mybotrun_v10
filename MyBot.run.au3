@@ -27,29 +27,24 @@
 Opt("MustDeclareVars", 1)
 
 Global $g_sBotTitle = "" ;~ Don't assign any title here, use Func UpdateBotTitle()
-Global $g_hFrmBot = 0 ; The main GUI window
+Global $g_hFrmBot = 0 ; The bot window: hidden, it carries the bot title and receives the API messages
 
 ; MBR includes
 #include "COCBot\MBR Global Variables.au3"
 #include "COCBot\functions\Config\DelayTimes.au3"
-#include "COCBot\GUI\MBR GUI Design Splash.au3"
 #include "COCBot\functions\Config\ScreenCoordinates.au3"
 #include "COCBot\functions\Config\ImageDirectories.au3"
 #include "COCBot\functions\Other\ExtMsgBox.au3"
 #include "COCBot\functions\Other\MBRFunc.au3"
 #include "COCBot\functions\Android\Android.au3"
 #include "COCBot\functions\Android\Distributors.au3"
-#include "COCBot\MBR GUI Design.au3"
-#include "COCBot\MBR GUI Control.au3"
+#include "COCBot\MBR Bot Control.au3"
 #include "COCBot\MBR Functions.au3"
 #include "COCBot\functions\Other\Multilanguage.au3"
 ; MBR References.au3 must be last include
 #include "COCBot\MBR References.au3"
 
 ; Autoit Options
-Opt("GUIResizeMode", $GUI_DOCKALL) ; Default resize mode for dock android support
-Opt("GUIEventOptions", 1) ; Handle minimize and restore for dock android support
-Opt("GUICloseOnESC", 0) ; Don't send the $GUI_EVENT_CLOSE message when ESC is pressed.
 Opt("WinTitleMatchMode", 3) ; Window Title exact match mode
 Opt("GUIOnEventMode", 1)
 Opt("MouseClickDelay", GetClickUpDelay()) ;Default: 10 milliseconds
@@ -78,7 +73,6 @@ Func UpdateBotTitle()
 	If $g_hFrmBot <> 0 Then
 		; Update Bot Window Title also
 		WinSetTitle($g_hFrmBot, "", $g_sBotTitle)
-		GUICtrlSetData($g_hLblBotTitle, $g_sBotTitle)
 	EndIf
 	; Update Console Window (if it exists)
 	DllCall("kernel32.dll", "bool", "SetConsoleTitle", "str", "Console " & $sConsoleTitle)
@@ -130,35 +124,23 @@ Func InitializeBot()
 	;Local $iBotProcessPriority = _ProcessGetPriority(@AutoItPID)
 	;ProcessSetPriority(@AutoItPID, $PROCESS_BELOWNORMAL) ;~ Boost launch time by increasing process priority (will be restored again when finished launching)
 
-	_ITaskBar_Init(False)
 	_Crypt_Startup()
 	__GDIPlus_Startup() ; Start GDI+ Engine (incl. a new thread)
 	TCPStartup() ; Start the TCP service.
 
-	;InitAndroidConfig()
-	CreateMainGUI() ; Just create the main window
-	CreateSplashScreen() ; Create splash window
+	CreateBotWindow() ; the hidden bot window
+	LaunchLock() ; one bot launches at a time
 
 	; Ensure watchdog is launched (requires Bot Window for messaging)
 	If Not $g_bBotLaunchOption_NoWatchdog Then LaunchWatchdog()
 
 	InitializeMBR($sAndroidInfo, $bConfigRead)
 
-	; Create GUI
-	CreateMainGUIControls() ; Create all GUI Controls
-	InitializeMainGUI() ; setup GUI Controls
+	; Profile
+	InitializeBotProfile()
 
 	; Files/folders
 	SetupFilesAndFolders()
-
-	; Show main GUI
-	ShowMainGUI()
-
-	If $g_iBotLaunchOption_Dock Then
-		If AndroidEmbed(True) And $g_iBotLaunchOption_Dock = 2 And $g_bCustomTitleBarActive Then
-			BotShrinkExpandToggle()
-		EndIf
-	EndIf
 
 	; Some final setup steps and checks
 	FinalInitialization($sAndroidInfo)
@@ -197,22 +179,17 @@ Func ProcessCommandLine()
 					$g_bBotLaunchOption_NoWatchdog = True
 				Case "/dpiaware", "/da", "-dpiaware", "-da"
 					$g_bBotLaunchOption_ForceDpiAware = True
-				Case "/dock1", "/d1", "-dock1", "-d1", "/dock", "/d", "-dock", "-d"
-					$g_iBotLaunchOption_Dock = 1
-				Case "/dock2", "/d2", "-dock2", "-d2"
-					$g_iBotLaunchOption_Dock = 2
 				Case "/nobotslot", "/nbs", "-nobotslot", "-nbs"
 					$g_bBotLaunchOption_NoBotSlot = True
 				Case "/debug", "/debugmode", "/dev", "/dm", "-debug", "-debugmode", "-dev", "-dm"
 					$g_bDevMode = True
-				Case "/minigui", "/mg", "-minigui", "-mg"
-					$g_iGuiMode = 2
-				Case "/nogui", "/ng", "-nogui", "-ng"
-					$g_iGuiMode = 0
+				Case "/minigui", "/mg", "-minigui", "-mg", "/nogui", "/ng", "-nogui", "-ng", _
+						"/dock1", "/d1", "-dock1", "-d1", "/dock", "/d", "-dock", "-d", "/dock2", "/d2", "-dock2", "-d2", _
+						"/minimizebot", "/minbot", "/mb", "-minimizebot", "-minbot", "-mb"
+					; options of the former bot window: the bot has none now, they are still accepted so that
+					; MultiBot setups, shortcuts and Watchdog relaunches that pass them keep working
 				Case "/hideandroid", "/ha", "-hideandroid", "-ha"
 					$g_bBotLaunchOption_HideAndroid = True
-				Case "/minimizebot", "/minbot", "/mb", "-minimizebot", "-minbot", "-mb"
-					$g_bBotLaunchOption_MinimizeBot = True
 				Case "/console", "/c", "-console", "-c"
 					$g_iBotLaunchOption_Console = True
 					ConsoleWindow()
@@ -273,7 +250,7 @@ EndFunc   ;==>ProcessCommandLine
 Func InitializeAndroid($bConfigRead)
 
 	Local $s = GetTranslatedFileIni("MBR GUI Design - Loading", "StatusBar_Item_06", "Initializing Android...")
-	SplashStep($s)
+	LaunchStep($s)
 
 	If $g_bBotLaunchOption_Restart = False Then
 		; Change Android type and update variable
@@ -285,20 +262,20 @@ Func InitializeAndroid($bConfigRead)
 			For $i = 0 To UBound($g_avAndroidAppConfig) - 1
 				If StringCompare($g_avAndroidAppConfig[$i][0], $g_asCmdLine[2]) = 0 Then
 					$g_iAndroidConfig = $i
-					SplashStep($s & "(" & $g_avAndroidAppConfig[$i][0] & ")...", False)
+					LaunchStep($s & "(" & $g_avAndroidAppConfig[$i][0] & ")...")
 					If $g_avAndroidAppConfig[$i][1] <> "" And $g_asCmdLine[0] > 2 Then
 						; Use Instance Name
 						UpdateAndroidConfig($g_asCmdLine[3])
 					Else
 						UpdateAndroidConfig()
 					EndIf
-					SplashStep($s & "(" & $g_avAndroidAppConfig[$i][0] & ")", False)
+					LaunchStep($s & "(" & $g_avAndroidAppConfig[$i][0] & ")")
 					ExitLoop
 				EndIf
 			Next
 		EndIf
 
-		SplashStep(GetTranslatedFileIni("MBR GUI Design - Loading", "StatusBar_Item_07", "Detecting Android..."))
+		LaunchStep(GetTranslatedFileIni("MBR GUI Design - Loading", "StatusBar_Item_07", "Detecting Android..."))
 		If $g_asCmdLine[0] < 2 And Not $bConfigRead Then
 			DetectRunningAndroid()
 			If Not $g_bFoundRunningAndroid Then DetectInstalledAndroid()
@@ -307,7 +284,7 @@ Func InitializeAndroid($bConfigRead)
 	Else
 
 		; just increase step
-		SplashStep($s)
+		LaunchStep($s)
 
 	EndIf
 
@@ -389,8 +366,8 @@ Func InitializeMBR(ByRef $sAI, $bConfigRead)
 	Local $sMsg = GetTranslatedFileIni("MBR GUI Design - Loading", "Compile_Script", "Don't Run/Compile the Script as (x64)! Try to Run/Compile the Script as (x86) to get the bot to work.\r\n" & _
 			"If this message still appears, try to re-install AutoIt.")
 	If @AutoItX64 = 1 Then
-		DestroySplashScreen()
-		MsgBox(0, "", $sMsg)
+		LaunchUnlock()
+		SetLog($sMsg, $COLOR_ERROR)
 		__GDIPlus_Shutdown()
 		Exit
 	EndIf
@@ -400,11 +377,11 @@ Func InitializeMBR(ByRef $sAI, $bConfigRead)
 
 	; Update Bot title
 	UpdateBotTitle()
-	UpdateSplashTitle($g_sBotTitle & GetTranslatedFileIni("MBR GUI Design - Loading", "Loading_Profile", ", Profile: %s", $g_sProfileCurrentName))
+	LaunchStep($g_sBotTitle & GetTranslatedFileIni("MBR GUI Design - Loading", "Loading_Profile", ", Profile: %s", $g_sProfileCurrentName))
 
 	If $g_bBotLaunchOption_Restart = True Then
 		If CloseRunningBot($g_sBotTitle, True) Then
-			SplashStep(GetTranslatedFileIni("MBR GUI Design - Loading", "Closing_previous", "Closing previous bot..."), False)
+			LaunchStep(GetTranslatedFileIni("MBR GUI Design - Loading", "Closing_previous", "Closing previous bot..."))
 			If CloseRunningBot($g_sBotTitle) = True Then
 				; wait for Mutexes to get disposed
 				Sleep(3000)
@@ -435,8 +412,8 @@ Func InitializeMBR(ByRef $sAI, $bConfigRead)
 	$sMsg = GetTranslatedFileIni("MBR GUI Design - Loading", "Msg_Android_instance_01", "My Bot for %s is already running.\r\n\r\n", $sAI)
 	If $g_hMutex_BotTitle = 0 Then
 		SetDebugLog($g_sBotTitle & " is already running, exit now")
-		DestroySplashScreen()
-		MsgBox(BitOR($MB_OK, $MB_ICONINFORMATION, $MB_TOPMOST), $g_sBotTitle, $sMsg & $cmdLineHelp)
+		LaunchUnlock()
+		SetLog($sMsg & $cmdLineHelp, $COLOR_ERROR)
 		__GDIPlus_Shutdown()
 		Exit
 	EndIf
@@ -446,8 +423,8 @@ Func InitializeMBR(ByRef $sAI, $bConfigRead)
 	If aquireProfileMutex() = 0 Then
 		ReleaseMutex($g_hMutex_BotTitle)
 		releaseProfilesMutex(True)
-		DestroySplashScreen()
-		MsgBox(BitOR($MB_OK, $MB_ICONINFORMATION, $MB_TOPMOST), $g_sBotTitle, $sMsg & $cmdLineHelp)
+		LaunchUnlock()
+		SetLog($sMsg & $cmdLineHelp, $COLOR_ERROR)
 		__GDIPlus_Shutdown()
 		Exit
 	EndIf
@@ -516,7 +493,6 @@ Func SetupFilesAndFolders()
 	;Setup profile if doesn't exist yet
 	If FileExists($g_sProfileConfigPath) = 0 Then
 		createProfile(True)
-		applyConfig()
 	EndIf
 
 	If $g_bDeleteLogs Then DeleteFiles($g_sProfileLogsPath, "*.*", $g_iDeleteLogsDays, 0)
@@ -563,54 +539,25 @@ Func FinalInitialization(Const $sAI)
 	EndIf
 	SetLog(GetTranslatedFileIni("MBR GUI Design - Loading", "Msg_Android_instance_04", "Android Emulator Configuration: %s", $sAI), $COLOR_SUCCESS)
 
-	; reset GUI to wait for remote GUI in no GUI mode
+	; the bot is its own GUI process until the remote GUI registers (API 0x1060)
 	$g_iGuiPID = @AutoItPID
 
 	; Remember time in Milliseconds bot launched
 	$g_iBotLaunchTime = __TimerDiff($g_hBotLaunchTime)
 
-	; wait for remote GUI to show when no GUI in this process
-	If $g_iGuiMode = 0 Then
-		SplashStep(GetTranslatedFileIni("MBR GUI Design - Loading", "Waiting_for_Remote_GUI", "Waiting for remote GUI..."))
-		SetDebugLog("Wait for GUI Process...")
-
-		Local $timer = __TimerInit()
-		While $g_iGuiPID = @AutoItPID And __TimerDiff($timer) < 60000
-			; wait for GUI Process updating $g_iGuiPID
-			Sleep(50) ; must be Sleep as no run state!
-		WEnd
-		If $g_iGuiPID = @AutoItPID Then
-			SetDebugLog("GUI Process not received, close bot")
-			BotClose()
-			$bCheckPrerequisitesOK = False
-		Else
-			SetDebugLog("Linked to GUI Process " & $g_iGuiPID)
-		EndIf
-	EndIf
-
-	; destroy splash screen here (so we witness the 100% ;)
-	DestroySplashScreen(False)
-	If $bCheckPrerequisitesOK Then
-		; only when bot can run, register with forum
-		ForumAuthentication()
-	EndIf
+	; The bot has no window of its own: GUI-Electron is its interface. It registers itself (API 0x1060)
+	; whenever it finds the bot, launched by it or not, so the bot neither waits for it nor closes
+	; without it: a bot launched by MultiBot or relaunched by the Watchdog keeps running, driven by its API.
+	SetDebugLog("No bot window: driven through its API by GUI-Electron or MultiBot")
 
 	; allow now other bots to launch
-	DestroySplashScreen()
+	LaunchUnlock()
 
-	; InitializeVariables();initialize variables used in extrawindows
 	CheckVersion() ; check latest version on mybot.run site
-	UpdateMultiStats()
 	SetDebugLog("Maximum of " & $g_iGlobalActiveBotsAllowed & " bots running at same time configured")
 	SetDebugLog("MyBot.run launch time " & Round($g_iBotLaunchTime) & " ms.")
 
-	If $g_bAndroidShieldEnabled = False Then
-		SetLog(GetTranslatedFileIni("MBR GUI Design - Loading", "Msg_Android_instance_05", "Android Shield not available for %s", @OSVersion), $COLOR_ACTION)
-	EndIf
-
 	DisableProcessWindowsGhosting()
-
-	UpdateMainGUI()
 
 EndFunc   ;==>FinalInitialization
 
@@ -630,6 +577,7 @@ EndFunc   ;==>FinalInitialization
 ; ===============================================================================================================================
 Func MainLoop($bCheckPrerequisitesOK = True)
 	Local $iStartDelay = 0
+	$g_bBotCanStart = $bCheckPrerequisitesOK
 
 	If $bCheckPrerequisitesOK And ($g_bAutoStart Or $g_bRestarted) Then
 		Local $iDelay = $g_iAutoStartDelay
@@ -638,8 +586,6 @@ Func MainLoop($bCheckPrerequisitesOK = True)
 		$g_iBotAction = $eBotStart
 		; check if android should be hidden
 		If $g_bBotLaunchOption_HideAndroid Then $g_bIsHidden = True
-		; check if bot should be minimized
-		If $g_bBotLaunchOption_MinimizeBot Then BotMinimizeRequest()
 	EndIf
 
 	Local $hStarttime = _Timer_Init()
@@ -692,7 +638,7 @@ Func runBot() ;Bot that runs everything in order
 
 	InitiateSwitchAcc()
 	If ProfileSwitchAccountEnabled() And $g_bReMatchAcc Then
-		SetLog("Rematching Account [" & $g_iNextAccount + 1 & "] with Profile [" & GUICtrlRead($g_ahCmbProfile[$g_iNextAccount]) & "]")
+		SetLog("Rematching Account [" & $g_iNextAccount + 1 & "] with Profile [" & $g_asProfileName[$g_iNextAccount] & "]")
 		SwitchCoCAcc($g_iNextAccount)
 	EndIf
 
@@ -1354,16 +1300,11 @@ Func FirstCheck()
 	Else
 		SetLog("Town Hall level has changed!", $COLOR_INFO)
 		SetLog("New Town hall level detected as " & $g_iTownHallLevel, $COLOR_INFO)
-		applyConfig()
 		saveConfig()
 	EndIf
 	;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	;Display Level TH in Stats
-	GUICtrlSetData($g_hLblTHLevels, "")
-	_GUI_Value_STATE("HIDE", $g_aGroupListTHLevels)
-	GUICtrlSetState($g_ahPicTHLevels[$g_iTownHallLevel], $GUI_SHOW)
-	GUICtrlSetData($g_hLblTHLevels, $g_iTownHallLevel)
 
 	;;;;;Check Hero Hall level
 	If $g_iTownHallLevel > 6 Then
@@ -1377,7 +1318,6 @@ Func FirstCheck()
 					$g_aiHeroHallPos[2] = $sHeroHallInfo[2]
 					SetLog("Hero Hall level has changed!", $COLOR_WARNING)
 					SetLog("New Hero hall level detected as " & $g_aiHeroHallPos[2], $COLOR_INFO)
-					applyConfig()
 					saveConfig()
 				EndIf
 			Else

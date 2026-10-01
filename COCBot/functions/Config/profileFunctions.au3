@@ -28,79 +28,7 @@ Func setupProfileComboBox()
 	EndIf
 	$g_asProfiles = $aProfileList
 	SetDebugLog("Profiles found: " & $profileString)
-
-	; Clear the combo box current data in case profiles were deleted
-	GUICtrlSetData($g_hCmbProfile, "", "")
-	; Set the new data of available profiles
-	GUICtrlSetData($g_hCmbProfile, $profileString, "<No Profiles>")
-	For $i = 0 To 7
-		GUICtrlSetData($g_ahCmbProfile[$i], "")
-		GUICtrlSetData($g_ahCmbProfile[$i], "|" & $profileString)
-		_GUICtrlComboBox_SetCurSel($g_ahCmbProfile[$i], 0)
-	Next
 EndFunc   ;==>setupProfileComboBox
-
-Func renameProfile()
-	Local $originalPath = $g_sProfilePath & "\" & GUICtrlRead($g_hCmbProfile)
-	Local $newPath = $g_sProfilePath & "\" & $g_sProfileCurrentName
-	If FileExists($originalPath) Then
-		; Close the logs to ensure all files can be deleted.
-		If $g_hLogFile <> 0 Then
-			FileClose($g_hLogFile)
-			$g_hLogFile = 0
-		EndIf
-
-		If $g_hAttackLogFile <> 0 Then
-			FileClose($g_hAttackLogFile)
-			$g_hAttackLogFile = 0
-		EndIf
-
-		; rename the directory and all files and sub folders.
-		DirMove($originalPath, $newPath, $FC_NOOVERWRITE)
-
-		; rename also private pofile folder
-		$originalPath = $g_sPrivateProfilePath & "\" & GUICtrlRead($g_hCmbProfile)
-		$newPath = $g_sPrivateProfilePath & "\" & $g_sProfileCurrentName
-		If FileExists($originalPath) Then
-			; Remove the directory and all files and sub folders.
-			DirMove($originalPath, $newPath, $FC_NOOVERWRITE)
-		EndIf
-	EndIf
-
-EndFunc   ;==>renameProfile
-
-Func deleteProfile()
-	Local $sProfile = GUICtrlRead($g_hCmbProfile)
-	If aquireProfileMutex($sProfile, False, True) = 0 Then
-		Return False
-	EndIf
-	releaseProfileMutex($sProfile)
-	Local $deletePath = $g_sProfilePath & "\" & $sProfile
-	If FileExists($deletePath) Then
-		If $sProfile = $g_sProfileCurrentName Then
-			; Close the logs to ensure all files can be deleted.
-			If $g_hLogFile <> 0 Then
-				FileClose($g_hLogFile)
-				$g_hLogFile = 0
-			EndIf
-
-			If $g_hAttackLogFile <> 0 Then
-				FileClose($g_hAttackLogFile)
-				$g_hAttackLogFile = 0
-			EndIf
-		EndIf
-		; Remove the directory and all files and sub folders.
-		DirRemove($deletePath, $DIR_REMOVE)
-
-		$deletePath = $g_sPrivateProfilePath & "\" & $sProfile
-		If FileExists($deletePath) Then
-			; Remove the directory and all files and sub folders.
-			DirRemove($deletePath, $DIR_REMOVE)
-		EndIf
-		Return True
-	EndIf
-	Return False
-EndFunc   ;==>deleteProfile
 
 Func createProfile($bCreateNew = False)
 	FuncEnter(createProfile)
@@ -109,7 +37,6 @@ Func createProfile($bCreateNew = False)
 		setupProfileComboBox()
 		setupProfile()
 		saveConfig()
-		; applyConfig()
 		setupProfileComboBox()
 		selectProfile()
 		Return FuncReturn()
@@ -142,18 +69,7 @@ EndFunc   ;==>createProfile
 
 Func setupProfile($sProfile = Default)
 	FuncEnter(setupProfile)
-	If IsString($sProfile) Then
-		; use as new profile
-	ElseIf $g_iGuiMode = 1 Then
-		If GUICtrlRead($g_hCmbProfile) = "<No Profiles>" Then
-			; Set profile name to the text box value if no profiles are found.
-			$sProfile = StringRegExpReplace(GUICtrlRead($g_hTxtVillageName), '[/:*?"<>|]', '_')
-		Else
-			$sProfile = GUICtrlRead($g_hCmbProfile)
-		EndIf
-	Else
-		$sProfile = $g_sProfileCurrentName
-	EndIf
+	If Not IsString($sProfile) Then $sProfile = $g_sProfileCurrentName
 
 	If aquireProfileMutex($sProfile, False, True) = 0 Then
 		Return FuncReturn(False)
@@ -175,49 +91,26 @@ Func setupProfile($sProfile = Default)
 
 	; Create the profile if needed, this also sets the variables if the profile exists.
 	createProfile()
-	; Set the profile name on the village info group.
-	GUICtrlSetData($g_hGrpVillage, GetTranslatedFileIni("MBR Main GUI", "Tab_02", "Village") & "[TH" & $g_iTownHallLevel & "]" & ": " & $g_sProfileCurrentName)
-	GUICtrlSetData($g_hTxtNotifyOrigin, $g_sProfileCurrentName)
 
 	Return FuncReturn(True)
 EndFunc   ;==>setupProfile
 
+; The profile to run ($g_sProfileCurrentName by default, from the command line): its mutex, its folders, its settings.
 Func selectProfile($sProfile = Default)
 	FuncEnter(selectProfile)
-	If IsString($sProfile) Then
-		; use profile
-	ElseIf _GUICtrlComboBox_FindStringExact($g_hCmbProfile, String($g_sProfileCurrentName)) <> -1 Then
-		; just select profile in profile combobox
-		_GUICtrlComboBox_SelectString($g_hCmbProfile, String($g_sProfileCurrentName))
-	Else
-		Local $comboBoxArray = _GUICtrlComboBox_GetListArray($g_hCmbProfile)
-		If UBound($comboBoxArray) > 1 Then
-			$sProfile = $comboBoxArray[1]
-		Else
-			$sProfile = $g_sProfileCurrentName
-		EndIf
+	If Not IsString($sProfile) Then $sProfile = $g_sProfileCurrentName
+
+	If aquireProfileMutex($sProfile, False, True) = 0 Then
+		Return FuncReturn(False)
 	EndIf
-
-	If IsString($sProfile) Then
-		If aquireProfileMutex($sProfile, False, True) = 0 Then
-			Return FuncReturn(False)
-		EndIf
-		If $g_sProfileCurrentName <> $sProfile Then
-			releaseProfileMutex($g_sProfileCurrentName)
-		EndIf
-		$g_sProfileCurrentName = $sProfile
-
-		; Create the profile if needed, this also sets the variables if the profile exists.
-		createProfile()
-		readConfig()
-		applyConfig()
-
-		_GUICtrlComboBox_SetCurSel($g_hCmbProfile, 0)
+	If $g_sProfileCurrentName <> $sProfile Then
+		releaseProfileMutex($g_sProfileCurrentName)
 	EndIf
+	$g_sProfileCurrentName = $sProfile
 
-	; Set the profile name on the village info group.
-	GUICtrlSetData($g_hGrpVillage, GetTranslatedFileIni("MBR Main GUI", "Tab_02", "Village") & "[TH" & $g_iTownHallLevel & "]" & ": " & $g_sProfileCurrentName)
-	GUICtrlSetData($g_hTxtNotifyOrigin, $g_sProfileCurrentName)
+	; Create the profile if needed, this also sets the variables if the profile exists.
+	createProfile()
+	readConfig()
 	Return FuncReturn(True)
 EndFunc   ;==>selectProfile
 

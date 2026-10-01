@@ -13,18 +13,18 @@
 ; Example .......: No
 ; ===============================================================================================================================
 Func BoostBarracks()
-	Return BoostTrainBuilding("Barracks", $g_iCmbBoostBarracks, $g_hCmbBoostBarracks)
+	Return BoostTrainBuilding("Barracks", $g_iCmbBoostBarracks)
 EndFunc   ;==>BoostBarracks
 
 Func BoostSpellFactory()
-	Return BoostTrainBuilding("Spell Factory", $g_iCmbBoostSpellFactory, $g_hCmbBoostSpellFactory)
+	Return BoostTrainBuilding("Spell Factory", $g_iCmbBoostSpellFactory)
 EndFunc   ;==>BoostSpellFactory
 
 Func BoostWorkshop()
-	Return BoostTrainBuilding("Workshop", $g_iCmbBoostWorkshop, $g_hCmbBoostWorkshop)
+	Return BoostTrainBuilding("Workshop", $g_iCmbBoostWorkshop)
 EndFunc   ;==>BoostWorkshop
 
-Func BoostTrainBuilding($sName, $iCmbBoost, $iCmbBoostCtrl)
+Func BoostTrainBuilding($sName, ByRef $iCmbBoost) ; ByRef: a used boost is counted down in the setting itself
 	Local $bBoosted = False
 
 	If Not $g_bTrainEnabled Or $iCmbBoost <= 0 Then Return $bBoosted
@@ -66,7 +66,6 @@ Func BoostTrainBuilding($sName, $iCmbBoost, $iCmbBoostCtrl)
 				Else
 					If $iCmbBoost >= 1 And $iCmbBoost <= 24 Then
 						$iCmbBoost -= 1
-						_GUICtrlComboBox_SetCurSel($iCmbBoostCtrl, $iCmbBoost)
 						SetLog("Remaining " & $sName & " Boosts: " & $iCmbBoost, $COLOR_SUCCESS)
 					ElseIf $iCmbBoost = 25 Then
 						SetLog("Remain " & $sName & " Boosts: Unlimited", $COLOR_SUCCESS)
@@ -106,7 +105,7 @@ Func BoostEverything()
 		If _Sleep($DELAYBOOSTBARRACKS2) Then Return
 	EndIf
 
-	Return BoostPotion("Everything", "Town Hall", $g_aiTownHallPos, $g_iCmbBoostEverything, $g_hCmbBoostEverything) = _NowCalc()
+	Return BoostPotion("Everything", "Town Hall", $g_aiTownHallPos, $g_iCmbBoostEverything) = _NowCalc()
 	$g_aiTimeTrain[0] = 0 ; reset Troop remaining time
 	$g_aiTimeTrain[1] = 0 ; reset Spells remaining time
 	$g_aiTimeTrain[2] = 0 ; reset Heroes remaining time

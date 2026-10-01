@@ -72,8 +72,8 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 	Static $aiSmartZapGain = $aiZero, $aiNumEQSpellsUsed = $aiZero, $aiNumLSpellsUsed = $aiZero ; smart zap
 
 	; Labs time
-	Static $asLabUpgradeTime = $asEmpty, $aiLabStatus = $aiZero, $aiLabElixirCost = $aiZero, $aiLabDElixirCost = $aiZero
-	Static $asPetLabUpgradeTime = $asEmpty, $aiPetStatus = $aiZero, $asiMinDark4PetUpgrade = $aiZero
+	Static $asLabUpgradeTime = $asEmpty, $aiLabElixirCost = $aiZero, $aiLabDElixirCost = $aiZero
+	Static $asPetLabUpgradeTime = $asEmpty, $asiMinDark4PetUpgrade = $aiZero
 	Static $asStarLabUpgradeTime = $asEmpty
 
 	; BlackSmith
@@ -136,10 +136,6 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 			$aiFirstRun = $aiTrue
 
 			$g_asTrainTimeFinish = $asEmpty
-			For $i = 0 To 7
-				GUICtrlSetData($g_ahLblTroopTime[$i], "")
-				GUICtrlSetData($g_ahLblTroopTimeRep[$i], "")
-			Next
 			$g_ahTimerSinceSwitched = $aiZero
 			$g_ahTimerSinceSwitched[$iAccount] = $g_hTimerSinceStarted
 
@@ -201,9 +197,7 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 			$asLabUpgradeTime = $asEmpty
 			$aiLabElixirCost = $aiZero
 			$aiLabDElixirCost = $aiZero
-			$aiLabStatus = $aiZero
 			$asPetLabUpgradeTime = $asEmpty
-			$aiPetStatus = $aiZero
 			$asiMinDark4PetUpgrade = $asEmpty
 			$asStarLabUpgradeTime = $asEmpty
 
@@ -360,22 +354,8 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 			$asLabUpgradeTime[$iAccount] = $g_sLabUpgradeTime
 			$aiLabElixirCost[$iAccount] = $g_iLaboratoryElixirCost
 			$aiLabDElixirCost[$iAccount] = $g_iLaboratoryDElixirCost
-			If GUICtrlGetState($g_hPicLabGreen) = $GUI_ENABLE + $GUI_SHOW Then
-				$aiLabStatus[$iAccount] = 1
-			ElseIf GUICtrlGetState($g_hPicLabRed) = $GUI_ENABLE + $GUI_SHOW Then
-				$aiLabStatus[$iAccount] = 2
-			Else
-				$aiLabStatus[$iAccount] = 0
-			EndIf
 
 			$asPetLabUpgradeTime[$iAccount] = $g_sPetUpgradeTime
-			If GUICtrlGetState($g_hPicPetGreen) = $GUI_ENABLE + $GUI_SHOW Then
-				$aiPetStatus[$iAccount] = 1
-			ElseIf GUICtrlGetState($g_hPicPetRed) = $GUI_ENABLE + $GUI_SHOW Then
-				$aiPetStatus[$iAccount] = 2
-			Else
-				$aiPetStatus[$iAccount] = 0
-			EndIf
 			$asiMinDark4PetUpgrade[$iAccount] = $g_iMinDark4PetUpgrade
 
 			$asStarLabUpgradeTime[$iAccount] = $g_sStarLabUpgradeTime
@@ -466,9 +446,6 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 			$g_iLootCCGold = $gSiLootCCGold[$iAccount]
 			$g_iLootCCMedal = $gSiLootCCMedal[$iAccount]
 			$g_iCCTrophies = $gSiCCTrophies[$iAccount]
-			GUICtrlSetData($g_lblCapitalGold, _NumberFormat($g_iLootCCGold, True))
-			GUICtrlSetData($g_lblCapitalMedal, _NumberFormat($g_iLootCCMedal, True))
-			GUICtrlSetData($g_lblCapitalTrophies, _NumberFormat($g_iCCTrophies, True))
 			PicCCTrophies()
 
 			;Super Troops Boost
@@ -491,7 +468,6 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 			;Builders Base
 			For $i = 0 To UBound($g_aiCurrentLootBB) - 1
 				$g_aiCurrentLootBB[$i] = $gSaiCurrentLootBB[$iAccount][$i]
-				GUICtrlSetData($g_alblBldBaseStats[$i], _NumberFormat($g_aiCurrentLootBB[$i], True))
 			Next
 			PicBBTrophies()
 			$g_iFreeBuilderCountBB = $gSiFreeBuilderCountBB[$iAccount]
@@ -541,24 +517,10 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 
 			; Labs time
 			$g_sLabUpgradeTime = $asLabUpgradeTime[$iAccount]
-			GUICtrlSetData($g_hLbLLabTime, "")
 			$g_iLaboratoryElixirCost = $aiLabElixirCost[$iAccount]
 			$g_iLaboratoryDElixirCost = $aiLabDElixirCost[$iAccount]
-			Local $Counter = 0
-			For $i = $g_hPicLabGray To $g_hPicLabRed
-				GUICtrlSetState($i, $GUI_HIDE)
-				If $aiLabStatus[$iAccount] = $Counter Then GUICtrlSetState($i, $GUI_SHOW)
-				$Counter += 1
-			Next
 
 			$g_sPetUpgradeTime = $asPetLabUpgradeTime[$iAccount]
-			GUICtrlSetData($g_hLbLPetTime, "")
-			Local $Counter = 0
-			For $i = $g_hPicPetGray To $g_hPicPetRed
-				GUICtrlSetState($i, $GUI_HIDE)
-				If $aiPetStatus[$iAccount] = $Counter Then GUICtrlSetState($i, $GUI_SHOW)
-				$Counter += 1
-			Next
 			$g_iMinDark4PetUpgrade = $asiMinDark4PetUpgrade[$iAccount]
 
 			$g_sStarLabUpgradeTime = $asStarLabUpgradeTime[$iAccount]
@@ -632,13 +594,7 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 
 		Case "UpdateStats"
 			For $i = 0 To 3
-				GUICtrlSetData($g_ahLblStatsStartedWith[$i], _NumberFormat($g_iStatsStartedWith[$i], True))
 				$aiStatsTotalGain[$iAccount][$i] = $g_iStatsTotalGain[$i]
-			Next
-			For $i = 0 To 7
-				GUICtrlSetData($g_ahLblHourlyStatsGoldAcc[$i], _NumberFormat(Round($aiStatsTotalGain[$i][$eLootGold] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600)) & "k / h")
-				GUICtrlSetData($g_ahLblHourlyStatsElixirAcc[$i], _NumberFormat(Round($aiStatsTotalGain[$i][$eLootElixir] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600)) & "k / h")
-				GUICtrlSetData($g_ahLblHourlyStatsDarkAcc[$i], _NumberFormat(Round($aiStatsTotalGain[$i][$eLootDarkElixir] / (Int(__TimerDiff($g_hTimerSinceStarted) + $g_iTimePassed)) * 3600 * 1000)) & " / h")
 			Next
 
 		Case "SetTime"
@@ -648,40 +604,28 @@ Func SwitchAccountVariablesReload($sType = "Load", $iAccount = $g_iCurAccount)
 					Local $iLabTime = _DateDiff("s", _NowCalc(), $asLabUpgradeTime[$i]) * 1000
 					If $iLabTime > 0 Then
 						_TicksToDay($iLabTime, $day, $hour, $min, $sec)
-						GUICtrlSetData($g_ahLblLabTime[$i], $day > 0 ? StringFormat("%2ud %02i:%02i'", $day, $hour, $min) : StringFormat("%02i:%02i:%02i", $hour, $min, $sec))
-						GUICtrlSetColor($g_ahLblLabTime[$i], $day > 0 ? $COLOR_GREEN : $COLOR_OLIVE)
 					Else
-						GUICtrlSetData($g_ahLblLabTime[$i], "")
 						$asLabUpgradeTime[$i] = ""
 					EndIf
 				Else
-					GUICtrlSetData($g_ahLblLabTime[$i], "")
 				EndIf
 				If _DateIsValid($asStarLabUpgradeTime[$i]) Then
 					Local $iStarLabTime = _DateDiff("s", _NowCalc(), $asStarLabUpgradeTime[$i]) * 1000
 					If $iStarLabTime > 0 Then
 						_TicksToDay($iStarLabTime, $day, $hour, $min, $sec)
-						GUICtrlSetData($g_ahLbLStarLabTime[$i], $day > 0 ? StringFormat("%2ud %02i:%02i'", $day, $hour, $min) : StringFormat("%02i:%02i:%02i", $hour, $min, $sec))
-						GUICtrlSetColor($g_ahLbLStarLabTime[$i], $day > 0 ? $COLOR_GREEN : $COLOR_OLIVE)
 					Else
-						GUICtrlSetData($g_ahLbLStarLabTime[$i], "")
 						$asStarLabUpgradeTime[$i] = ""
 					EndIf
 				Else
-					GUICtrlSetData($g_ahLbLStarLabTime[$i], "")
 				EndIf
 				If _DateIsValid($asPetLabUpgradeTime[$i]) Then
 					Local $iPetHouseTime = _DateDiff("s", _NowCalc(), $asPetLabUpgradeTime[$i]) * 1000
 					If $iPetHouseTime > 0 Then
 						_TicksToDay($iPetHouseTime, $day, $hour, $min, $sec)
-						GUICtrlSetData($g_ahLbLPetTime[$i], $day > 0 ? StringFormat("%2ud %02i:%02i'", $day, $hour, $min) : StringFormat("%02i:%02i:%02i", $hour, $min, $sec))
-						GUICtrlSetColor($g_ahLbLPetTime[$i], $day > 0 ? $COLOR_GREEN : $COLOR_OLIVE)
 					Else
-						GUICtrlSetData($g_ahLbLPetTime[$i], "")
 						$asPetLabUpgradeTime[$i] = ""
 					EndIf
 				Else
-					GUICtrlSetData($g_ahLbLPetTime[$i], "")
 				EndIf
 			Next
 

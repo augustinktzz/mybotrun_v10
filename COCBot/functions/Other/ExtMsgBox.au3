@@ -524,7 +524,7 @@ Func _ExtMsgBox($vIcon, $vButton, $sTitle, $sText, $iTimeOut = 0, $hWin = $g_hFr
 	If BitAND($g_aEMB_Settings[0], 2) Then $iExtStyle = -1
 
 	; Create GUI with $WS_POPUPWINDOW, $WS_CAPTION style and required extended style
-	Local $hMsgGUI = _GUICreate($sTitle, $iDialog_Width, $iMsg_Height, $iHpos, $iVPos, BitOR(0x80880000, 0x00C00000), $iExtStyle, $iParent_Win)
+	Local $hMsgGUI = GUICreate($sTitle, $iDialog_Width, $iMsg_Height, $iHpos, $iVPos, BitOR(0x80880000, 0x00C00000), $iExtStyle, $iParent_Win)
 	If @error Then
 		Return SetError(7, 0, -1)
 	EndIf
@@ -588,7 +588,7 @@ Func _ExtMsgBox($vIcon, $vButton, $sTitle, $sText, $iTimeOut = 0, $hWin = $g_hFr
 		GUICtrlSetFont(-1, 18, Default, Default, $g_aEMB_Settings[5])
 		GUICtrlSetColor(-1, $g_aEMB_Settings[3])
 	Else
-		If $iIcon_Reduction Then _GUICtrlCreateIcon($sDLL, $iIcon_Style, 10, 20)
+		If $iIcon_Reduction Then GUICtrlCreateIcon($sDLL, $iIcon_Style, 10, 20)
 	EndIf
 
 	; Create buttons

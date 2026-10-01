@@ -12,6 +12,8 @@
 ; Link ..........: https://github.com/MyBotRun/MyBot/wiki
 ; Example .......: No
 ; ===============================================================================================================================
+#include "Wine.au3"
+
 Func CheckPrerequisites($bSilent = False)
 	Local $bIsAllOk = True
 
@@ -25,6 +27,19 @@ Func CheckPrerequisites($bSilent = False)
 		If (Not $isVC2010Installed And Not $bSilent) Then
 			SetLog("The VC 2010 x86 is not installed", $COLOR_ERROR)
 			SetLog("Please download here : https://www.microsoft.com/en-us/download/details.aspx?id=26999", $COLOR_ERROR)
+		EndIf
+		$bIsAllOk = False
+	EndIf
+
+	; Under Wine only (inert on Windows): a .NET runtime being present does not mean it can run
+	; MyBot.run.dll, and when it cannot, the failure aborts the whole bot process the moment
+	; MBRFunc() makes its first call. Prove it works first, so the bot keeps running and simply
+	; leaves Start disabled, as for any other missing prerequisite. Only checked once a runtime
+	; exists: probing without one would make Wine pop up its runtime installer.
+	If $isNetFramework4dot5Installed And IsRunningUnderWine() And FileExists($g_sLibMyBotPath) And Not isMyBotDllUsableUnderWine() Then ; a missing file is reported by isEveryFileInstalled()
+		If Not $bSilent Then
+			SetLog(StringMid($g_sLibMyBotPath, StringInStr($g_sLibMyBotPath, "\", 0, -1) + 1) & " cannot run under Wine on this system", $COLOR_ERROR)
+			SetLog("Its .NET runtime (wine-mono) cannot host this library: image recognition is unavailable", $COLOR_ERROR)
 		EndIf
 		$bIsAllOk = False
 	EndIf
@@ -46,7 +61,6 @@ Func CheckPrerequisites($bSilent = False)
 	EndIf
 
 	If Not $bIsAllOk And Not $bSilent Then
-		GUICtrlSetState($g_hBtnStart, $GUI_DISABLE)
 		$g_bRestarted = False
 	EndIf
 
@@ -87,7 +101,11 @@ Func isEveryFileInstalled($bSilent = False)
 			$g_sLibPath & "\opencv_imgproc220.dll"]
 
 	For $vElement In $aCheckFiles
-		$iCount += FileExists($vElement)
+		If FileExists($vElement) Then
+			$iCount += 1
+		ElseIf Not $bSilent Then
+			SetLog("Missing: " & $vElement, $COLOR_ERROR) ; the log is the only place to tell which one
+		EndIf
 	Next
 	; How many .xml files in imgxml folder
 	Local $xmls = _FileListToArrayRec(@ScriptDir & "\imgxml\", "*.xml", $FLTAR_FILES + $FLTAR_NOHIDDEN, $FLTAR_RECUR, $FLTAR_NOSORT)
@@ -104,14 +122,12 @@ Func isEveryFileInstalled($bSilent = False)
 	If $iCount = UBound($aCheckFiles) Then
 		$bResult = True
 	ElseIf Not $bSilent Then
-		GUICtrlSetState($g_hBtnStart, $GUI_DISABLE)
 
 		SetLog($sText1, $COLOR_ERROR)
 		SetLog($sText2, $COLOR_ERROR)
 		SetLog($sText3, $COLOR_ERROR)
-
-		_ExtMsgBoxSet(1 + 64, $SS_CENTER, 0x004080, 0xFFFF00, 12, "Comic Sans MS", 500)
-		$MsgBox = _ExtMsgBox(48, GetTranslatedFileIni("MBR Popups", "Ok", "Ok"), $sText1, $sText2, 0)
+		; no popup: without a window to attach it to, it would block the bot (even its Close) until someone
+		; clicks it. GUI-Electron shows the log lines above.
 	EndIf
 	If @Compiled Then ;if .exe
 		If Not StringInStr(@ScriptFullPath, "MyBot.run.exe", 1) Then ; if filename isn't MyBot.run.exe
@@ -120,10 +136,6 @@ Func isEveryFileInstalled($bSilent = False)
 				SetLog($sText1, $COLOR_ERROR)
 				SetLog($sText5, $COLOR_ERROR)
 				SetLog($sText3, $COLOR_ERROR)
-
-				_ExtMsgBoxSet(1 + 64, $SS_CENTER, 0x004080, 0xFFFF00, 12, "Comic Sans MS", 500)
-				$MsgBox = _ExtMsgBox(48, GetTranslatedFileIni("MBR Popups", "Ok", "Ok"), $sText1, $sText5, 0)
-				GUICtrlSetState($g_hBtnStart, $GUI_DISABLE)
 			EndIf
 			$bResult = False
 		EndIf
@@ -152,3 +164,38 @@ Func CheckIsAdmin($bSilent = False)
 	If Not $bSilent Then SetLog("My Bot running without admin privileges", $COLOR_ERROR)
 	Return False
 EndFunc   ;==>checkIsAdmin
+; Under Wine, whether MyBot.run.dll really runs. The library is loaded into the bot's own process,
+; and when the .NET runtime cannot host it - wine-mono cannot host the protected original, whose
+; module initializer calls a method body that only exists once decrypted at run time - the runtime
+; aborts that process outright; there is no error to catch. So the first call the bot makes,
+; setProcessingPoolSize, is tried in a throwaway AutoIt process: if that process dies or hangs, the
+; library is unusable and the bot is unharmed. A library that works (such as a clean-room
+; replacement) passes this with no code change. Result cached: it cannot change while the bot runs.
+; Exit codes of the probe: 0 = call returned, 2 = call failed cleanly, anything else = runtime abort.
+Func isMyBotDllUsableUnderWine()
+	Static $iUsable = -1
+	If $iUsable <> -1 Then Return $iUsable = 1
+	$iUsable = 0
+
+	; A compiled bot cannot run a one-line script itself, so it needs the AutoIt interpreter.
+	Local $sAutoIt = (@Compiled ? @ProgramFilesDir & "\AutoIt3\AutoIt3.exe" : @AutoItExe)
+	If Not FileExists($sAutoIt) Or Not FileExists($g_sLibMyBotPath) Then
+		SetDebugLog("Cannot verify " & $g_sLibMyBotPath & " under Wine: AutoIt interpreter or library missing")
+		Return False
+	EndIf
+
+	Local $sLine = "Exit(IsArray(DllCall(DllOpen('" & $g_sLibMyBotPath & "'), 'none', 'setProcessingPoolSize', 'int', -1)) ? 0 : 2)"
+	Local $iPid = Run('"' & $sAutoIt & '" /AutoIt3ExecuteLine "' & $sLine & '"', $g_sLibPath, @SW_HIDE)
+	If $iPid = 0 Then Return False
+
+	Local $iExitCode = -1
+	If ProcessWaitClose($iPid, 60) Then
+		$iExitCode = @extended
+	Else
+		ProcessClose($iPid) ; hung: treat as unusable
+	EndIf
+	SetDebugLog("Wine check of " & $g_sLibMyBotPath & ": probe exit code " & $iExitCode)
+
+	If $iExitCode = 0 Then $iUsable = 1
+	Return $iUsable = 1
+EndFunc   ;==>isMyBotDllUsableUnderWine

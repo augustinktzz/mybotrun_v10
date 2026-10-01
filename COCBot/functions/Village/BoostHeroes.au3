@@ -24,7 +24,7 @@ Func BoostKing()
 		If _Sleep($DELAYBOOSTHEROES4) Then Return
 	EndIf
 
-	If BoostStructure("Barbarian King", "King", $g_aiHeroHallPos, $g_iCmbBoostBarbarianKing, $g_hCmbBoostBarbarianKing) Then $g_aiHeroBoost[$eHeroBarbarianKing] = _NowCalc()
+	If BoostStructure("Barbarian King", "King", $g_aiHeroHallPos, $g_iCmbBoostBarbarianKing) Then $g_aiHeroBoost[$eHeroBarbarianKing] = _NowCalc()
 	$g_aiTimeTrain[2] = 0 ; reset Heroes remaining time
 
 	If _Sleep($DELAYBOOSTBARRACKS3) Then Return
@@ -43,7 +43,7 @@ Func BoostQueen()
 		If _Sleep($DELAYBOOSTHEROES4) Then Return
 	EndIf
 
-	If BoostStructure("Archer Queen", "Queen", $g_aiHeroHallPos, $g_iCmbBoostArcherQueen, $g_hCmbBoostArcherQueen) Then $g_aiHeroBoost[$eHeroArcherQueen] = _NowCalc()
+	If BoostStructure("Archer Queen", "Queen", $g_aiHeroHallPos, $g_iCmbBoostArcherQueen) Then $g_aiHeroBoost[$eHeroArcherQueen] = _NowCalc()
 	$g_aiTimeTrain[2] = 0 ; reset Heroes remaining time
 
 	If _Sleep($DELAYBOOSTBARRACKS3) Then Return
@@ -61,7 +61,7 @@ Func BoostPrince()
 		If _Sleep($DELAYBOOSTHEROES4) Then Return
 	EndIf
 
-	If BoostStructure("Minion Prince", "Prince", $g_aiHeroHallPos, $g_iCmbBoostMinionPrince, $g_hCmbBoostMinionPrince) Then $g_aiHeroBoost[$eHeroMinionPrince] = _NowCalc()
+	If BoostStructure("Minion Prince", "Prince", $g_aiHeroHallPos, $g_iCmbBoostMinionPrince) Then $g_aiHeroBoost[$eHeroMinionPrince] = _NowCalc()
 	$g_aiTimeTrain[2] = 0 ; reset Heroes remaining time
 
 	If _Sleep($DELAYBOOSTBARRACKS3) Then Return
@@ -79,7 +79,7 @@ Func BoostWarden()
 		If _Sleep($DELAYBOOSTHEROES4) Then Return
 	EndIf
 
-	If BoostStructure("Grand Warden", "Warden", $g_aiHeroHallPos, $g_iCmbBoostWarden, $g_hCmbBoostWarden) Then $g_aiHeroBoost[$eHeroGrandWarden] = _NowCalc()
+	If BoostStructure("Grand Warden", "Warden", $g_aiHeroHallPos, $g_iCmbBoostWarden) Then $g_aiHeroBoost[$eHeroGrandWarden] = _NowCalc()
 	$g_aiTimeTrain[2] = 0 ; reset Heroes remaining time
 
 	If _Sleep($DELAYBOOSTBARRACKS3) Then Return
@@ -97,7 +97,7 @@ Func BoostChampion()
 		If _Sleep($DELAYBOOSTHEROES4) Then Return
 	EndIf
 
-	If BoostStructure("Royal Champion", "Champion", $g_aiHeroHallPos, $g_iCmbBoostChampion, $g_hCmbBoostChampion) Then $g_aiHeroBoost[$eHeroRoyalChampion] = _NowCalc()
+	If BoostStructure("Royal Champion", "Champion", $g_aiHeroHallPos, $g_iCmbBoostChampion) Then $g_aiHeroBoost[$eHeroRoyalChampion] = _NowCalc()
 	$g_aiTimeTrain[2] = 0 ; reset Heroes remaining time
 
 	If _Sleep($DELAYBOOSTBARRACKS3) Then Return
@@ -116,7 +116,7 @@ Func BoostDuke()
 	EndIf
 
 	; BoostStructure finds the hero by the name read in the boost window, so nothing is clicked unless "Duke" is read
-	If BoostStructure("Dragon Duke", "Duke", $g_aiHeroHallPos, $g_iCmbBoostDuke, $g_hCmbBoostDuke) Then $g_aiHeroBoost[$eHeroDragonDuke] = _NowCalc()
+	If BoostStructure("Dragon Duke", "Duke", $g_aiHeroHallPos, $g_iCmbBoostDuke) Then $g_aiHeroBoost[$eHeroDragonDuke] = _NowCalc()
 	$g_aiTimeTrain[2] = 0 ; reset Heroes remaining time
 
 	If _Sleep($DELAYBOOSTBARRACKS3) Then Return

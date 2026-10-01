@@ -112,10 +112,6 @@ Func BotDetectFirstTime()
 	EndIf
 
 	;Display Level TH in Stats
-	GUICtrlSetData($g_hLblTHLevels, "")
 
-	_GUI_Value_STATE("HIDE", $g_aGroupListTHLevels)
 	SetDebugLog("Select TH Level:" & Number($g_iTownHallLevel), $COLOR_DEBUG)
-	GUICtrlSetState($g_ahPicTHLevels[$g_iTownHallLevel], $GUI_SHOW)
-	GUICtrlSetData($g_hLblTHLevels, $g_iTownHallLevel)
 EndFunc   ;==>BotDetectFirstTime
