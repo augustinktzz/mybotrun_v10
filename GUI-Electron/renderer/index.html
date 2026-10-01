@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MyBot GUI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- icones (traits 24 x 24, couleur du texte) -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+    <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4"/><path d="m7 17-3 3"/><path d="m3 19 2 2"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 3.5v17a1 1 0 0 0 1.5.86l14-8.5a1 1 0 0 0 0-1.72l-14-8.5A1 1 0 0 0 6 3.5Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2.5"/></symbol>
+    <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></symbol>
+    <symbol id="i-window" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2.5"/><path d="M2 9h20M6 6.5h.01M9 6.5h.01"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+    <symbol id="i-coins" viewBox="0 0 24 24"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></symbol>
+    <symbol id="i-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></symbol>
+    <symbol id="i-wall" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.33h18M3 14.66h18M9 4v5.33M15 9.33v5.33M9 14.66V20"/></symbol>
+    <symbol id="i-hammer" viewBox="0 0 24 24"><path d="m15 12-8.5 8.5a2.12 2.12 0 0 1-3-3L12 9"/><path d="M17.64 15 22 10.64"/><path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H9l.92.82A6.18 6.18 0 0 1 12 8.4v1.56l2 2h2.47l2.26 1.91"/></symbol>
+    <symbol id="i-skull" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="m12.5 17-.5-1-.5 1h1z"/><path d="M16 20a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-badge" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.48 12.89 17 22l-5-3-5 3 1.52-9.11"/></symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol>
+    <symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.33 2q2 0 3.87-.87A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.53"/></symbol>
+    <symbol id="i-castle" viewBox="0 0 24 24"><path d="M22 20v-9H2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2Z"/><path d="M18 11V4H6v7M15 22v-4a3 3 0 0 0-6 0v4M22 11V9M2 11V9M6 4V2M18 4V2M10 4V2M14 4V2"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.53a2 2 0 0 1-.21.9L4.72 20.55A1 1 0 0 0 5.61 22h12.78a1 1 0 0 0 .9-1.45l-5.07-10.12a2 2 0 0 1-.22-.9V2M8.5 2h7M7 16h10"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M11.53 2.3a.53.53 0 0 1 .94 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.17.76a.53.53 0 0 1 .29.9l-3.73 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .29-.9l5.17-.76a2.12 2.12 0 0 0 1.6-1.16z"/></symbol>
+    <symbol id="i-clock2" viewBox="0 0 24 24"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5M16 2v4M8 2v4M3 10h5"/><circle cx="16" cy="16" r="6"/><path d="M16 14v2l1 1"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+  </svg>
+
+  <header class="titlebar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <defs>
+          <linearGradient id="logo-grad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" style="stop-color:var(--accent)"/>
+            <stop offset="1" style="stop-color:var(--accent-2)"/>
+          </linearGradient>
+        </defs>
+        <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#logo-grad)"/>
+        <path d="M9 22V11l7 7 7-7v11" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="brand-text"><strong>MyBot</strong><span id="brandVersion">v12 · GUI</span></div>
+    </div>
+    <div class="titlebar-center">
+      <button class="profile-pill no-drag" id="profilePill" title="Profil et instance (onglet Profils)">
+        <svg class="icon"><use href="#i-users"/></svg>
+        <span id="pillProfile">MyVillage</span>
+        <span class="sep"></span>
+        <span class="muted" id="pillInstance">BlueStacks5 · Pie64</span>
+      </button>
+      <div class="status-pill" id="statusPill" data-state="off"><span class="dot"></span><span id="statusText">Bot fermé</span></div>
+      <span class="demo-tag" id="demoTag" hidden>Démo</span>
+    </div>
+  </header>
+
+  <div class="shell">
+    <nav class="sidebar" id="nav">
+      <div class="nav-group">Pilotage</div>
+      <button data-page="dashboard" class="active"><svg class="icon"><use href="#i-grid"/></svg><span>Tableau de bord</span><kbd>1</kbd></button>
+      <button data-page="log"><svg class="icon"><use href="#i-terminal"/></svg><span>Journal</span><span class="nav-badge" id="navErrors" hidden>0</span><kbd>2</kbd></button>
+      <div class="nav-group">Configuration</div>
+      <button data-page="village"><svg class="icon"><use href="#i-home"/></svg><span>Village</span><kbd>3</kbd></button>
+      <button data-page="army"><svg class="icon"><use href="#i-shield"/></svg><span>Armée</span><kbd>4</kbd></button>
+      <button data-page="attack"><svg class="icon"><use href="#i-swords"/></svg><span>Attaque</span><kbd>5</kbd></button>
+      <button data-page="strategies"><svg class="icon"><use href="#i-book"/></svg><span>Stratégies</span><kbd>6</kbd></button>
+      <button data-page="notify"><svg class="icon"><use href="#i-bell"/></svg><span>Notifications</span><kbd>7</kbd></button>
+      <button data-page="bot"><svg class="icon"><use href="#i-cpu"/></svg><span>Bot</span><kbd>8</kbd></button>
+      <div class="nav-group">Application</div>
+      <button data-page="profiles"><svg class="icon"><use href="#i-users"/></svg><span>Profils</span><kbd>9</kbd></button>
+      <button data-page="settings"><svg class="icon"><use href="#i-sliders"/></svg><span>Réglages</span><kbd>0</kbd></button>
+
+      <div class="sidebar-foot">
+        <div class="mini-status">
+          <span class="label">Run en cours depuis</span>
+          <strong id="uptime">—</strong>
+        </div>
+        <div class="mini-actions">
+          <button class="icon-btn" id="miniStart" title="Démarrer le run"><svg class="icon"><use href="#i-play"/></svg></button>
+          <button class="icon-btn" id="miniPause" title="Pause / reprendre"><svg class="icon"><use href="#i-pause"/></svg></button>
+          <button class="icon-btn" id="miniStop" title="Arrêter le run"><svg class="icon"><use href="#i-stop"/></svg></button>
+        </div>
+      </div>
+    </nav>
+
+    <main id="main">
+      <!-- ============================================ TABLEAU DE BORD ============================================ -->
+      <section class="page active" id="page-dashboard">
+        <div class="page-head">
+          <div>
+            <h1>Tableau de bord</h1>
+            <p class="sub">État du bot, ressources du village et activité de la session.</p>
+          </div>
+        </div>
+
+        <div class="banner" id="setupBanner" hidden>
+          <svg class="icon"><use href="#i-folder"/></svg>
+          <div>
+            <strong>Dossier du bot introuvable</strong>
+            <span>Indiquez le dossier qui contient <code>MyBot.run.exe</code> pour piloter le bot et suivre son journal.</span>
+          </div>
+          <div class="banner-actions">
+            <button class="btn btn-primary" id="bannerPick">Choisir le dossier</button>
+            <button class="btn" id="bannerDemo">Voir la démo</button>
+          </div>
+        </div>
+
+        <div class="grid-hero">
+          <article class="card hero" id="heroCard">
+            <div class="hero-top">
+              <div class="hero-status">
+                <div class="orb" id="orb"><svg class="icon"><use href="#i-power"/></svg></div>
+                <div>
+                  <div class="eyebrow">Bot</div>
+                  <div class="hero-title" id="heroState">Bot fermé</div>
+                  <div class="hero-meta"><span id="heroProfile">MyVillage</span> · <span id="heroInstance">BlueStacks5 · Pie64</span></div>
+                </div>
+              </div>
+              <div class="hero-secondary">
+                <button class="btn" id="btnLaunch"><svg class="icon"><use href="#i-window"/></svg>Ouvrir le bot</button>
+                <button class="btn btn-danger" id="btnClose"><svg class="icon"><use href="#i-power"/></svg>Fermer le bot</button>
+              </div>
+            </div>
+            <div class="hero-actions">
+              <button class="btn btn-primary btn-lg" id="btnStart"><svg class="icon"><use href="#i-play"/></svg>Démarrer</button>
+              <button class="btn btn-lg" id="btnPause"><svg class="icon"><use href="#i-pause"/></svg><span>Pause</span></button>
+              <button class="btn btn-lg" id="btnStop"><svg class="icon"><use href="#i-stop"/></svg>Arrêter</button>
+            </div>
+            <p class="hero-note" id="heroNote"></p>
+          </article>
+
+          <article class="card session">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-activity"/></svg>Session</h2><span class="muted small" id="sessionSince">—</span></div>
+            <div class="kpis">
+              <div class="kpi"><span class="kpi-value" id="kpiSearches">0</span><span class="kpi-label">Recherches</span></div>
+              <div class="kpi"><span class="kpi-value" id="kpiAttacks">0</span><span class="kpi-label">Attaques</span></div>
+              <div class="kpi warn"><span class="kpi-value" id="kpiWarnings">0</span><span class="kpi-label">Avertissements</span></div>
+              <div class="kpi err"><span class="kpi-value" id="kpiErrors">0</span><span class="kpi-label">Erreurs</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="resources" id="resources"></div>
+
+        <article class="card">
+          <div class="card-head">
+            <h2><svg class="icon"><use href="#i-terminal"/></svg>Derniers messages</h2>
+            <button class="btn btn-ghost btn-sm" data-goto="log">Tout le journal</button>
+          </div>
+          <div class="log mini" id="miniLog"></div>
+        </article>
+      </section>
+
+      <!-- ================================================ JOURNAL ================================================ -->
+      <section class="page" id="page-log">
+        <div class="page-head">
+          <div>
+            <h1>Journal</h1>
+            <p class="sub" id="logFileName">Suivi en direct de Profiles\&lt;profil&gt;\Logs</p>
+          </div>
+          <div class="head-actions">
+            <div class="segmented" id="logKind">
+              <button class="active" data-kind="bot"><svg class="icon"><use href="#i-terminal"/></svg>Bot</button>
+              <button data-kind="attack"><svg class="icon"><use href="#i-swords"/></svg>Attaques</button>
+            </div>
+            <button class="btn" id="logOpenFolder"><svg class="icon"><use href="#i-folder"/></svg>Dossier</button>
+            <button class="btn" id="logClear"><svg class="icon"><use href="#i-trash"/></svg>Vider</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="chips" id="logFilters">
+            <button class="chip active" data-level="all">Tout</button>
+            <button class="chip" data-level="info">Info</button>
+            <button class="chip lvl-success" data-level="success">Succès</button>
+            <button class="chip lvl-warn" data-level="warn">Avertissements</button>
+            <button class="chip lvl-error" data-level="error">Erreurs</button>
+            <button class="chip lvl-debug" data-level="debug">Debug</button>
+          </div>
+          <label class="search">
+            <svg class="icon"><use href="#i-search"/></svg>
+            <input type="search" id="logSearch" placeholder="Rechercher dans le journal">
+          </label>
+          <button class="btn btn-sm toggle-btn active" id="logAutoscroll" title="Suivre les nouvelles lignes"><svg class="icon"><use href="#i-down"/></svg>Suivi auto</button>
+        </div>
+        <div class="card log-card">
+          <div class="log" id="log"></div>
+        </div>
+      </section>
+
+      <!-- ============================================= STRATEGIES ============================================= -->
+      <!-- les pages Village, Armee, Attaque, Notifications et Bot sont construites par form-engine.js a partir de forms/*.js -->
+      <section class="page" id="page-strategies">
+        <div class="page-head">
+          <div>
+            <h1>Stratégies</h1>
+            <p class="sub">Un jeu complet de réglages d'armée, de recherche et d'attaque, à charger dans le profil ou à garder pour plus tard.</p>
+          </div>
+          <div class="head-actions"><button class="btn" id="strategiesFolder"><svg class="icon"><use href="#i-folder"/></svg>Dossier</button></div>
+        </div>
+        <div class="form-grid">
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-book"/></svg>Charger une stratégie</h2><span class="muted small" id="strategyCount"></span></div>
+            <div class="strategy-list" id="strategyList"></div>
+            <div class="strategy-info" id="strategyInfo" hidden>
+              <pre id="strategyNotes"></pre>
+              <div class="card-foot">
+                <button class="btn btn-danger" id="strategyDelete"><svg class="icon"><use href="#i-trash"/></svg>Supprimer</button>
+                <button class="btn btn-primary" id="strategyLoad"><svg class="icon"><use href="#i-upload"/></svg>Charger dans le profil</button>
+              </div>
+            </div>
+            <p class="field-info"><svg class="icon"><use href="#i-info"/></svg><span>Charger remplace les réglages Armée, Recherche &amp; attaque, Fin de combat, Collecteurs, Ordre de déploiement, SmartZap et plannings du profil. Le reste (dons, améliorations, notifications…) ne change pas.</span></p>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-save"/></svg>Enregistrer les réglages actuels</h2></div>
+            <div class="field"><label for="strategyName">Nom de la stratégie</label><input id="strategyName" spellcheck="false"></div>
+            <div class="field"><label for="strategyNewNotes">Notes</label><textarea id="strategyNewNotes" rows="8" placeholder="Armée, cible, remarques…"></textarea></div>
+            <div class="card-foot"><button class="btn btn-primary" id="strategySave"><svg class="icon"><use href="#i-save"/></svg>Enregistrer la stratégie</button></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================================================ PROFILS ================================================ -->
+      <section class="page" id="page-profiles">
+        <div class="page-head">
+          <div>
+            <h1>Profils</h1>
+            <p class="sub">Le profil, l'émulateur et l'instance que ce GUI pilote, comme les arguments du .bat.</p>
+          </div>
+          <div class="head-actions"><button class="btn" id="profilesRefresh"><svg class="icon"><use href="#i-undo"/></svg>Actualiser</button></div>
+        </div>
+        <div class="form-grid">
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-window"/></svg>Lancement</h2></div>
+            <div class="field">
+              <label for="setProfile">Profil</label>
+              <input id="setProfile" list="profileList" spellcheck="false">
+              <datalist id="profileList"></datalist>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="setEmulator">Émulateur</label>
+                <select id="setEmulator">
+                  <option>BlueStacks5</option>
+                  <option>MEmu</option>
+                  <option>Nox</option>
+                  <option value="Generic">Generic (ADB, Linux)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="setInstance">Instance</label>
+                <input id="setInstance" spellcheck="false">
+              </div>
+            </div>
+            <div class="switch-list" id="switchList"></div>
+            <div class="cmdline"><span class="muted small">Ligne de commande</span><code id="cmdPreview"></code></div>
+            <div class="card-foot"><button class="btn btn-primary" id="saveLaunch"><svg class="icon"><use href="#i-save"/></svg>Enregistrer</button></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-users"/></svg>Profils trouvés</h2><span class="muted small">Profiles\</span></div>
+            <div class="profile-list" id="profileCards"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-plus"/></svg>Gérer les profils</h2></div>
+            <div class="field"><label for="profileNewName">Nom</label><input id="profileNewName" spellcheck="false" placeholder="MonVillage2"></div>
+            <div class="card-foot wrap">
+              <button class="btn" id="profileCreate"><svg class="icon"><use href="#i-plus"/></svg>Nouveau vide</button>
+              <button class="btn" id="profileDuplicate"><svg class="icon"><use href="#i-copy"/></svg>Copier le profil actif</button>
+              <button class="btn" id="profileRename"><svg class="icon"><use href="#i-edit"/></svg>Renommer le profil actif</button>
+            </div>
+            <div class="card-foot">
+              <button class="btn btn-danger" id="profileDelete"><svg class="icon"><use href="#i-trash"/></svg>Supprimer le profil actif</button>
+            </div>
+            <p class="field-info"><svg class="icon"><use href="#i-info"/></svg><span>« Copier » reprend les réglages du profil actif, comme le bouton + du bot. Renommer et supprimer ne marchent que bot fermé.</span></p>
+          </article>
+        </div>
+      </section>
+
+      <!-- =============================================== REGLAGES =============================================== -->
+      <section class="page" id="page-settings">
+        <div class="page-head">
+          <div>
+            <h1>Réglages</h1>
+            <p class="sub">Réglages de cette interface (pas du bot).</p>
+          </div>
+        </div>
+        <div class="form-grid">
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-folder"/></svg>Dossier du bot</h2><span class="tag" id="botDirTag">—</span></div>
+            <div class="path-box"><code id="botDirPath">Non défini</code></div>
+            <div class="card-foot">
+              <button class="btn" id="openBotDir"><svg class="icon"><use href="#i-folder"/></svg>Ouvrir</button>
+              <button class="btn btn-primary" id="pickBotDir">Parcourir…</button>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-sun"/></svg>Apparence</h2></div>
+            <div class="field">
+              <label>Thème</label>
+              <div class="segmented" id="themeSeg">
+                <button data-theme="dark"><svg class="icon"><use href="#i-moon"/></svg>Sombre</button>
+                <button data-theme="light"><svg class="icon"><use href="#i-sun"/></svg>Clair</button>
+                <button data-theme="system"><svg class="icon"><use href="#i-monitor"/></svg>Système</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Couleur d'accent</label>
+              <div class="swatches" id="accentSwatches"></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-info"/></svg>À propos</h2></div>
+            <dl class="about" id="aboutList"></dl>
+            <p class="muted small">Le bot tourne en administrateur : pour qu'il accepte les commandes de ce GUI (démarrer, pause, fermer…), lancez aussi le GUI en administrateur.</p>
+          </article>
+        </div>
+      </section>
+
+      <div class="savebar" id="savebar" hidden>
+        <span><strong id="dirtyCount">0</strong> modification(s) non enregistrée(s)</span>
+        <span class="spacer"></span>
+        <button class="btn" id="discardBtn"><svg class="icon"><use href="#i-undo"/></svg>Annuler</button>
+        <button class="btn btn-primary" id="saveBtn"><svg class="icon"><use href="#i-save"/></svg>Enregistrer</button>
+      </div>
+    </main>
+  </div>
+
+  <footer class="statusbar">
+    <span class="sb-item" id="sbLast">—</span>
+    <span class="spacer"></span>
+    <span class="sb-item"><svg class="icon"><use href="#i-file"/></svg><span id="sbFile">aucun journal</span></span>
+    <span class="sb-item"><svg class="icon"><use href="#i-clock"/></svg><span id="sbClock">—</span></span>
+  </footer>
+
+  <div class="toasts" id="toasts"></div>
+
+  <script src="demo.js"></script>
+  <script src="forms/units.js"></script>
+  <script src="forms/village.js"></script>
+  <script src="forms/army.js"></script>
+  <script src="forms/attack.js"></script>
+  <script src="forms/notify.js"></script>
+  <script src="forms/bot.js"></script>
+  <script src="form-engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
