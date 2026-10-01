@@ -1,6 +1,9 @@
-// Ce qui differe entre Windows et Linux. Sous Windows rien ici ne sert : le GUI garde son fonctionnement d'origine
-// (pont PowerShell, chemins Windows, %APPDATA%). Sous Linux le bot tourne dans Wine : le pont (MyBotBridge.au3) y
-// tourne aussi, par l'AutoIt installe dans le meme prefixe Wine, et les chemins lui sont passes au format Windows.
+// What differs between Windows and Linux. On Windows nothing here is used: the interface keeps its original behaviour
+// (PowerShell bridge, Windows paths, %APPDATA%). On Linux the bot runs in Wine: the bridge runs there too, in the same
+// Wine prefix, and paths are passed to it in Windows form.
+//   - run from the sources, the bridge is MyBotBridge.au3, run by the AutoIt installed in the prefix
+//   - in the installed application (AppImage), it is MyBotBridge.exe, compiled by the release script: AutoIt is not
+//     needed, only a Wine prefix (the one the bot runs in, with .NET 4.8 for MyBot.run.dll)
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -17,37 +20,48 @@ function which(cmd) {
       fs.accessSync(file, fs.constants.X_OK);
       return file;
     } catch {
-      // pas dans ce dossier
+      // not in this folder
     }
   }
   return '';
 }
 
-// le prefixe Wine ou AutoIt est installe : $WINEPREFIX, puis ~/.wine32 (le bot est en 32 bits), puis ~/.wine
-function findPrefix() {
+// the compiled bridge of the installed application, if any
+function bridgeExe() {
+  if (!process.resourcesPath) return '';
+  const file = path.join(process.resourcesPath, 'bridge', 'MyBotBridge.exe');
+  return fs.existsSync(file) ? file : '';
+}
+
+// the Wine prefix: $WINEPREFIX, then ~/.wine32 (the bot is 32-bit), then ~/.wine. Without the compiled bridge, it must
+// hold AutoIt.
+function findPrefix(needAutoIt) {
   const candidates = [process.env.WINEPREFIX, path.join(os.homedir(), '.wine32'), path.join(os.homedir(), '.wine')];
-  return candidates.find((p) => p && fs.existsSync(path.join(p, ...AUTOIT_IN_PREFIX))) ?? '';
+  const usable = (p) => p && fs.existsSync(path.join(p, ...(needAutoIt ? AUTOIT_IN_PREFIX : ['drive_c'])));
+  return candidates.find(usable) ?? '';
 }
 
 let cached;
-// { bin, prefix, autoit } si le bot peut etre pilote sous Linux, sinon null (et toujours null sous Windows)
+// { bin, prefix, bridge: [program, ...args] } when the bot can be driven on Linux, otherwise null (always null on Windows)
 function wine() {
   if (IS_WINDOWS) return null;
   if (cached === undefined) {
     const bin = which('wine');
-    const prefix = bin ? findPrefix() : '';
-    cached = bin && prefix ? { bin, prefix, autoit: AUTOIT_WIN } : null;
+    const exe = bridgeExe();
+    const prefix = bin ? findPrefix(!exe) : '';
+    cached = bin && prefix ? { bin, prefix, bridgeExe: exe } : null;
   }
   return cached;
 }
 
-// ce qu'il manque pour piloter le bot sous Linux, pour le message d'erreur
+// what is missing to drive the bot on Linux, for the error message
 function wineProblem() {
-  if (!which('wine')) return 'Wine est introuvable (installez le paquet wine)';
-  return `AutoIt est introuvable dans le prefixe Wine (${path.join('~', '.wine32', ...AUTOIT_IN_PREFIX)})`;
+  if (!which('wine')) return 'Wine was not found (install the wine package)';
+  if (bridgeExe()) return 'No Wine prefix was found (~/.wine32 or ~/.wine, or set WINEPREFIX)';
+  return `AutoIt was not found in the Wine prefix (${path.join('~', '.wine32', ...AUTOIT_IN_PREFIX)})`;
 }
 
-// chemin Linux -> chemin vu par Wine. Le lecteur Z: de Wine montre la racine "/" : c'est le cas normal. Sinon winepath.
+// Linux path -> the path Wine sees. Wine's Z: drive shows the root "/": the usual case. Otherwise winepath.
 function toWinePath(p, prefix) {
   const abs = path.resolve(p);
   if (fs.existsSync(path.join(prefix, 'dosdevices', 'z:'))) return `Z:${abs.replace(/\//g, '\\')}`;
@@ -55,11 +69,11 @@ function toWinePath(p, prefix) {
   return res.status === 0 ? res.stdout.trim() : abs;
 }
 
-// %APPDATA% tel que le bot le voit : le vrai sous Windows, celui de l'utilisateur Wine sous Linux ('' si inconnu)
+// %APPDATA% as the bot sees it: the real one on Windows, the Wine user's on Linux ('' when unknown)
 function appDataDir() {
   if (IS_WINDOWS) return process.env.APPDATA ?? '';
   const w = wine();
   return w ? path.join(w.prefix, 'drive_c', 'users', os.userInfo().username, 'AppData', 'Roaming') : '';
 }
 
-module.exports = { IS_WINDOWS, wine, wineProblem, toWinePath, appDataDir };
+module.exports = { IS_WINDOWS, AUTOIT_WIN, wine, wineProblem, toWinePath, appDataDir };

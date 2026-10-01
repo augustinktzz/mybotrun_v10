@@ -109,6 +109,7 @@
       <div class="nav-group">Application</div>
       <button data-page="profiles"><svg class="icon"><use href="#i-users"/></svg><span>Profils</span><kbd>9</kbd></button>
       <button data-page="settings"><svg class="icon"><use href="#i-sliders"/></svg><span>Réglages</span><kbd>0</kbd></button>
+      <button data-page="updates"><svg class="icon"><use href="#i-down"/></svg><span>Updates</span><span class="nav-badge accent" id="navUpdate" hidden>!</span></button>
 
       <div class="sidebar-foot">
         <div class="mini-status">
@@ -351,6 +352,61 @@
             <div class="card-head"><h2><svg class="icon"><use href="#i-info"/></svg>À propos</h2></div>
             <dl class="about" id="aboutList"></dl>
             <p class="muted small">Le bot tourne en administrateur : pour qu'il accepte les commandes de ce GUI (démarrer, pause, fermer…), lancez aussi le GUI en administrateur.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================================================ UPDATES ================================================ -->
+      <section class="page" id="page-updates">
+        <div class="page-head">
+          <div>
+            <h1>Updates</h1>
+            <p class="sub">Keep MyBot up to date without going back to GitHub.</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn btn-primary" id="updCheck"><svg class="icon"><use href="#i-undo"/></svg>Check for updates</button>
+          </div>
+        </div>
+        <div class="form-grid">
+          <article class="card" id="updCard">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-down"/></svg>Application</h2><span class="tag" id="updTag">—</span></div>
+            <dl class="about">
+              <dt>Installed version</dt><dd id="updCurrent">—</dd>
+              <dt>Latest version</dt><dd id="updLatest">—</dd>
+              <dt>Last checked</dt><dd id="updChecked">never</dd>
+            </dl>
+            <div class="update-progress" id="updProgress" hidden>
+              <div class="bar"><span id="updBar"></span></div>
+              <span class="muted small" id="updProgressText"></span>
+            </div>
+            <p class="note" id="updNote" hidden></p>
+            <div class="card-foot">
+              <a class="btn btn-ghost" id="updReleases" href="#" target="_blank" rel="noreferrer"><svg class="icon"><use href="#i-book"/></svg>Release notes on GitHub</a>
+              <button class="btn btn-primary" id="updAction" hidden></button>
+            </div>
+          </article>
+          <article class="card" id="updNotesCard" hidden>
+            <div class="card-head"><h2><svg class="icon"><use href="#i-list"/></svg>What's new</h2><span class="tag" id="updNotesVer"></span></div>
+            <pre class="release-notes" id="updNotes"></pre>
+          </article>
+          <article class="card" id="botSyncCard" hidden>
+            <div class="card-head"><h2><svg class="icon"><use href="#i-cpu"/></svg>Bot files</h2><span class="tag" id="botSyncTag">—</span></div>
+            <p class="muted small" id="botSyncText">The bot is kept in step with the application in its own folder; your profiles are never touched.</p>
+            <div class="update-progress" id="botSyncProgress" hidden><div class="bar"><span id="botSyncBar"></span></div><span class="muted small" id="botSyncProgressText"></span></div>
+            <div class="card-foot"><button class="btn" id="botSyncVerify"><svg class="icon"><use href="#i-undo"/></svg>Repair bot files</button></div>
+          </article>
+          <article class="card" id="importCard" hidden>
+            <div class="card-head"><h2><svg class="icon"><use href="#i-users"/></svg>Import old profiles</h2></div>
+            <p class="muted small" id="importText">Profiles from your previous MyBot folder can be brought in once. Your current profiles are kept.</p>
+            <div class="card-foot">
+              <button class="btn btn-ghost" id="importDismiss">Not now</button>
+              <button class="btn btn-primary" id="importRun"><svg class="icon"><use href="#i-upload"/></svg>Import profiles</button>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2><svg class="icon"><use href="#i-sliders"/></svg>Preferences</h2></div>
+            <label class="switch-row"><span>Check for updates automatically</span><input type="checkbox" class="switch" id="updAuto"></label>
+            <label class="switch-row"><span>Include beta versions</span><input type="checkbox" class="switch" id="updBeta"></label>
           </article>
         </div>
       </section>

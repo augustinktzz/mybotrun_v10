@@ -128,7 +128,7 @@ systemDark.addEventListener('change', applyTheme);
 // ---------------------------------------------------------------------------------------------------------------------
 // navigation
 // ---------------------------------------------------------------------------------------------------------------------
-const PAGES = ['dashboard', 'log', 'village', 'army', 'attack', 'strategies', 'notify', 'bot', 'profiles', 'settings'];
+const PAGES = ['dashboard', 'log', 'village', 'army', 'attack', 'strategies', 'notify', 'bot', 'profiles', 'settings', 'updates'];
 
 function confirmLeave() {
   return !FormEngine.dirty().length || confirm('Des modifications ne sont pas enregistrées. Les abandonner ?');
@@ -145,7 +145,143 @@ async function go(page) {
   if (FormEngine.has(page)) await FormEngine.load(page);
   if (page === 'strategies') renderStrategies();
   if (page === 'profiles') renderProfiles();
+  if (page === 'updates') renderUpdates();
   if (page === 'log') scrollLogToEnd();
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// updates (application + bot files)
+// ---------------------------------------------------------------------------------------------------------------------
+function formatBytes(n) {
+  if (!n) return '0 B';
+  const u = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.min(u.length - 1, Math.floor(Math.log(n) / Math.log(1024)));
+  return `${(n / 1024 ** i).toFixed(i ? 1 : 0)} ${u[i]}`;
+}
+
+const UPDATE_TAG = {
+  idle: ['Up to date', 'ok'],
+  checking: ['Checking…', ''],
+  latest: ['Up to date', 'ok'],
+  available: ['Update available', 'accent'],
+  downloading: ['Downloading…', 'accent'],
+  downloaded: ['Ready to install', 'accent'],
+  error: ['Check failed', 'bad'],
+};
+
+function onUpdateState(st) {
+  app.update = st;
+  if (st.sync) app.sync = st.sync;
+  const avail = st.phase === 'available' || st.phase === 'downloaded';
+  const badge = $('#navUpdate');
+  if (badge) badge.hidden = !avail;
+  if (app.page === 'updates') renderUpdates();
+}
+
+function onBotSyncState(sync) {
+  app.sync = sync;
+  if (app.page === 'updates') renderUpdates();
+}
+
+async function refreshUpdates() {
+  const st = await guard(() => backend.updateState());
+  if (st) onUpdateState(st);
+}
+
+function renderUpdates() {
+  const u = app.update ?? { phase: 'idle', current: app.info?.version };
+  const [tagText, tagKind] = UPDATE_TAG[u.phase] ?? ['—', ''];
+  $('#updTag').textContent = tagText;
+  $('#updTag').className = `tag ${tagKind}`;
+  $('#updCurrent').textContent = u.current ?? app.info?.version ?? '—';
+  $('#updLatest').textContent = u.version ? `v${u.version.replace(/^v/, '')}` : u.phase === 'latest' ? 'none newer' : '—';
+  $('#updChecked').textContent = u.checkedAt ? new Date(u.checkedAt).toLocaleString() : 'never';
+  $('#updReleases').href = u.releasesPage ?? '#';
+  $('#updCheck').disabled = ['checking', 'downloading'].includes(u.phase);
+
+  const prog = $('#updProgress');
+  prog.hidden = u.phase !== 'downloading';
+  if (u.phase === 'downloading') {
+    $('#updBar').style.width = `${Math.round(u.percent ?? 0)}%`;
+    $('#updProgressText').textContent = `${Math.round(u.percent ?? 0)}% — ${formatBytes(u.transferred)} / ${formatBytes(u.total)}`;
+  }
+
+  const note = $('#updNote');
+  if (u.phase === 'error') {
+    note.hidden = false;
+    note.textContent = u.error ?? 'Update check failed.';
+  } else if (!u.installed && u.phase === 'available') {
+    note.hidden = false;
+    note.textContent = 'Running from source: open the GitHub release to update. The installed app updates itself.';
+  } else note.hidden = true;
+
+  const action = $('#updAction');
+  if (u.installed && u.phase === 'available') setBtn(action, 'Download update', 'i-down', () => guard(() => backend.downloadUpdate()));
+  else if (u.phase === 'downloaded') setBtn(action, 'Restart & install', 'i-power', installUpdate);
+  else action.hidden = true;
+
+  const notes = $('#updNotesCard');
+  notes.hidden = !u.notes;
+  if (u.notes) {
+    $('#updNotes').textContent = u.notes;
+    $('#updNotesVer').textContent = u.version ? `v${u.version.replace(/^v/, '')}` : '';
+  }
+
+  renderBotSync();
+  renderImport();
+}
+
+function setBtn(btn, label, iconId, onClick) {
+  btn.hidden = false;
+  btn.disabled = false;
+  btn.innerHTML = `${icon(iconId)}${label}`;
+  btn.onclick = onClick;
+}
+
+async function installUpdate() {
+  let closeBots = false;
+  if (app.bot && !['off', 'error', 'unsupported'].includes(app.bot.state)) {
+    if (!confirm('A bot is open. It must be closed to install the update. Close it and install now?')) return;
+    closeBots = true;
+  }
+  await guard(() => backend.installUpdate(closeBots));
+}
+
+function renderBotSync() {
+  const card = $('#botSyncCard');
+  if (!app.info?.packaged) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  const s = app.sync ?? { phase: 'idle' };
+  const map = {
+    idle: ['Up to date', 'ok'],
+    waiting: ['Waiting for the bot to close', 'accent'],
+    copying: ['Updating…', 'accent'],
+    done: ['Updated', 'ok'],
+    error: ['Failed', 'bad'],
+  };
+  const [text, kind] = map[s.phase] ?? ['—', ''];
+  $('#botSyncTag').textContent = text;
+  $('#botSyncTag').className = `tag ${kind}`;
+  const prog = $('#botSyncProgress');
+  prog.hidden = s.phase !== 'copying';
+  if (s.phase === 'copying') {
+    const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
+    $('#botSyncBar').style.width = `${pct}%`;
+    $('#botSyncProgressText').textContent = `${pct}% — ${s.done}/${s.total} files`;
+  }
+  if (s.phase === 'waiting') $('#botSyncText').textContent = 'A bot is open: close it so its files can be updated. This happens automatically once it is closed.';
+  else if (s.phase === 'error') $('#botSyncText').textContent = s.error ?? 'Some bot files could not be updated.';
+  else $('#botSyncText').textContent = 'The bot is kept in step with the application in its own folder; your profiles are never touched.';
+  $('#botSyncVerify').disabled = s.phase === 'copying';
+}
+
+function renderImport() {
+  const card = $('#importCard');
+  card.hidden = !app.info?.legacyBotDir;
+  if (app.info?.legacyBotDir) $('#importText').textContent = `Profiles from your previous MyBot folder (${app.info.legacyBotDir}) can be brought in once. Your current profiles are kept.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -614,6 +750,11 @@ function setInfo(info) {
   ];
   $('#aboutList').innerHTML = about.map(([k]) => `<dt>${k}</dt><dd></dd>`).join('');
   $$('#aboutList dd').forEach((dd, i) => (dd.textContent = about[i][1]));
+  const upd = info.settings.updates ?? {};
+  $('#updAuto').checked = upd.autoCheck !== false;
+  $('#updBeta').checked = Boolean(upd.beta);
+  renderImport();
+  renderBotSync();
   setBotState(app.bot);
 }
 
@@ -724,6 +865,23 @@ function wire() {
   });
   $('#profilesRefresh').addEventListener('click', renderProfiles);
 
+  $('#updCheck').addEventListener('click', () => guard(() => backend.checkUpdate()));
+  $('#updAuto').addEventListener('change', (e) => guard(() => backend.setUpdateOptions({ autoCheck: e.target.checked })));
+  $('#updBeta').addEventListener('change', (e) => guard(() => backend.setUpdateOptions({ beta: e.target.checked })).then(() => backend.checkUpdate?.()));
+  $('#botSyncVerify').addEventListener('click', async () => {
+    let closeBots = false;
+    if (app.bot && !['off', 'error', 'unsupported'].includes(app.bot.state)) {
+      if (!confirm('A bot is open. Close it to repair the bot files?')) return;
+      closeBots = true;
+    }
+    guard(() => backend.syncBot({ verify: true, closeBots }), 'Bot files checked');
+  });
+  $('#importRun').addEventListener('click', async () => {
+    const res = await guard(() => backend.importProfiles(), 'Profiles imported');
+    if (res) toast(`${res.profiles?.length ?? 0} profile(s) imported`, 'success');
+  });
+  $('#importDismiss').addEventListener('click', () => guard(() => backend.dismissImport()));
+
   // Ctrl+1 a Ctrl+9 puis Ctrl+0 : les pages dans l'ordre du menu ; Ctrl+S : enregistrer
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && /^[0-9]$/.test(e.key)) {
@@ -758,8 +916,12 @@ async function connect() {
     backend.onAttackLog(appendAttackLog),
     backend.onLogFile(showLogFile),
     backend.onState(setBotState),
+    backend.onUpdate?.(onUpdateState),
+    backend.onBotSync?.(onBotSyncState),
+    backend.onInfo?.((i) => setInfo(i)),
   ];
   setBotState(await backend.state());
+  refreshUpdates();
   app.connected = true;
 }
 

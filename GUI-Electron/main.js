@@ -1,6 +1,5 @@
-// Processus principal : la fenetre, les reglages de l'interface, et tout ce qui touche au disque et au bot
-// (journaux, fichiers .ini des profils, strategies, lancement et commandes). La page (renderer/) n'y accede que par
-// preload.js.
+// Main process: the window, the interface's settings, and everything that touches the disk and the bot (logs, profile
+// .ini files, strategies, launch and commands, updates). The page (renderer/) reaches them only through preload.js.
 const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -8,12 +7,20 @@ const { Settings } = require('./lib/settings');
 const { LogTail, parseAttackLine, ATTACK_LOG_NAME } = require('./lib/log-tail');
 const { BotBridge, botExecutable } = require('./lib/bot');
 const { ProfileStore } = require('./lib/profile-store');
+const { BotInstall, hasProfiles } = require('./lib/bot-install');
+const { Updater } = require('./lib/updater');
 
 const DEMO = process.argv.includes('--demo');
-const HISTORY = 1500; // lignes de journal gardees pour une page rechargee
+const HISTORY = 1500; // log lines kept for a reloaded page
+
+// the settings stay where the first versions of this interface kept them (%APPDATA%\MyBot GUI), whatever the product
+// is called now: an update must not lose them
+app.setPath('userData', path.join(app.getPath('appData'), 'MyBot GUI'));
 
 let win = null;
 let settings = null;
+let updater = null;
+let install = null; // the bot inside the installed application (null when run from the sources)
 let pollTimer = null;
 let lastState = { state: 'off' };
 let logFile = '';
@@ -25,18 +32,13 @@ const bridge = new BotBridge(path.join(__dirname, 'bridge', 'MyBotBridge.ps1'));
 const store = new ProfileStore(() => settings.get());
 
 // ---------------------------------------------------------------------------------------------------------------------
-// dossiers du bot
+// bot folders
 // ---------------------------------------------------------------------------------------------------------------------
 const isBotDir = (dir) => Boolean(dir) && botExecutable(dir) !== '';
 
-// le dossier choisi, sinon celui qui contient l'interface (GUI-Electron\ pose dans le dossier du bot, ou l'exe portable)
+// run from the sources: the chosen folder, otherwise the one holding the interface (GUI-Electron\ inside the bot folder)
 function detectBotDir() {
-  const candidates = [
-    settings.get().botDir,
-    process.env.PORTABLE_EXECUTABLE_DIR,
-    process.env.PORTABLE_EXECUTABLE_DIR && path.dirname(process.env.PORTABLE_EXECUTABLE_DIR),
-    path.dirname(app.getAppPath()),
-  ];
+  const candidates = [settings.get().botDir, path.dirname(app.getAppPath())];
   return candidates.find(isBotDir) ?? '';
 }
 
@@ -53,7 +55,7 @@ function paths() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// journal et etat du bot
+// log and bot state
 // ---------------------------------------------------------------------------------------------------------------------
 function send(channel, payload) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
@@ -94,8 +96,8 @@ let polling = false;
 let launchedAt = 0;
 let linkedBotPid = 0;
 
-// le bot n'a plus de fenetre a lui, ce GUI est son interface : on se declare tant qu'il demarre, puis une fois par bot
-// deja lance (interface rouverte pendant qu'il tourne, ou bot lance par MultiBot ou relance par le Watchdog)
+// the bot has no window of its own, this interface is its window: register while it starts, then once per bot already
+// running (interface reopened while it runs, or bot launched by MultiBot or restarted by the Watchdog)
 async function linkBot(st) {
   if (!st.hwnd) return;
   const starting = st.state === 'noanswer' || st.state === 'starting';
@@ -104,7 +106,7 @@ async function linkBot(st) {
     await bridge.registerGui(st.hwnd, !starting);
     if (!starting) linkedBotPid = st.pid;
   } catch {
-    // reessaye au prochain tour
+    // retried on the next round
   }
 }
 async function pollState() {
@@ -114,7 +116,7 @@ async function pollState() {
     const { profile, instance } = settings.get();
     lastState = await bridge.state(profile, instance);
     await linkBot(lastState);
-    // le bot met un moment a creer sa fenetre : juste apres un lancement, "pas de fenetre" veut dire "demarre encore"
+    // the bot takes a while to create its window: right after a launch, "no window" means "still starting"
     if (lastState.state !== 'off') launchedAt = 0;
     else if (Date.now() - launchedAt < 90000) lastState = { state: 'starting' };
   } catch (err) {
@@ -123,6 +125,43 @@ async function pollState() {
     polling = false;
   }
   send('bot:state', lastState);
+  if (botSync.phase === 'waiting' && lastState.state === 'off') resumeSync();
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// the bot of the installed application: copied into its folder, and kept in step with each update
+// ---------------------------------------------------------------------------------------------------------------------
+let botSync = { phase: 'idle' }; // idle | waiting (a bot runs: its files are locked) | copying | done | error
+
+function setSync(next) {
+  botSync = next;
+  send('bot:sync', botSync);
+  return botSync;
+}
+
+async function syncBot({ verify = false } = {}) {
+  if (!install || botSync.phase === 'copying') return botSync;
+  const status = install.status();
+  if (!status.needsSync && !verify) return setSync({ phase: 'idle' });
+  if (await bridge.anyRunning().catch(() => false)) return setSync({ phase: 'waiting', version: status.bundledVersion });
+  const version = status.bundledVersion;
+  setSync({ phase: 'copying', version, done: 0, total: 0 });
+  try {
+    const res = await install.sync({ verify, onProgress: (done, total) => setSync({ phase: 'copying', version, done, total }) });
+    setSync({ phase: 'done', version, copied: res.copied, removed: res.removed, kept: res.kept });
+  } catch (err) {
+    setSync({ phase: 'error', version, error: err.message });
+  }
+  restartWatchers();
+  send('info:changed', info());
+  return botSync;
+}
+
+let lastResume = 0;
+function resumeSync() {
+  if (Date.now() - lastResume < 10000) return;
+  lastResume = Date.now();
+  syncBot();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -138,6 +177,10 @@ function info() {
     botFound: isBotDir(s.botDir),
     logFile,
     settings: s,
+    packaged: Boolean(install),
+    bot: install ? install.status() : null,
+    // the bot folder used before the installed application, while it still has profiles to import
+    legacyBotDir: install && s.legacyBotDir && hasProfiles(s.legacyBotDir) ? s.legacyBotDir : '',
   };
 }
 
@@ -152,25 +195,26 @@ ipcMain.handle('settings:set', (_e, patch) => {
 });
 
 ipcMain.handle('dialog:botDir', async () => {
+  if (install) return { ...info(), error: 'The installed application keeps the bot in its own folder' };
   const res = await dialog.showOpenDialog(win, {
-    title: 'Dossier de MyBot (celui qui contient MyBot.run.exe)',
+    title: 'MyBot folder (the one that holds MyBot.run.exe)',
     properties: ['openDirectory'],
     defaultPath: settings.get().botDir || app.getPath('desktop'),
   });
   if (res.canceled || !res.filePaths[0]) return { ...info(), canceled: true };
   const dir = res.filePaths[0];
-  if (!isBotDir(dir)) return { ...info(), error: `MyBot.run.exe (ou MyBot.run.au3) introuvable dans ${dir}` };
+  if (!isBotDir(dir)) return { ...info(), error: `MyBot.run.exe (or MyBot.run.au3) was not found in ${dir}` };
   settings.set({ botDir: dir });
   restartWatchers();
   return info();
 });
 
-// le bot reecrit tous ses .ini quand il enregistre (a la fermeture notamment) : une modification faite pendant qu'il
-// est ouvert serait perdue
-const CLOSE_FIRST = "Fermez d'abord le bot de ce profil : il reecrit ses reglages en quittant.";
+// the bot rewrites all its .ini files when it saves (when it closes, notably): a change made while it is open would be
+// lost
+const CLOSE_FIRST = 'Close the bot of this profile first: it rewrites its settings when it quits.';
 const botOpen = () => !['off', 'error'].includes(lastState.state);
 
-// le bot d'un autre profil que celui pilote : sa fenetre, s'il est ouvert
+// the bot of another profile than the driven one: its window, if it is open
 async function otherBotOpen(profile) {
   if (profile.toLowerCase() === settings.get().profile.toLowerCase()) return botOpen();
   if (!bridge.supported || DEMO) return false;
@@ -211,7 +255,7 @@ ipcMain.handle(
 ipcMain.handle(
   'profiles:rename',
   guarded(async (_e, { from, to }) => {
-    if (await otherBotOpen(from)) throw new Error(`Fermez d'abord le bot du profil ${from}`);
+    if (await otherBotOpen(from)) throw new Error(`Close the bot of the profile ${from} first`);
     const name = store.renameProfile(from, to);
     if (from.toLowerCase() === settings.get().profile.toLowerCase()) {
       settings.set({ profile: name });
@@ -224,13 +268,38 @@ ipcMain.handle(
 ipcMain.handle(
   'profiles:delete',
   guarded(async (_e, name) => {
-    if (await otherBotOpen(name)) throw new Error(`Fermez d'abord le bot du profil ${name}`);
+    if (await otherBotOpen(name)) throw new Error(`Close the bot of the profile ${name} first`);
     store.deleteProfile(name);
     if (name.toLowerCase() === settings.get().profile.toLowerCase()) {
       const next = store.listProfiles().find((p) => p.hasConfig) ?? store.listProfiles()[0];
       settings.set({ profile: next?.name ?? 'MyVillage' });
       restartWatchers();
     }
+  }),
+);
+
+// profiles of another bot folder (a bot unzipped from GitHub before the installed application): dir, or one to pick
+ipcMain.handle(
+  'profiles:import',
+  guarded(async (_e, dir) => {
+    if (!install) throw new Error('Importing profiles is for the installed application');
+    if (!dir) {
+      const res = await dialog.showOpenDialog(win, { title: 'Former MyBot folder (the one that holds Profiles)', properties: ['openDirectory'] });
+      if (res.canceled || !res.filePaths[0]) return null;
+      dir = res.filePaths[0];
+    }
+    const result = await install.importFrom(dir);
+    if (path.resolve(dir) === path.resolve(settings.get().legacyBotDir || '.')) settings.set({ legacyBotDir: '' });
+    send('info:changed', info());
+    return result;
+  }),
+);
+
+ipcMain.handle(
+  'profiles:dismissImport',
+  guarded(() => {
+    settings.set({ legacyBotDir: '' });
+    return info();
   }),
 );
 
@@ -255,7 +324,8 @@ ipcMain.handle('lists:get', (_e, kind) => store.list(kind));
 
 ipcMain.handle('bot:launch', async () => {
   const s = settings.get();
-  if (launchedAt && Date.now() - launchedAt < 90000) throw new Error('Le bot est deja en train de demarrer');
+  if (install?.status().needsSync) throw new Error('The bot is being updated: wait for the end of the update (Updates page)');
+  if (launchedAt && Date.now() - launchedAt < 90000) throw new Error('The bot is already starting');
   const res = await bridge.launch({ botDir: s.botDir, profile: s.profile, emulator: s.emulator, instance: s.instance, switches: s.switches });
   launchedAt = Date.now();
   lastState = { state: 'starting' };
@@ -278,20 +348,45 @@ ipcMain.handle('shell:open', (_e, what) => {
   const p = paths();
   const target = { botDir: p.botDir, profile: p.profileDir, logs: p.logs, strategies: p.strategies, scripts: p.scripts }[what];
   if (target && fs.existsSync(target)) return shell.openPath(target);
-  return `Dossier introuvable : ${target}`;
+  return `Folder not found: ${target}`;
 });
 
-// la couleur de la barre de titre suit le theme de la page (boutons natifs reduire / agrandir / fermer)
+// --------------------------------------------------------------------------------------------------- updates
+ipcMain.handle('update:state', () => ({ ...updater.getState(), sync: botSync }));
+ipcMain.handle('update:check', guarded(() => updater.check(false)));
+ipcMain.handle('update:download', guarded(() => updater.download()));
+ipcMain.handle(
+  'update:options',
+  guarded((_e, patch) => {
+    settings.set({ updates: patch });
+    return updater.setOptions(patch);
+  }),
+);
+// the bots are closed first when asked: the new bot is copied into the bot folder at the next start, which a running
+// bot would prevent
+ipcMain.handle(
+  'update:install',
+  guarded(async (_e, { closeBots } = {}) => {
+    if (await bridge.anyRunning().catch(() => false)) {
+      if (!closeBots) throw new Error('A bot is open: it has to be closed for the update');
+      await bridge.closeAll();
+    }
+    updater.install();
+  }),
+);
+ipcMain.handle('bot:sync', guarded((_e, { verify, closeBots } = {}) => (closeBots ? bridge.closeAll() : Promise.resolve()).then(() => syncBot({ verify }))));
+
+// the title bar follows the page's theme (native minimise / maximise / close buttons)
 ipcMain.handle('window:titlebar', (_e, { color, symbolColor }) => {
   try {
     if (win && process.platform !== 'darwin') win.setTitleBarOverlay({ color, symbolColor, height: 44 });
   } catch {
-    // barre de titre native sans overlay (certains bureaux Linux) : rien a recolorer
+    // native title bar without overlay (some Linux desktops): nothing to recolour
   }
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
-// fenetre
+// window
 // ---------------------------------------------------------------------------------------------------------------------
 function createWindow() {
   win = new BrowserWindow({
@@ -301,7 +396,7 @@ function createWindow() {
     minHeight: 640,
     show: false,
     backgroundColor: '#0a0f1c',
-    title: 'MyBot GUI',
+    title: 'MyBot',
     icon: path.join(__dirname, 'renderer', 'assets', 'MyBot.ico'),
     titleBarStyle: 'hidden',
     titleBarOverlay: process.platform === 'darwin' ? true : { color: '#0a0f1c', symbolColor: '#cbd5e1', height: 44 },
@@ -314,7 +409,7 @@ function createWindow() {
   });
   win.removeMenu();
   win.once('ready-to-show', () => win.show());
-  // liens externes dans le navigateur, jamais dans l'appli
+  // external links open in the browser, never in the application
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/.test(url)) shell.openExternal(url);
     return { action: 'deny' };
@@ -334,10 +429,22 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     settings = new Settings(app.getPath('userData'));
-    const dir = detectBotDir();
-    if (dir && dir !== settings.get().botDir) settings.set({ botDir: dir });
+    if (app.isPackaged && !DEMO) {
+      // the bot runs from its own folder; the one used before, from GitHub or from the sources, is offered for import
+      install = new BotInstall(path.join(process.resourcesPath, 'bot'));
+      const { botDir, legacyBotDir } = settings.get();
+      if (botDir && path.resolve(botDir) !== path.resolve(install.botDir) && !legacyBotDir) settings.set({ legacyBotDir: botDir });
+      settings.set({ botDir: install.botDir });
+    } else {
+      const dir = detectBotDir();
+      if (dir && dir !== settings.get().botDir) settings.set({ botDir: dir });
+    }
+    updater = new Updater(app, settings.get().updates);
+    updater.on('state', (st) => send('update:state', { ...st, sync: botSync }));
     createWindow();
     restartWatchers();
+    updater.start();
+    if (install) syncBot();
   });
 
   app.on('window-all-closed', () => {

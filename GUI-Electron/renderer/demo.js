@@ -242,6 +242,40 @@
       return Promise.resolve();
     }
 
+    updateState() {
+      return Promise.resolve({ phase: 'available', installed: true, current: this.realInfo?.version ?? '0.1.0', version: '12.1.0', notes: 'Demo:\n• Faster screen capture\n• New attack options', checkedAt: Date.parse('2026-10-01T12:00:00Z'), releasesPage: 'https://github.com/augustinktzz/mybotrun_v10/releases', options: { autoCheck: true, beta: false }, sync: { phase: 'idle' } });
+    }
+    checkUpdate() {
+      return Promise.resolve({ ok: true, result: null });
+    }
+    downloadUpdate() {
+      return Promise.resolve({ ok: true, result: null });
+    }
+    installUpdate() {
+      return Promise.resolve({ ok: true, result: null });
+    }
+    setUpdateOptions() {
+      return Promise.resolve({ ok: true, result: null });
+    }
+    syncBot() {
+      return Promise.resolve({ ok: true, result: { phase: 'idle' } });
+    }
+    importProfiles() {
+      return Promise.resolve({ ok: true, result: { profiles: [], files: 0, skipped: [] } });
+    }
+    dismissImport() {
+      return Promise.resolve({ ok: true, result: this.info ? this.info() : {} });
+    }
+    onUpdate() {
+      return () => {};
+    }
+    onBotSync() {
+      return () => {};
+    }
+    onInfo() {
+      return () => {};
+    }
+
     onLog(cb) {
       this.listeners.log.push(cb);
       return () => {};
