@@ -22,6 +22,14 @@ Func saveConfig()
 		SetDebugLog("saveConfig(), already running, exit")
 		Return
 	EndIf
+
+	; Never write globals that were not read: a new profile is saved before its settings were ever loaded
+	; (InitializeBotProfile), and the declared values are not the defaults.
+	If Not $g_bConfigLoaded Then
+		SetDebugLog("saveConfig(), settings not read yet, reading the defaults first")
+		readConfig()
+	EndIf
+
 	$g_bSaveConfigIsActive = True
 
 	Local $t = __TimerInit()

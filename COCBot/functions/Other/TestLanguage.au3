@@ -43,6 +43,12 @@ Func TestLanguage()
 		EndIf
 	Next
 	SaveFailureImage("Language")
+	; a black Attack button is a capture problem (emulator window partly off the screen without Background Mode), not
+	; a language: the game was switched to English while it already was, a restart of CoC for nothing
+	If __AttackButtonIsBlack() Then
+		SetLog("Language check skipped: the Attack button is black in the screen capture, not a language problem", $COLOR_ERROR)
+		Return
+	EndIf
 	If Not ChangeLanguage() Then
 		SetLog("Language setting is Wrong: Change CoC language to English!", $COLOR_ERROR)
 		btnStop()
@@ -83,6 +89,20 @@ Func __AttackLabelMatch()
 	Next
 	Return $fBest
 EndFunc   ;==>__AttackLabelMatch
+
+; True when the probe box of the Attack button label is (almost) all black in the capture
+Func __AttackButtonIsBlack()
+	Local Const $iX0 = 20, $iY0 = 694, $iW = 89, $iH = 19 ; same box as __AttackLabelMatch
+	_CaptureRegion()
+	Local $iLit = 0
+	For $y = 0 To $iH - 1 Step 2
+		For $x = 0 To $iW - 1 Step 2
+			Local $iCol = Dec(_GetPixelColor($iX0 + $x, $iY0 + $y, False))
+			If BitAND(BitShift($iCol, 16), 0xFF) + BitAND(BitShift($iCol, 8), 0xFF) + BitAND($iCol, 0xFF) > 60 Then $iLit += 1
+		Next
+	Next
+	Return $iLit < 20 ; out of 450 samples
+EndFunc   ;==>__AttackButtonIsBlack
 
 Func ChangeLanguage()
 	SetLog("Change Language To English", $COLOR_INFO)

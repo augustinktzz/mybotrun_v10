@@ -1174,11 +1174,25 @@ h1 {
 }
 
 /* ------------------------------------------------------------------ formulaires */
+/* les cartes se suivent en colonnes, chacune a la hauteur de son contenu : une grille donnait a chaque rangee la
+   hauteur de sa carte la plus haute et laissait un vide sous les autres */
 .form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 16px;
-  align-items: start;
+  columns: 360px;
+  column-gap: 16px;
+}
+
+.form-grid > * {
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.tab-panel.form-grid.active {
+  display: block;
+}
+
+.form-grid > .wide,
+.form-grid > .card-wide {
+  column-span: all;
 }
 
 .fields {

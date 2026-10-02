@@ -135,6 +135,7 @@ Func _CaptureGameScreen(ByRef $_hHBitmap, Const $iLeft = 0, Const $iTop = 0, Con
 			EndIf
 		Else
 			getBSPos()
+			__WarnAndroidOffScreen($iL + $g_aiBSpos[0], $iT + $g_aiBSpos[1], $iR + $g_aiBSpos[0], $iB + $g_aiBSpos[1])
 			$SuspendMode = ResumeAndroid(False)
 			$_hHBitmap = _ScreenCapture_Capture("", $iL + $g_aiBSpos[0], $iT + $g_aiBSpos[1], $iR + $g_aiBSpos[0] - 1, $iB + $g_aiBSpos[1] - 1, False)
 			SuspendAndroid($SuspendMode, False)
@@ -166,6 +167,20 @@ Func _CaptureGameScreen(ByRef $_hHBitmap, Const $iLeft = 0, Const $iTop = 0, Con
 
 	$g_bForceCapture = False
 EndFunc   ;==>_CaptureGameScreen
+
+; Without Background Mode the game is captured from the screen: the part of the emulator window outside the desktop
+; comes back black, and the bot misreads everything there (the language check on the Attack button, the scenery stone
+; that measures the village, so every zoom out ends in "Try secondary village measuring"). Said every 10 minutes.
+Func __WarnAndroidOffScreen($iLeft, $iTop, $iRight, $iBottom)
+	Static $hLastWarning = 0
+	Local $iX = _WinAPI_GetSystemMetrics(76), $iY = _WinAPI_GetSystemMetrics(77) ; SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN
+	Local $iW = _WinAPI_GetSystemMetrics(78), $iH = _WinAPI_GetSystemMetrics(79) ; SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN
+	If $iLeft >= $iX And $iTop >= $iY And $iRight <= $iX + $iW And $iBottom <= $iY + $iH Then Return
+	If $hLastWarning <> 0 And __TimerDiff($hLastWarning) < 600000 Then Return
+	$hLastWarning = __TimerInit()
+	SetLog($g_sAndroidEmulator & " window is partly off the screen: without Background Mode that part of the game is captured black", $COLOR_ERROR)
+	SetLog("Move the window back on the screen, or turn on Bot > Options > Background Mode", $COLOR_ERROR)
+EndFunc   ;==>__WarnAndroidOffScreen
 
 ; #FUNCTION# ====================================================================================================================
 ; Name ..........: _CaptureDispose

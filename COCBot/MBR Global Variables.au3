@@ -465,6 +465,7 @@ Global $g_sProfileSecondaryOutputFileName = ""
 Global $g_asProfiles[0] ; Array String of available profiles, initialized in func setupProfileComboBox()
 Global $g_bReadConfigIsActive = False
 Global $g_bSaveConfigIsActive = False
+Global $g_bConfigLoaded = False ; readConfig() ran once: until then the globals hold their declared values, not the settings
 Global $g_bApplyConfigIsActive = False
 
 ; Logging

@@ -32,6 +32,12 @@ async function sha256Async(file) {
   return crypto.createHash('sha256').update(await fsp.readFile(file)).digest('hex');
 }
 
+// same files with the same SHA-256 in two manifests
+function sameFiles(a = {}, b = {}) {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((rel) => a[rel] === b[rel]);
+}
+
 function readJson(file) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -85,9 +91,14 @@ class BotInstall {
   }
 
   status() {
-    const bundled = this.bundled?.version ?? '';
-    const installed = this.installed?.version ?? '';
-    return { botDir: this.botDir, bundledVersion: bundled, installedVersion: installed, needsSync: Boolean(bundled) && bundled !== installed };
+    const next = this.bundled;
+    const prev = this.installed;
+    const bundled = next?.version ?? '';
+    const installed = prev?.version ?? '';
+    // the files are compared too: a build that keeps the version number (a fix rebuilt as 12.0.1 again) left the
+    // previous bot in the bot folder
+    const needsSync = Boolean(bundled) && (bundled !== installed || !sameFiles(next.files, prev?.files));
+    return { botDir: this.botDir, bundledVersion: bundled, installedVersion: installed, needsSync };
   }
 
   // copies the bundled bot into the bot folder; onProgress(done, total). Throws when a file cannot be written (a bot

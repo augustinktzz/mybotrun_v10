@@ -28,10 +28,14 @@ Func readConfig($inputfile = $g_sProfileConfigPath) ;Reads config and sets it to
 
 	ReadProfileConfig()
 	If FileExists($g_sProfileBuildingPath) Then ReadBuildingConfig()
-	If FileExists($g_sProfileConfigPath) Then ReadRegularConfig()
-	If FileExists($g_sProfileClanGamesPath) Then ReadClanGamesConfig()
+	; Read even when the file is missing: every setting then takes its default from here. The former window held
+	; these defaults; without it, a new profile was saved with the declared values of the globals instead (0 for
+	; the loot filters, end of battle and siege, no donate hour, the Pass and achievements collection turned on).
+	ReadRegularConfig()
+	ReadClanGamesConfig()
 	ApplyCustomOrders()
 
+	$g_bConfigLoaded = True
 	$g_bReadConfigIsActive = False
 EndFunc   ;==>readConfig
 
@@ -130,6 +134,7 @@ Func ReadClanGamesConfig()
 	IniReadS($g_bChkClanGamesDes, $g_sProfileClanGamesPath, "clangames", "ChkClanGamesDestruction", False, "Bool")
 	IniReadS($g_bChkClanGamesAirTroop, $g_sProfileClanGamesPath, "clangames", "ChkClanGamesAirTroop", False, "Bool")
 	IniReadS($g_bChkClanGamesGroundTroop, $g_sProfileClanGamesPath, "clangames", "ChkClanGamesGroundTroop", False, "Bool")
+	; Equipment challenges are not available yet (the former window did not show them): not read on purpose, always off
 	;	IniReadS($g_bChkClanGamesEquipment, $g_sProfileClanGamesPath, "clangames", "ChkClanGamesEquipment", False, "Bool")
 	IniReadS($g_bChkClanGamesMiscellaneous, $g_sProfileClanGamesPath, "clangames", "ChkClanGamesMiscellaneous", False, "Bool")
 	IniReadS($g_bChkClanGamesSpell, $g_sProfileClanGamesPath, "clangames", "ChkClanGamesSpell", False, "Bool")
@@ -869,8 +874,9 @@ EndFunc   ;==>ReadConfig_auto
 Func ReadConfig_600_17()
 	; <><><><> Village / Upgrade - Walls <><><><>
 	IniReadS($g_bAutoUpgradeWallsEnable, $g_sProfileConfigPath, "upgrade", "auto-wall", False, "Bool")
-	IniReadS($g_iUpgradeWallMinGold, $g_sProfileConfigPath, "upgrade", "minwallgold", 0, "int")
-	IniReadS($g_iUpgradeWallMinElixir, $g_sProfileConfigPath, "upgrade", "minwallelixir", 0, "int")
+	; resources kept after a wall upgrade: the former window's defaults, 0 would let walls empty the storages
+	IniReadS($g_iUpgradeWallMinGold, $g_sProfileConfigPath, "upgrade", "minwallgold", 150000, "int")
+	IniReadS($g_iUpgradeWallMinElixir, $g_sProfileConfigPath, "upgrade", "minwallelixir", 1000, "int")
 	IniReadS($g_iUpgradeWallLootType, $g_sProfileConfigPath, "upgrade", "use-storage", 0, "int")
 	IniReadS($g_bUpgradeWallSaveBuilder, $g_sProfileConfigPath, "upgrade", "savebldr", False, "Bool")
 	IniReadS($g_iCmbUpgradeWallsLevel, $g_sProfileConfigPath, "upgrade", "walllvl", 6, "int")
@@ -1004,6 +1010,7 @@ Func ReadConfig_600_28_DB()
 	$g_iHeroWaitAttackNoBit[$DB][2] = ($temp3 > $eHeroNone) ? 1 : 0
 	$g_iHeroWaitAttackNoBit[$DB][3] = ($temp4 > $eHeroNone) ? 1 : 0
 	$g_iHeroWaitAttackNoBit[$DB][4] = ($temp5 > $eHeroNone) ? 1 : 0
+	$g_iHeroWaitAttackNoBit[$DB][5] = ($temp6 > $eHeroNone) ? 1 : 0 ; saved as DBDukeWait
 	IniReadS($g_abSearchSpellsWaitEnable[$DB], $g_sProfileConfigPath, "search", "ChkDBSpellsWait", False, "Bool")
 	IniReadS($g_abSearchSiegeWaitEnable[$DB], $g_sProfileConfigPath, "search", "ChkDBMachineWait", False, "Bool")
 	IniReadS($g_abSearchCastleWaitEnable[$DB], $g_sProfileConfigPath, "search", "ChkDBCastleWait", False, "Bool")
@@ -1070,6 +1077,7 @@ Func ReadConfig_600_28_LB()
 	$g_iHeroWaitAttackNoBit[$LB][2] = ($temp3 > $eHeroNone) ? 1 : 0
 	$g_iHeroWaitAttackNoBit[$LB][3] = ($temp4 > $eHeroNone) ? 1 : 0
 	$g_iHeroWaitAttackNoBit[$LB][4] = ($temp5 > $eHeroNone) ? 1 : 0
+	$g_iHeroWaitAttackNoBit[$LB][5] = ($temp6 > $eHeroNone) ? 1 : 0 ; saved as ABDukeWait
 	IniReadS($g_abSearchSpellsWaitEnable[$LB], $g_sProfileConfigPath, "search", "ChkABSpellsWait", False, "Bool")
 	IniReadS($g_abSearchSiegeWaitEnable[$LB], $g_sProfileConfigPath, "search", "ChkABMachineWait", False, "Bool")
 	IniReadS($g_abSearchCastleWaitEnable[$LB], $g_sProfileConfigPath, "search", "ChkABCastleWait", False, "Bool")
