@@ -769,8 +769,8 @@
           type: 'row',
           label: 'Ressources à garder',
           fields: [
-            { id: 'upgrade/minwallgold', type: 'number', label: 'Or', step: 50000, needs: ['upgrade/auto-wall'], def: '0' },
-            { id: 'upgrade/minwallelixir', type: 'number', label: 'Élixir', step: 50000, needs: ['upgrade/auto-wall'], def: '0' },
+            { id: 'upgrade/minwallgold', type: 'number', label: 'Or', step: 50000, needs: ['upgrade/auto-wall'], def: '150000' },
+            { id: 'upgrade/minwallelixir', type: 'number', label: 'Élixir', step: 50000, needs: ['upgrade/auto-wall'], def: '1000' },
           ],
         },
       ],
