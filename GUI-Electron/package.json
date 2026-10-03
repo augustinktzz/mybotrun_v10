@@ -1,7 +1,7 @@
 {
   "name": "mybot-gui",
   "productName": "MyBot",
-  "version": "12.0.0",
+  "version": "12.0.2",
   "description": "MyBot: Clash of Clans bot with its interface, installer and automatic updates",
   "author": "augustinktzz",
   "main": "main.js",

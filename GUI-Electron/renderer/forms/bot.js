@@ -37,7 +37,7 @@
     {
       title: 'Langue du bot',
       icon: 'i-book',
-      fields: [{ id: 'other/language', type: 'select', label: 'Langue', source: 'languages', hint: 'Fichiers du dossier Languages ; pris en compte au prochain démarrage du bot', def: 'English' }],
+      fields: [{ id: 'other/language', type: 'select', label: 'Langue du bot (journal et messages)', source: 'languages', hint: "Prise en compte au prochain démarrage du bot. La langue de l'interface se règle dans Réglages.", def: 'English' }],
     },
     {
       title: 'Au chargement du bot',
@@ -104,7 +104,7 @@
       title: 'Arrière-plan',
       icon: 'i-window',
       fields: [
-        { id: 'general/Background', type: 'toggle', label: 'Mode arrière-plan', hint: "L'émulateur peut être caché ou recouvert pendant le run", def: '1' },
+        { id: 'general/Background', type: 'toggle', label: 'Mode arrière-plan', hint: "D'autres fenêtres peuvent passer devant l'émulateur pendant le run : il reste ouvert et visible, le bot lit l'écran du jeu directement. Désactivé, l'émulateur reste au premier plan et doit être entièrement à l'écran", def: '1' },
       ],
     },
     {
@@ -172,8 +172,6 @@
     {
       title: 'Options Android',
       icon: 'i-sliders',
-      wide: true,
-      cols: 2,
       fields: [
         { id: 'android/backgroundmode', type: 'select', label: "Capture d'écran en arrière-plan", options: opts(['Par défaut', 'WinAPI (Android DirectX requis)', 'ADB screencap']), def: '0' },
         { id: 'android/zoomoutmode', type: 'select', label: 'Dézoom', options: opts(['Par défaut', 'Script minitouch', 'Script dd', 'WinAPI', 'Mettre à jour shared_prefs']), def: '0' },

@@ -41,6 +41,8 @@ contextBridge.exposeInMainWorld('mybot', {
   attackLogHistory: () => ipcRenderer.invoke('atklog:history'),
   openPath: (what) => ipcRenderer.invoke('shell:open', what),
   setTitleBar: (colors) => ipcRenderer.invoke('window:titlebar', colors),
+  systemAccent: () => ipcRenderer.invoke('system:accent'), // '#rrggbb' or null
+  onSystemAccent: listen('system:accent'),
   updateState: () => ipcRenderer.invoke('update:state'),
   checkUpdate: () => act('update:check'),
   downloadUpdate: () => act('update:download'),

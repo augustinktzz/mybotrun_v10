@@ -225,7 +225,8 @@
       case 'select': {
         const opts = normOptions(f);
         if (v !== '' && v !== undefined && !opts.some(([o]) => o === String(v))) opts.push([String(v), `${v} (valeur actuelle)`]);
-        el.innerHTML = opts.map(([o, l]) => `<option value="${esc(o)}">${esc(l)}</option>`).join('');
+        // les listes du bot (profils, scripts, langues) sont des noms : jamais traduits (i18n.js)
+        el.innerHTML = opts.map(([o, l]) => `<option value="${esc(o)}"${f.source && l === o ? ' translate="no"' : ''}>${esc(l)}</option>`).join('');
         el.value = String(v ?? '');
         break;
       }

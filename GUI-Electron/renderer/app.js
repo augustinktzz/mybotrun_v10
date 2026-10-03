@@ -6,8 +6,8 @@
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const icon = (id) => `<svg class="icon"><use href="#${id}"/></svg>`;
-const nf = new Intl.NumberFormat('fr-FR');
-const nfCompact = new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 });
+let nf = new Intl.NumberFormat('fr-FR'); // suivent la langue de l'interface (applyLanguage)
+let nfCompact = new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 });
 
 let backend = window.mybot ?? null;
 
@@ -24,7 +24,7 @@ const STATE_LABEL = {
 };
 
 const SWITCHES = [
-  ['hideandroid', "Cacher l'émulateur", "La fenêtre de l'émulateur est cachée pendant le run"],
+  ['hideandroid', "Cacher l'émulateur", "La fenêtre de l'émulateur est sortie de l'écran pendant le run (invisible). Pour seulement pouvoir mettre d'autres fenêtres devant, utilisez plutôt le mode arrière-plan (page Bot)"],
   ['autostart', 'Démarrage automatique', 'Le run démarre dès que le bot est prêt'],
   ['nowatchdog', 'Sans Watchdog', "Un bot planté n'est pas relancé"],
   ['debug', 'Journal debug', 'Écrit le journal détaillé'],
@@ -32,7 +32,11 @@ const SWITCHES = [
 ];
 const SWITCH_ORDER = ['debug', 'dpiaware', 'hideandroid', 'nowatchdog', 'autostart'];
 
-const ACCENTS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4'];
+// 'system' = la couleur d'accent de Windows (main.js, suivie en direct ; bleu par defaut sans elle)
+// 'mono' = noir et blanc : ses couleurs dependent du theme (styles.css, :root[data-accent='mono'])
+const DEFAULT_ACCENT = '#3b82f6';
+const ACCENTS = ['system', DEFAULT_ACCENT, '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#06b6d4', 'mono'];
+const ACCENT_TITLES = { system: 'Couleur de Windows', mono: 'Noir et blanc' };
 
 const RESOURCES = [
   { key: 'gold', label: 'Or', icon: 'i-coins', color: 'var(--gold)' },
@@ -51,6 +55,7 @@ const app = {
   logQuery: '',
   autoscroll: true,
   runSince: null,
+  pausedAt: null, // debut de la pause en cours : le temps de run ne compte pas les pauses
   stats: null,
   logKind: 'bot', // journal affiche : 'bot' ou 'attack'
   attackLog: [],
@@ -113,14 +118,53 @@ function duration(ms) {
 // ---------------------------------------------------------------------------------------------------------------------
 const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
 
+// reglages : theme = 'dark' | 'light' (le choix manuel), followSystemTheme = suivre le theme de Windows.
+// L'ancien theme: 'system' vaut "suivre Windows" (la case est cochee) jusqu'a ce qu'on la decoche.
+function themeChoice() {
+  const { theme = 'dark', followSystemTheme = false } = app.settings;
+  return { follow: Boolean(followSystemTheme) || theme === 'system', manual: theme === 'light' ? 'light' : 'dark' };
+}
+
+// texte pose sur l'accent : noir sur un accent clair (un bleu clair de Windows...), blanc sinon
+function textOn(hex) {
+  const lin = (i) => {
+    const v = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin(1) + 0.7152 * lin(3) + 0.0722 * lin(5) > 0.45 ? '#0a0a0a' : '#fff';
+}
+
 function applyTheme() {
-  const { theme = 'dark', accent = ACCENTS[0] } = app.settings;
-  const resolved = theme === 'system' ? (systemDark.matches ? 'dark' : 'light') : theme;
-  document.documentElement.dataset.theme = resolved;
-  document.documentElement.style.setProperty('--accent', accent);
-  const css = getComputedStyle(document.documentElement);
+  const { accent = DEFAULT_ACCENT } = app.settings;
+  const { follow, manual } = themeChoice();
+  const resolved = follow ? (systemDark.matches ? 'dark' : 'light') : manual;
+  const root = document.documentElement;
+  root.dataset.theme = resolved;
+  const systemColor = app.systemAccent || DEFAULT_ACCENT;
+  if (accent === 'mono') {
+    root.dataset.accent = 'mono';
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--on-accent');
+  } else {
+    const color = accent === 'system' ? systemColor : /^#[0-9a-f]{6}$/i.test(accent) ? accent : DEFAULT_ACCENT;
+    delete root.dataset.accent;
+    root.style.setProperty('--accent', color);
+    root.style.setProperty('--on-accent', textOn(color));
+  }
+  const systemSwatch = $('#accentSwatches button[data-color="system"]');
+  if (systemSwatch) {
+    systemSwatch.style.setProperty('--sw', systemColor);
+    systemSwatch.style.color = textOn(systemColor);
+  }
+  const css = getComputedStyle(root);
   backend?.setTitleBar?.({ color: css.getPropertyValue('--titlebar').trim(), symbolColor: css.getPropertyValue('--text-2').trim() });
-  $$('#themeSeg button').forEach((b) => b.classList.toggle('active', b.dataset.theme === theme));
+  // en suivant Windows, Sombre / Clair sont grises et montrent le theme de Windows
+  $$('#themeSeg button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.theme === resolved);
+    b.disabled = follow;
+  });
+  const followBox = $('#themeFollowSystem');
+  if (followBox) followBox.checked = follow;
   $$('#accentSwatches button').forEach((b) => b.classList.toggle('active', b.dataset.color === accent));
 }
 systemDark.addEventListener('change', applyTheme);
@@ -160,13 +204,13 @@ function formatBytes(n) {
 }
 
 const UPDATE_TAG = {
-  idle: ['Up to date', 'ok'],
-  checking: ['Checking…', ''],
-  latest: ['Up to date', 'ok'],
-  available: ['Update available', 'accent'],
-  downloading: ['Downloading…', 'accent'],
-  downloaded: ['Ready to install', 'accent'],
-  error: ['Check failed', 'bad'],
+  idle: ['À jour', 'ok'],
+  checking: ['Vérification…', ''],
+  latest: ['À jour', 'ok'],
+  available: ['Mise à jour disponible', 'accent'],
+  downloading: ['Téléchargement…', 'accent'],
+  downloaded: ['Prête à installer', 'accent'],
+  error: ['Échec de la vérification', 'bad'],
 };
 
 function onUpdateState(st) {
@@ -194,8 +238,8 @@ function renderUpdates() {
   $('#updTag').textContent = tagText;
   $('#updTag').className = `tag ${tagKind}`;
   $('#updCurrent').textContent = u.current ?? app.info?.version ?? '—';
-  $('#updLatest').textContent = u.version ? `v${u.version.replace(/^v/, '')}` : u.phase === 'latest' ? 'none newer' : '—';
-  $('#updChecked').textContent = u.checkedAt ? new Date(u.checkedAt).toLocaleString() : 'never';
+  $('#updLatest').textContent = u.version ? `v${u.version.replace(/^v/, '')}` : u.phase === 'latest' ? 'aucune plus récente' : '—';
+  $('#updChecked').textContent = u.checkedAt ? new Date(u.checkedAt).toLocaleString() : 'jamais';
   $('#updReleases').href = u.releasesPage ?? '#';
   $('#updCheck').disabled = ['checking', 'downloading'].includes(u.phase);
 
@@ -209,15 +253,15 @@ function renderUpdates() {
   const note = $('#updNote');
   if (u.phase === 'error') {
     note.hidden = false;
-    note.textContent = u.error ?? 'Update check failed.';
+    note.textContent = u.error ?? 'La recherche de mise à jour a échoué.';
   } else if (!u.installed && u.phase === 'available') {
     note.hidden = false;
-    note.textContent = 'Running from source: open the GitHub release to update. The installed app updates itself.';
+    note.textContent = "Lancé depuis les sources : ouvrez la version sur GitHub pour mettre à jour. L'application installée se met à jour toute seule.";
   } else note.hidden = true;
 
   const action = $('#updAction');
-  if (u.installed && u.phase === 'available') setBtn(action, 'Download update', 'i-down', () => guard(() => backend.downloadUpdate()));
-  else if (u.phase === 'downloaded') setBtn(action, 'Restart & install', 'i-power', installUpdate);
+  if (u.installed && u.phase === 'available') setBtn(action, 'Télécharger la mise à jour', 'i-down', () => guard(() => backend.downloadUpdate()));
+  else if (u.phase === 'downloaded') setBtn(action, 'Redémarrer et installer', 'i-power', installUpdate);
   else action.hidden = true;
 
   const notes = $('#updNotesCard');
@@ -241,7 +285,7 @@ function setBtn(btn, label, iconId, onClick) {
 async function installUpdate() {
   let closeBots = false;
   if (app.bot && !['off', 'error', 'unsupported'].includes(app.bot.state)) {
-    if (!confirm('A bot is open. It must be closed to install the update. Close it and install now?')) return;
+    if (!confirm('Un bot est ouvert. Il doit être fermé pour installer la mise à jour. Le fermer et installer maintenant ?')) return;
     closeBots = true;
   }
   await guard(() => backend.installUpdate(closeBots));
@@ -256,11 +300,11 @@ function renderBotSync() {
   card.hidden = false;
   const s = app.sync ?? { phase: 'idle' };
   const map = {
-    idle: ['Up to date', 'ok'],
-    waiting: ['Waiting for the bot to close', 'accent'],
-    copying: ['Updating…', 'accent'],
-    done: ['Updated', 'ok'],
-    error: ['Failed', 'bad'],
+    idle: ['À jour', 'ok'],
+    waiting: ['En attente de la fermeture du bot', 'accent'],
+    copying: ['Mise à jour…', 'accent'],
+    done: ['Mis à jour', 'ok'],
+    error: ['Échec', 'bad'],
   };
   const [text, kind] = map[s.phase] ?? ['—', ''];
   $('#botSyncTag').textContent = text;
@@ -270,18 +314,18 @@ function renderBotSync() {
   if (s.phase === 'copying') {
     const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
     $('#botSyncBar').style.width = `${pct}%`;
-    $('#botSyncProgressText').textContent = `${pct}% — ${s.done}/${s.total} files`;
+    $('#botSyncProgressText').textContent = `${pct}% — ${s.done}/${s.total} fichiers`;
   }
-  if (s.phase === 'waiting') $('#botSyncText').textContent = 'A bot is open: close it so its files can be updated. This happens automatically once it is closed.';
-  else if (s.phase === 'error') $('#botSyncText').textContent = s.error ?? 'Some bot files could not be updated.';
-  else $('#botSyncText').textContent = 'The bot is kept in step with the application in its own folder; your profiles are never touched.';
+  if (s.phase === 'waiting') $('#botSyncText').textContent = "Un bot est ouvert : fermez-le pour que ses fichiers soient mis à jour. Cela se fera tout seul dès qu'il sera fermé.";
+  else if (s.phase === 'error') $('#botSyncText').textContent = s.error ?? "Certains fichiers du bot n'ont pas pu être mis à jour.";
+  else $('#botSyncText').textContent = "Le bot est tenu à jour avec l'application, dans son propre dossier ; vos profils ne sont jamais modifiés.";
   $('#botSyncVerify').disabled = s.phase === 'copying';
 }
 
 function renderImport() {
   const card = $('#importCard');
   card.hidden = !app.info?.legacyBotDir;
-  if (app.info?.legacyBotDir) $('#importText').textContent = `Profiles from your previous MyBot folder (${app.info.legacyBotDir}) can be brought in once. Your current profiles are kept.`;
+  if (app.info?.legacyBotDir) $('#importText').textContent = `Les profils de votre ancien dossier MyBot (${app.info.legacyBotDir}) peuvent être importés une fois. Vos profils actuels sont conservés.`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -293,9 +337,22 @@ function setBotState(next) {
   const prev = app.bot.state;
   app.bot = next;
   const s = next.state;
-  if (s === 'running' && !app.runSince) app.runSince = Date.now();
-  if (s !== 'running' && s !== 'paused') app.runSince = null;
+  // temps de run : il ne repart a zero que quand le bot s'arrete vraiment. "noanswer" (le bot occupe plus de 1,5 s,
+  // en fin d'attaque notamment), "error" et "denied" sont passagers et le remettaient a zero ; la pause le fige.
+  if (s === 'running') {
+    if (!app.runSince) app.runSince = Date.now();
+    if (app.pausedAt) {
+      app.runSince += Date.now() - app.pausedAt;
+      app.pausedAt = null;
+    }
+  } else if (s === 'paused') {
+    if (app.runSince && !app.pausedAt) app.pausedAt = Date.now();
+  } else if (['off', 'idle', 'starting', 'unsupported'].includes(s)) {
+    app.runSince = null;
+    app.pausedAt = null;
+  }
   if (app.connected && prev === 'off' && s === 'starting') resetStats(); // nouveau lancement : nouvelle session
+  if (app.connected && prev && prev !== 'off' && s === 'off') checkRepair(); // le bot a reecrit son profil en se fermant
 
   $('#statusPill').dataset.state = s;
   $('#statusText').textContent = STATE_LABEL[s] ?? s;
@@ -340,7 +397,7 @@ async function launchBot() {
 }
 
 function updateUptime() {
-  const text = app.runSince ? duration(Date.now() - app.runSince) : '—';
+  const text = app.runSince ? duration((app.pausedAt ?? Date.now()) - app.runSince) : '—';
   $('#uptime').textContent = text;
   $('#sessionSince').textContent = `depuis ${duration(Date.now() - app.stats.since)}`;
   $('#sbClock').textContent = new Date().toLocaleTimeString('fr-FR');
@@ -724,6 +781,7 @@ async function applySettings(patch, message) {
   if (!info) return;
   setInfo(info);
   if (profileChanged) {
+    checkRepair();
     await reloadLog(info.logFile); // le journal suivi est maintenant celui du nouveau profil
     const form = FormEngine.current();
     if (form) await FormEngine.load(form);
@@ -734,6 +792,7 @@ function setInfo(info) {
   app.info = info;
   app.settings = info.settings;
   applyTheme();
+  applyLanguage();
   fillLaunchForm();
   $('#demoTag').hidden = !info.demo;
   // the installed application manages the bot folder itself: on the first start the bot is still being copied there,
@@ -743,7 +802,7 @@ function setInfo(info) {
   $('#botDirPath').textContent = info.settings.botDir || 'Non défini';
   const tag = $('#botDirTag');
   const installing = info.packaged && !info.botFound;
-  tag.textContent = installing ? 'Installing…' : info.botFound ? 'Trouvé' : 'Introuvable';
+  tag.textContent = installing ? 'Installation…' : info.botFound ? 'Trouvé' : 'Introuvable';
   tag.className = `tag ${installing ? 'accent' : info.botFound ? 'ok' : 'bad'}`;
   $('#brandVersion').textContent = `v12 · GUI ${info.version}`;
   const about = [
@@ -762,15 +821,39 @@ function setInfo(info) {
   setBotState(app.bot);
 }
 
+// langue de l'interface (i18n.js) : appliquee tout de suite, sans redemarrer ; les nombres suivent
+function applyLanguage() {
+  const lang = app.settings.language === 'en' ? 'en' : 'fr';
+  const changed = lang !== I18n.lang;
+  I18n.setLang(lang);
+  $$('#langSeg button').forEach((b) => b.classList.toggle('active', b.dataset.lang === lang));
+  const locale = lang === 'en' ? 'en-US' : 'fr-FR';
+  nf = new Intl.NumberFormat(locale);
+  nfCompact = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 });
+  if (changed) renderDashboard();
+}
+
 function buildSettings() {
-  $('#accentSwatches').innerHTML = ACCENTS.map((c) => `<button data-color="${c}" style="--sw:${c}" title="${c}"></button>`).join('');
+  $('#langSeg').addEventListener('click', (e) => {
+    const lang = e.target.closest('button')?.dataset.lang;
+    if (lang && lang !== app.settings.language) applySettings({ language: lang });
+  });
+  $('#accentSwatches').innerHTML = ACCENTS.map((c) =>
+    c.startsWith('#')
+      ? `<button data-color="${c}" style="--sw:${c}" title="${c}"></button>`
+      : `<button data-color="${c}" title="${ACCENT_TITLES[c] ?? c}">${c === 'system' ? icon('i-monitor') : ''}</button>`,
+  ).join('');
   $('#accentSwatches').addEventListener('click', (e) => {
     const c = e.target.closest('button')?.dataset.color;
     if (c) applySettings({ accent: c });
   });
   $('#themeSeg').addEventListener('click', (e) => {
     const t = e.target.closest('button')?.dataset.theme;
-    if (t) applySettings({ theme: t });
+    if (t && !themeChoice().follow) applySettings({ theme: t });
+  });
+  // decocher garde le theme affiche a cet instant (celui de Windows) comme choix manuel
+  $('#themeFollowSystem')?.addEventListener('change', (e) => {
+    applySettings(e.target.checked ? { followSystemTheme: true } : { followSystemTheme: false, theme: document.documentElement.dataset.theme }).then(applyTheme);
   });
   $('#pickBotDir').addEventListener('click', async () => {
     const info = await guard(() => backend.pickBotDir());
@@ -875,16 +958,23 @@ function wire() {
   $('#botSyncVerify').addEventListener('click', async () => {
     let closeBots = false;
     if (app.bot && !['off', 'error', 'unsupported'].includes(app.bot.state)) {
-      if (!confirm('A bot is open. Close it to repair the bot files?')) return;
+      if (!confirm('Un bot est ouvert. Le fermer pour réparer les fichiers du bot ?')) return;
       closeBots = true;
     }
-    guard(() => backend.syncBot({ verify: true, closeBots }), 'Bot files checked');
+    guard(() => backend.syncBot({ verify: true, closeBots }), 'Fichiers du bot vérifiés');
   });
   $('#importRun').addEventListener('click', async () => {
-    const res = await guard(() => backend.importProfiles(), 'Profiles imported');
-    if (res) toast(`${res.profiles?.length ?? 0} profile(s) imported`, 'success');
+    const res = await guard(() => backend.importProfiles(), 'Profils importés');
+    if (res) toast(`${res.profiles?.length ?? 0} profil(s) importé(s)`, 'success');
   });
   $('#importDismiss').addEventListener('click', () => guard(() => backend.dismissImport()));
+  $('#repairRun').addEventListener('click', async () => {
+    const res = await guard(() => backend.repairProfile());
+    if (res) toast(`${res.count} réglage(s) remis par défaut, une copie du profil a été faite avant`, 'success');
+    await checkRepair();
+    const form = FormEngine.current();
+    if (form) await FormEngine.load(form);
+  });
 
   // Ctrl+1 a Ctrl+9 puis Ctrl+0 : les pages dans l'ordre du menu ; Ctrl+S : enregistrer
   document.addEventListener('keydown', (e) => {
@@ -913,9 +1003,14 @@ async function connect() {
     backend = new window.DemoBackend(info);
     return connect();
   }
+  app.systemAccent = (await backend.systemAccent?.().catch(() => null)) ?? null; // couleur d'accent de Windows
   setInfo(info);
   await reloadLog(info.logFile);
   unsubscribe = [
+    backend.onSystemAccent?.((color) => {
+      app.systemAccent = color ?? null;
+      applyTheme();
+    }),
     backend.onLog(appendLog),
     backend.onAttackLog(appendAttackLog),
     backend.onLogFile(showLogFile),
@@ -926,7 +1021,17 @@ async function connect() {
   ];
   setBotState(await backend.state());
   refreshUpdates();
+  checkRepair();
   app.connected = true;
+}
+
+// les reglages que MyBot 12.0.0 / 12.0.1 a enregistres faux dans le profil (lib/profile-repair.js) : un bandeau propose
+// de les remettre par defaut. Revu au demarrage, au changement de profil et quand le bot se ferme (il reecrit son profil).
+async function checkRepair() {
+  const plan = (await backend.repairPlan?.().catch(() => [])) ?? [];
+  $('#repairBanner').hidden = !plan.length;
+  if (plan.length)
+    $('#repairText').textContent = `MyBot 12.0.0 et 12.0.1 ont enregistré ${plan.length} réglage(s) de ce profil avec une mauvaise valeur (butin minimum à 0, fin de combat à 0, aucune heure de dons, mode arrière-plan coupé...). La réparation les remet par défaut ; ce que vous avez changé vous-même est gardé, et une copie du profil est faite avant. Fermez le bot d'abord.`;
 }
 
 // repart de l'historique du processus principal (la fin du journal courant) avec des compteurs a zero

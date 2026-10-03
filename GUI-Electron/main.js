@@ -1,6 +1,6 @@
 // Main process: the window, the interface's settings, and everything that touches the disk and the bot (logs, profile
 // .ini files, strategies, launch and commands, updates). The page (renderer/) reaches them only through preload.js.
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, systemPreferences } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Settings } = require('./lib/settings');
@@ -403,6 +403,22 @@ ipcMain.handle('window:titlebar', (_e, { color, symbolColor }) => {
   } catch {
     // native title bar without overlay (some Linux desktops): nothing to recolour
   }
+});
+
+// the Windows accent colour (Settings > Personalisation > Colours), for the accent "Couleur de Windows": '#rrggbb', or
+// null where the system has none to give (Linux), the page then keeps its default blue
+function systemAccent() {
+  try {
+    const c = systemPreferences.getAccentColor?.(); // 'RRGGBBAA'
+    return /^[0-9a-f]{6}/i.test(c ?? '') ? `#${c.slice(0, 6).toLowerCase()}` : null;
+  } catch {
+    return null;
+  }
+}
+ipcMain.handle('system:accent', () => systemAccent());
+// changed in the Windows settings while the GUI is open: the page follows at once
+app.whenReady().then(() => {
+  if (process.platform === 'win32') systemPreferences.on('accent-color-changed', () => send('system:accent', systemAccent()));
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

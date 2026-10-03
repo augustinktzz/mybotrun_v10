@@ -13,8 +13,10 @@ const DEFAULTS = {
   instance: ON_WINDOWS ? 'Pie64' : 'Android',
   switches: { hideandroid: false, nowatchdog: false, debug: false, dpiaware: false, autostart: false },
   updates: { autoCheck: true, beta: false },
-  theme: 'dark', // dark | light | system
-  accent: '#3b82f6',
+  theme: 'dark', // dark | light (older versions also wrote 'system': read as followSystemTheme)
+  followSystemTheme: false, // follow the Windows theme (the dark / light choice is then greyed out)
+  accent: '#3b82f6', // a colour, 'system' (the Windows accent colour) or 'mono' (black and white)
+  language: 'fr', // language of the interface: fr | en (renderer/i18n.js); the bot's own language is in its config.ini
 };
 
 // the settings made of several values are merged rather than replaced

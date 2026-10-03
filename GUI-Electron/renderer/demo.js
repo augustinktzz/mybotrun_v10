@@ -242,6 +242,14 @@
       return Promise.resolve();
     }
 
+    // couleur d'accent de Windows : la vraie dans Electron (npm run demo), aucune dans un navigateur (bleu par defaut)
+    systemAccent() {
+      return window.mybot?.systemAccent?.() ?? Promise.resolve(null);
+    }
+    onSystemAccent(cb) {
+      return window.mybot?.onSystemAccent?.(cb) ?? (() => {});
+    }
+
     updateState() {
       return Promise.resolve({ phase: 'available', installed: true, current: this.realInfo?.version ?? '0.1.0', version: '12.1.0', notes: 'Demo:\n• Faster screen capture\n• New attack options', checkedAt: Date.parse('2026-10-01T12:00:00Z'), releasesPage: 'https://github.com/augustinktzz/mybotrun_v10/releases', options: { autoCheck: true, beta: false }, sync: { phase: 'idle' } });
     }
