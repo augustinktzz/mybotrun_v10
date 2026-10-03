@@ -153,7 +153,9 @@ async function main() {
   fs.mkdirSync(SRC, { recursive: true });
   const tar = path.join(PAYLOAD, 'head.tar');
   git('archive', '--format=tar', '-o', tar, 'HEAD');
-  execFileSync('tar', ['-xf', tar, '-C', SRC]);
+  // Windows' own tar: from Git Bash, the tar found first is GNU tar, which takes "C:" for a remote host
+  const tarExe = IS_WINDOWS && process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32', 'tar.exe') : 'tar';
+  execFileSync(fs.existsSync(tarExe) ? tarExe : 'tar', ['-xf', tar, '-C', SRC]);
   fs.rmSync(tar);
 
   step('Compiling the bot (Au3Check + Aut2Exe)');
