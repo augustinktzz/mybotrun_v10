@@ -448,9 +448,10 @@ Global Const $g_sPrivateAuthenticationFile = @AppDataDir & "\.mybot.run.authenti
 Global Const $g_sProfilePresetPath = @ScriptDir & "\Strategies"
 ; Discord Rich Presence: shows what the bot does on the Discord profile (off by default, see DiscordRichPresence.au3)
 Global $g_bDiscordRPCEnable = False
-Global $g_sDiscordRPCClientId = ""
-Global $g_bDiscordRPCButton = True ; adds a "Join the server" button under the status
-Global $g_sDiscordRPCButtonUrl = "https://discord.gg/mdE5m5QPEF" ; where that button leads
+; the MyBot application on Discord and the server of its button: fixed, the profile only turns the status on or off
+Global Const $g_sDiscordRPCClientId = "1548691375191494708"
+Global Const $g_bDiscordRPCButton = True ; adds a "Join the server" button under the status
+Global Const $g_sDiscordRPCButtonUrl = "https://discord.gg/mdE5m5QPEF" ; where that button leads
 Global $g_bDiscordRPCIdWarned = False ; the missing application id is said once, not at every call
 
 Global $g_sProfileCurrentName = "" ; Name of profile currently being used

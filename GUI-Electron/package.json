@@ -11,7 +11,8 @@
     "start": "electron .",
     "demo": "electron . --demo",
     "release": "node scripts/build-release.js",
-    "release:publish": "node scripts/build-release.js --publish"
+    "release:publish": "node scripts/build-release.js --publish",
+    "release:linux": "node scripts/build-release.js --linux-only"
   },
   "devDependencies": {
     "electron": "^44.5.1",

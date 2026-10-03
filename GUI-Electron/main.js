@@ -8,6 +8,7 @@ const { LogTail, parseAttackLine, ATTACK_LOG_NAME } = require('./lib/log-tail');
 const { BotBridge, botExecutable } = require('./lib/bot');
 const { ProfileStore } = require('./lib/profile-store');
 const { BotInstall, hasProfiles } = require('./lib/bot-install');
+const { planRepair, applyRepair } = require('./lib/profile-repair');
 const { Updater } = require('./lib/updater');
 
 const DEMO = process.argv.includes('--demo');
@@ -303,6 +304,25 @@ ipcMain.handle(
   }),
 );
 
+// the settings that MyBot 12.0.0 / 12.0.1 saved before reading them (lib/profile-repair.js): what a repair would change
+ipcMain.handle('profiles:repairPlan', (_e, name) => {
+  try {
+    return planRepair(store.profileDir(name || settings.get().profile));
+  } catch {
+    return [];
+  }
+});
+ipcMain.handle(
+  'profiles:repair',
+  guarded(async (_e, name) => {
+    name ||= settings.get().profile;
+    if (await otherBotOpen(name)) throw new Error(CLOSE_FIRST);
+    const dir = store.profileDir(name);
+    const changes = planRepair(dir);
+    return { count: changes.length, backups: changes.length ? applyRepair(dir, changes) : [] };
+  }),
+);
+
 ipcMain.handle('strategies:list', () => store.listStrategies());
 ipcMain.handle(
   'strategies:load',
@@ -395,16 +415,18 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 640,
     show: false,
-    backgroundColor: '#0a0f1c',
+    backgroundColor: '#000000', // the dark theme's background (renderer/styles.css), until the page shows
     title: 'MyBot',
     icon: path.join(__dirname, 'renderer', 'assets', 'MyBot.ico'),
     titleBarStyle: 'hidden',
-    titleBarOverlay: process.platform === 'darwin' ? true : { color: '#0a0f1c', symbolColor: '#cbd5e1', height: 44 },
+    titleBarOverlay: process.platform === 'darwin' ? true : { color: '#0a0a0a', symbolColor: '#c8c8c8', height: 44 },
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      // the window is often behind the emulator: throttled, the counters and the log moved by jumps
+      backgroundThrottling: false,
     },
   });
   win.removeMenu();

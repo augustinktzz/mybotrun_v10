@@ -440,8 +440,8 @@ Func _AutoUpgrade()
 EndFunc   ;==>_AutoUpgrade
 
 Func AutoWallsStatsMAJ($CurrentWallLevel = 10)
-	$g_aiWallsCurrentCount[$CurrentWallLevel + 1] = $g_aiWallsCurrentCount[$CurrentWallLevel + 1] + 1
-	$g_aiWallsCurrentCount[$CurrentWallLevel] = $g_aiWallsCurrentCount[$CurrentWallLevel] - 1
+	; the level comes from the OCR: WallCountUpgraded() ignores a level out of range instead of crashing on it
+	WallCountUpgraded($CurrentWallLevel, 1)
 	SaveConfig()
 EndFunc   ;==>AutoWallsStatsMAJ
 

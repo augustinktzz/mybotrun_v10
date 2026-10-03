@@ -75,7 +75,7 @@ Func WM_MYBOTRUN_API_CLIENT($hWind, $iMsg, $wParam, $lParam)
 			$lParam = $g_hFrmBot
 			$wParam = $wParamLo + 1
 			If $g_bRunState = False Then
-				$wParamHi = ($g_bBotCanStart ? 1 : 0) ; not running when Start is refused, see CanBotStart()
+				$wParamHi = (($g_bBotCanStart Or Not $g_bBotPrerequisitesChecked) ? 1 : 0) ; not running when Start is refused, see CanBotStart(); kept while loading
 				;If $g_bBotPaused = True Then $wParamHi += 2
 				If IsBotLaunched() Then $wParamHi += 4 ; bot launched
 				btnStart()

@@ -628,8 +628,9 @@ Func ResetStats()
 EndFunc   ;==>ResetStats
 
 Func WallsStatsMAJ()
-	$g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 4] -= Number($g_iNbrOfWallsUpped)
-	$g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 5] += Number($g_iNbrOfWallsUpped)
+	; the walls UpgradeWall() just upgraded are of its working level: they move one level up in the counts, which
+	; never go below zero when a count was not known (UpgradeWall.au3)
+	WallCountUpgraded($g_iCmbUpgradeWallsLevel + 4, $g_iNbrOfWallsUpped)
 	$g_iNbrOfWallsUpped = 0
 	SaveConfig()
 EndFunc   ;==>WallsStatsMAJ

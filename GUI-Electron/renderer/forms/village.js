@@ -764,7 +764,7 @@
           def: '0',
         },
         { id: 'upgrade/savebldr', type: 'toggle', label: 'Garder un ouvrier pour les murs', needs: ['upgrade/auto-wall'], def: '0' },
-        { id: 'upgrade/walllvl', type: 'select', label: 'Niveau des murs à chercher', options: range(4, 18).map(([, l], i) => [String(i), `Niveau ${l}`]), needs: ['upgrade/auto-wall'], def: '6' },
+        { id: 'upgrade/walllvl', type: 'select', label: 'Niveau des murs à chercher', hint: 'Point de départ : le bot passe seul au niveau suivant, ou à celui que le jeu propose', options: range(4, 18).map(([, l], i) => [String(i), `Niveau ${l}`]), needs: ['upgrade/auto-wall'], def: '6' },
         {
           type: 'row',
           label: 'Ressources à garder',
@@ -778,9 +778,14 @@
     {
       title: 'Compteur de murs',
       icon: 'i-list',
+      tag: 'Rempli par le bot',
       cols: 4,
       fields: [
-        { type: 'info', text: 'Nombre de murs de chaque niveau dans votre village.', wide: true },
+        {
+          type: 'info',
+          text: "Facultatif, rien à saisir : le bot tient ces nombres à jour. Chaque mur amélioré passe au niveau suivant, et le nombre exact d'un niveau est relevé dans « Améliorer plus » quand il ne reste plus de mur à ajouter. 0 = aucun mur ou pas encore connu. Une valeur corrigée ici est reprise par le bot.",
+          wide: true,
+        },
         ...Array.from({ length: 16 }, (_, k) => k + 4).map((lvl) => ({ id: `Walls/Wall${String(lvl).padStart(2, '0')}`, type: 'number', label: `Niv. ${lvl}`, compact: true, def: '0' })),
       ],
     },

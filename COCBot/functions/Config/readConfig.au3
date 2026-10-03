@@ -882,6 +882,8 @@ Func ReadConfig_600_17()
 	IniReadS($g_iCmbUpgradeWallsLevel, $g_sProfileConfigPath, "upgrade", "walllvl", 6, "int")
 	For $i = 4 To 19
 		IniReadS($g_aiWallsCurrentCount[$i], $g_sProfileConfigPath, "Walls", "Wall" & StringFormat("%02d", $i), 0, "int")
+		; kept by the bot now (UpgradeWall.au3); older versions went below zero when the count had never been typed
+		If $g_aiWallsCurrentCount[$i] < 0 Then $g_aiWallsCurrentCount[$i] = 0
 	Next
 	IniReadS($g_iWallCost, $g_sProfileConfigPath, "upgrade", "WallCost", 0, "int")
 EndFunc   ;==>ReadConfig_600_17
@@ -893,10 +895,7 @@ Func ReadConfig_600_18()
 	IniReadS($g_sNotifyTGToken, $g_sProfileConfigPath, "notify", "TGToken", "")
 	IniReadS($g_bNotifyDiscordEnable, $g_sProfileConfigPath, "notify", "DiscordEnabled", False, "Bool")
 	IniReadS($g_sNotifyDiscordWebhook, $g_sProfileConfigPath, "notify", "DiscordWebhook", "")
-	IniReadS($g_bDiscordRPCEnable, $g_sProfileConfigPath, "notify", "DiscordRPCEnable", False, "Bool")
-	IniReadS($g_sDiscordRPCClientId, $g_sProfileConfigPath, "notify", "DiscordRPCClientId", "")
-	IniReadS($g_bDiscordRPCButton, $g_sProfileConfigPath, "notify", "DiscordRPCButton", True, "Bool")
-	IniReadS($g_sDiscordRPCButtonUrl, $g_sProfileConfigPath, "notify", "DiscordRPCButtonUrl", "https://discord.gg/mdE5m5QPEF")
+	IniReadS($g_bDiscordRPCEnable, $g_sProfileConfigPath, "notify", "DiscordRPCEnable", False, "Bool") ; application and invite are fixed
 	IniReadS($g_bNotifyDiscordFullLog, $g_sProfileConfigPath, "notify", "DiscordFullLog", False, "Bool")
 	IniReadS($g_sTGChatID, $g_sProfileConfigPath, "notify", "TGUserID", "")
 

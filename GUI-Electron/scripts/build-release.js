@@ -5,6 +5,8 @@
 //   node scripts/build-release.js --publish    build, then upload to a DRAFT release on GitHub (needs GH_TOKEN);
 //                                              users get it once you press "Publish release" on GitHub
 //   --allow-dirty                              build even if GUI-Electron has uncommitted changes
+//   --linux-only                               only the AppImage, from the bot a Windows build left in payload/
+//                                              (run under WSL after the Windows build: no AutoIt, no Wine needed)
 //
 // The bot is taken from the last commit (git HEAD), not from the working folder: what is released is what is committed,
 // and local files (profiles, logs, a lib/ changed by hand) never end up in it. Steps:
@@ -32,6 +34,7 @@ const IS_WINDOWS = process.platform === 'win32';
 const args = new Set(process.argv.slice(2));
 const PUBLISH = args.has('--publish');
 const ALLOW_DIRTY = args.has('--allow-dirty');
+const LINUX_ONLY = args.has('--linux-only');
 
 // the folders and files of the repository that are tools or sources of the interface, not part of the bot
 const NOT_IN_BOT = new Set(['GUI-Electron', '_release', '_tools', '_backup_avant_fix_bs5', 'enginesrc', 'dllsrc', 'tatus', '.gitignore', '.gitattributes', 'Lancer MyBot GUI.bat', 'Lancer MyBot GUI.sh']);
@@ -112,8 +115,26 @@ function lock() {
   process.on('exit', () => fs.rmSync(LOCK, { force: true }));
 }
 
+// the AppImage alone, from payload/ as the Windows build left it: the bot is the same Windows programs on both systems
+async function linuxOnly() {
+  if (IS_WINDOWS) fail('--linux-only builds the AppImage: run it under Linux (WSL), after the Windows build');
+  const manifest = JSON.parse(fs.readFileSync(path.join(BOT, 'bot-manifest.json'), 'utf8'));
+  if (!fs.existsSync(path.join(BRIDGE, 'MyBotBridge.exe'))) fail(`No ${path.join(BRIDGE, 'MyBotBridge.exe')}: build on Windows first`);
+  step(`Building the AppImage of ${manifest.version} from payload/`);
+  const builder = require('electron-builder');
+  const artifacts = await builder.build({
+    projectDir: GUI_DIR,
+    targets: builder.Platform.LINUX.createTarget(),
+    publish: PUBLISH ? 'always' : 'never',
+    config: { extraMetadata: { version: manifest.version } },
+  });
+  step('Done');
+  for (const a of artifacts) if (/\.(AppImage|yml)$/.test(a)) console.log(`  ${a}`);
+}
+
 async function main() {
   lock();
+  if (LINUX_ONLY) return linuxOnly();
   step('Checks');
   const head = git('rev-parse', '--short', 'HEAD').trim();
   const versionFile = git('show', 'HEAD:MyBot.run.version.au3');

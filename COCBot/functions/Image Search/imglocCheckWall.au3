@@ -74,9 +74,8 @@ Func imglocCheckWall()
 		SetLog("No wall(s) level: " & $levelWall & " found.", $COLOR_ERROR)
 		; the last pieces of a level are the ones the templates do not know: let the game select one from the builder menu
 		If BuilderMenuSelectWall($levelWall) Then Return True
-		If SwitchToNextWallLevel() Then
-			SetLog("No more walls of current level, switching to next", $COLOR_ACTION)
-		EndIf
+		; the caller decides on the next level (SwitchToNextWallLevel): switching here too skipped a level, and
+		; __UpgradeWallStep() only selects again a wall that was on screen a moment ago
 	Else
 		For $i = 0 To UBound($FoundWalls) - 1
 			Local $WallCoordsArray = decodeMultipleCoords($FoundWalls[$i])

@@ -578,6 +578,11 @@ EndFunc   ;==>FinalInitialization
 Func MainLoop($bCheckPrerequisitesOK = True)
 	Local $iStartDelay = 0
 	$g_bBotCanStart = $bCheckPrerequisitesOK
+	$g_bBotPrerequisitesChecked = True
+	If Not $bCheckPrerequisitesOK And $g_iBotAction = $eBotStart Then
+		$g_iBotAction = $eBotNoAction ; a Start asked while loading
+		CanBotStart() ; says why it is refused
+	EndIf
 
 	If $bCheckPrerequisitesOK And ($g_bAutoStart Or $g_bRestarted) Then
 		Local $iDelay = $g_iAutoStartDelay

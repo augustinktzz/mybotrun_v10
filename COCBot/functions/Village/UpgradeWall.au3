@@ -13,11 +13,16 @@
 ; Example .......: No
 ; ===============================================================================================================================
 
+; True when the builder menu was read to the end of its list without a Wall line: no wall can be upgraded at any
+; level, so moving on to the next level would only search for nothing (SwitchToNextWallLevel)
+Global $g_bWallMenuNoWall = False
+
 Func UpgradeWall()
 
 	Local $iWallCost = Int($g_iWallCost - ($g_iWallCost * Number($g_iBuilderBoostDiscount) / 100))
 
 	If Not $g_bRunState Then Return
+	$g_bWallMenuNoWall = False
 
 	If $g_bAutoUpgradeWallsEnable = True Then
 		VillageReport(True, True)
@@ -339,13 +344,77 @@ Func SkipWallUpgrade($iWallCost = $g_iWallCost) ; Dynamic Upgrades
 
 EndFunc   ;==>SkipWallUpgrade
 
+; Called when no wall of the working level could be selected, neither by the search nor by the builder menu.
+; The counts are kept by the bot (see "Wall counts" below): above 0, walls of that level are known to be left and the
+; search only missed them, so the level is kept. 0 means none left or not known yet: the bot moves on, as it always did.
 Func SwitchToNextWallLevel() ; switches wall level to upgrade to next level
-	If $g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 4] = 0 And $g_iCmbUpgradeWallsLevel < UBound($g_aiWallCost) - 1 Then
-		SetDebugLog("$g_iCmbUpgradeWallsLevel = " & $g_iCmbUpgradeWallsLevel)
-		Return WallSetWorkingLevel($g_iCmbUpgradeWallsLevel + 5) ; index + 1, as a level (index + 4)
-	EndIf
-	Return False
+	Local $bMenuNoWall = $g_bWallMenuNoWall
+	$g_bWallMenuNoWall = False
+	If $bMenuNoWall Then Return False ; the builder menu lists no wall at all, the next level has none to upgrade either
+	If $g_aiWallsCurrentCount[$g_iCmbUpgradeWallsLevel + 4] > 0 Then Return False
+	Return __WallNextLevel()
 EndFunc   ;==>SwitchToNextWallLevel
+
+; Moves the bot to the level above the one it works on. False at the last level the bot knows, or when the town hall
+; does not allow it: the level would be saved and SkipWallUpgrade() would then skip every wall, lower levels included.
+Func __WallNextLevel()
+	Local $iNext = $g_iCmbUpgradeWallsLevel + 5 ; index + 1, as a level (index + 4)
+	If $iNext - 4 > UBound($g_aiWallCost) - 1 Then Return False
+	If Not WallLevelAllowedByTH($iNext) Then
+		SetDebugLog("Walls: level " & $iNext & " needs a higher town hall, the level is kept", $COLOR_DEBUG)
+		Return False
+	EndIf
+	SetDebugLog("$g_iCmbUpgradeWallsLevel = " & $g_iCmbUpgradeWallsLevel)
+	Return WallSetWorkingLevel($iNext)
+EndFunc   ;==>__WallNextLevel
+
+; True when the town hall lets the bot work on walls of level $iLevel, the rule of SkipWallUpgrade(). A town hall
+; level not read yet blocks nothing, SkipWallUpgrade() stops the walls in that case anyway.
+Func WallLevelAllowedByTH($iLevel)
+	If $g_iTownHallLevel < 5 Then Return True
+	If $g_iTownHallLevel <= 8 Then Return ($g_iTownHallLevel >= $iLevel)
+	Return ($g_iTownHallLevel >= $iLevel - 1)
+EndFunc   ;==>WallLevelAllowedByTH
+
+; #FUNCTION# ====================================================================================================================
+; Name ..........: Wall counts
+; Description ...: The number of walls of each level ([Walls] Wall04 .. Wall19 of the profile) is kept by the bot.
+; Remarks .......: This file is part of MyBot Copyright 2015-2025
+;                  The game never shows how many walls of each level a village has, but it tells enough to keep the
+;                  counts right without anything typed in the settings:
+;                  - every wall upgraded moves one level up: count[n] - k, count[n + 1] + k (WallCountUpgraded);
+;                  - in the Upgrade More wizard, "Add Wall" printed in red means every wall of that level is in the
+;                    selection, and the price of the selection then gives their exact number (WallCountSet);
+;                  - when the search finds no wall of a level and the builder menu offers a higher one, none is left.
+;                  A level the bot has not finished yet can stay at 0 (not known): nothing waits for the counts, they
+;                  only keep the bot on a level whose walls are known to be left, and show the progress in the GUI.
+;                  The counts are saved with the profile, older versions could leave them below zero.
+; ===============================================================================================================================
+
+; $iWalls walls of level $iLevel were upgraded: they leave that level for the next one. A level whose count was not
+; known stays at 0 instead of going below zero.
+Func WallCountUpgraded($iLevel, $iWalls)
+	$iLevel = Int(Number($iLevel))
+	$iWalls = Int(Number($iWalls))
+	If $iWalls < 1 Or $iLevel < 4 Or $iLevel + 1 > UBound($g_aiWallsCurrentCount) - 1 Then Return False ; a bad OCR level must not crash the bot
+	$g_aiWallsCurrentCount[$iLevel] -= $iWalls
+	If $g_aiWallsCurrentCount[$iLevel] < 0 Then $g_aiWallsCurrentCount[$iLevel] = 0
+	If $g_aiWallsCurrentCount[$iLevel + 1] < 0 Then $g_aiWallsCurrentCount[$iLevel + 1] = 0
+	$g_aiWallsCurrentCount[$iLevel + 1] += $iWalls
+	SetDebugLog("Wall counts: " & $iWalls & " wall(s) " & $iLevel & " -> " & $iLevel + 1 & ", level " & $iLevel & ": " & _
+			$g_aiWallsCurrentCount[$iLevel] & ", level " & $iLevel + 1 & ": " & $g_aiWallsCurrentCount[$iLevel + 1], $COLOR_DEBUG)
+	Return True
+EndFunc   ;==>WallCountUpgraded
+
+; The game showed that the village has exactly $iWalls walls of level $iLevel.
+Func WallCountSet($iLevel, $iWalls)
+	$iLevel = Int(Number($iLevel))
+	$iWalls = Int(Number($iWalls))
+	If $iWalls < 0 Or $iLevel < 4 Or $iLevel > UBound($g_aiWallsCurrentCount) - 1 Then Return False
+	If $g_aiWallsCurrentCount[$iLevel] <> $iWalls Then SetLog("Walls: " & $iWalls & " wall(s) of level " & $iLevel & " left according to the game (count was " & $g_aiWallsCurrentCount[$iLevel] & ")", $COLOR_INFO)
+	$g_aiWallsCurrentCount[$iLevel] = $iWalls
+	Return True
+EndFunc   ;==>WallCountSet
 
 
 ; #FUNCTION# ====================================================================================================================
@@ -494,6 +563,8 @@ Func UpgradeWallMore($bUseGold, $iWallCost = $g_iWallCost, $bBuilderBase = False
 	Local $iBtnAddOne = $iGoldX - $g_iWallBarPitch
 	Local $iBtnAddTen = $iGoldX - 2 * $g_iWallBarPitch
 	Local $iBtnRemove = $iGoldX - 3 * $g_iWallBarPitch
+	Local $iLevel = $g_iCmbUpgradeWallsLevel + 4 ; the selected wall was checked to be of the working level
+	Local $bAllIn = False ; every wall of the level is in the selection
 	Local $iAdded = 1
 	While $iAdded + 10 <= $iWant
 		If __WallTextIsRed($iBtnAddTen, False) Then ExitLoop
@@ -504,6 +575,7 @@ Func UpgradeWallMore($bUseGold, $iWallCost = $g_iWallCost, $bBuilderBase = False
 	While $iAdded < $iWant
 		If __WallTextIsRed($iBtnAddOne, False) Then
 			SetDebugLog("WallMore: no more walls of that level to add (" & $iAdded & " selected)", $COLOR_DEBUG)
+			$bAllIn = True
 			ExitLoop
 		EndIf
 		Click($iBtnAddOne, $g_iWallBarY, 1, 120, "#0341")
@@ -530,9 +602,15 @@ Func UpgradeWallMore($bUseGold, $iWallCost = $g_iWallCost, $bBuilderBase = False
 		Return -1
 	EndIf
 
+	If $iSafety > 0 Then $bAllIn = False ; walls were given back, the selection no longer holds the whole level
+
 	; the total the game prints is the truth on how many walls are selected ("+10" may add fewer when the
 	; level runs out); it also has to leave the reserve alone
 	Local $iTotal = __WallWizardTotal($iBtnX)
+	; with the whole level selected, that total is also the number of walls of the level: the count of the profile is
+	; set from it before the upgrade, which then takes its walls out of it (WallsStatsMAJ), whichever path upgrades them
+	Local $bCounted = False
+	If $bAllIn And Not $bBuilderBase And $iTotal > 0 And Mod($iTotal, $iWallCost) = 0 Then $bCounted = WallCountSet($iLevel, Int($iTotal / $iWallCost))
 	$iSafety = 0
 	While $iTotal > $iBudget And $iTotal > $iWallCost And $iSafety < 20
 		Click($iBtnRemove, $g_iWallBarY, 1, 120, "#0342")
@@ -580,7 +658,12 @@ Func UpgradeWallMore($bUseGold, $iWallCost = $g_iWallCost, $bBuilderBase = False
 		PushMsg("UpgradeWithElixir")
 	EndIf
 	$g_iNbrOfWallsUpped += $iAdded
-	UpdateStats()
+	UpdateStats() ; moves the walls to the next level in the counts (WallsStatsMAJ)
+	; the game has just shown that this batch was the whole level: the next level is searched straight away, instead
+	; of after a search and a builder menu scan that could only come back empty
+	If $bCounted And $g_aiWallsCurrentCount[$iLevel] = 0 And $g_iCmbUpgradeWallsLevel + 4 = $iLevel Then
+		If __WallNextLevel() Then SetLog("All walls of level " & $iLevel & " are upgraded, moving on to level " & $iLevel + 1, $COLOR_SUCCESS)
+	EndIf
 	Return $iAdded
 EndFunc   ;==>UpgradeWallMore
 
@@ -656,11 +739,12 @@ EndFunc   ;==>__BuilderMenuFindWallLine
 ; True when a wall of level $iLevel is selected on screen with its bar open. Scrolls the menu until its
 ; Wall line shows up; without one there is no wall left to upgrade at any level.
 Func BuilderMenuSelectWall($iLevel)
+	$g_bWallMenuNoWall = False
 	If Not $g_bRunState Then Return False
 	If Not ClickMainBuilder() Then Return False ; opens the menu (toggles it back open when it was already there)
 	If _Sleep(500) Then Return False
 
-	Local $sLastPage = ""
+	Local $sLastPage = "", $bListEnd = False
 	For $iPage = 1 To 20
 		If Not $g_bRunState Then Return False
 		; the resource icons give the lines of the page: their layout tells when the list stops moving
@@ -701,6 +785,9 @@ Func BuilderMenuSelectWall($iLevel)
 						Return False
 					EndIf
 					SetLog("Builder menu: a level " & $iFound & " wall was offered (searching level " & $iLevel & "), switching to level " & $iFound, $COLOR_INFO)
+					; a wall costs more at every level and the menu offers the cheapest one: with the search finding none
+					; either, no wall of the level searched is left (a count typed long ago is corrected)
+					If $iFound > $iLevel Then WallCountSet($iLevel, 0)
 				EndIf
 				SetLog("Wall level " & $iFound & " selected from the builder menu", $COLOR_SUCCESS)
 				; the menu stays open over the village: the builder counter closes it and the wall stays selected (measured live)
@@ -718,7 +805,10 @@ Func BuilderMenuSelectWall($iLevel)
 			Return False
 		EndIf
 
-		If $sPage <> "" And $sPage = $sLastPage Then ExitLoop ; the list did not move, its end is reached
+		If $sPage <> "" And $sPage = $sLastPage Then ; the list did not move, its end is reached
+			$bListEnd = True
+			ExitLoop
+		EndIf
 		$sLastPage = $sPage
 
 		; the Wall line is further down
@@ -727,7 +817,9 @@ Func BuilderMenuSelectWall($iLevel)
 		If Not IsBuilderMenuOpen() Then ExitLoop
 	Next
 
-	SetLog("Builder menu: no Wall line, no wall left to upgrade", $COLOR_INFO)
+	; only a list read to its end proves that no wall is left; a menu that closed or 20 pages without an end prove nothing
+	$g_bWallMenuNoWall = $bListEnd
+	SetLog("Builder menu: no Wall line" & ($bListEnd ? ", no wall left to upgrade" : " (the list could not be read to its end)"), $COLOR_INFO)
 	SaveFailureImage("BuilderMenuNoWall")
 	ClearScreen()
 	Return False

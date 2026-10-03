@@ -19,6 +19,7 @@
 
 Global $g_hLaunchMutex = 0 ; held while this bot launches: one bot launches at a time, it uses a lot of CPU
 Global $g_bBotCanStart = False ; the prerequisites (MyBot.run.dll, .NET, files...) were found at launch, see CanBotStart()
+Global $g_bBotPrerequisitesChecked = False ; the launch checks are over (MainLoop): until then a Start is kept, not refused
 
 #Region Host window
 ; The bot keeps one window, never shown: it carries the bot title that the interface, MultiBot, the Watchdog and the
@@ -177,6 +178,12 @@ Func CanBotStart()
 EndFunc   ;==>CanBotStart
 
 Func btnStart()
+	If Not $g_bBotPrerequisitesChecked Then
+		; Start pressed while the bot is still loading: it used to be refused as if a file were missing
+		SetLog("Start requested: the bot starts as soon as it has finished loading", $COLOR_INFO)
+		$g_iBotAction = $eBotStart
+		Return
+	EndIf
 	If Not CanBotStart() Then Return
 	; decide when to run
 	Local $bRunNow = $g_iBotAction <> $eBotNoAction

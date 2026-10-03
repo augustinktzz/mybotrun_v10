@@ -266,6 +266,12 @@
     dismissImport() {
       return Promise.resolve({ ok: true, result: this.info ? this.info() : {} });
     }
+    repairPlan() {
+      return Promise.resolve([]);
+    }
+    repairProfile() {
+      return Promise.resolve({ ok: true, result: { count: 0, backups: [] } });
+    }
     onUpdate() {
       return () => {};
     }

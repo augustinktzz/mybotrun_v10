@@ -44,10 +44,7 @@
       title: 'Statut Discord (Rich Presence)',
       icon: 'i-activity',
       fields: [
-        { id: 'notify/DiscordRPCEnable', type: 'toggle', label: 'Afficher le statut du bot sur mon profil Discord', hint: "L'application Discord doit tourner sur ce PC", def: '0' },
-        { id: 'notify/DiscordRPCClientId', type: 'text', label: "ID de l'application Discord", placeholder: 'Application du portail développeur', needs: ['notify/DiscordRPCEnable'], def: '' },
-        { id: 'notify/DiscordRPCButton', type: 'toggle', label: 'Bouton lien', needs: ['notify/DiscordRPCEnable'], def: '1' },
-        { id: 'notify/DiscordRPCButtonUrl', type: 'text', label: 'Adresse du bouton', needs: ['notify/DiscordRPCEnable', 'notify/DiscordRPCButton'], def: 'https://discord.gg/mdE5m5QPEF' },
+        { id: 'notify/DiscordRPCEnable', type: 'toggle', label: 'Afficher le statut du bot sur mon profil Discord', hint: "L'application Discord doit tourner sur ce PC. Le statut montre la version du bot et un bouton vers le serveur MyBot", def: '0' },
       ],
     },
     {

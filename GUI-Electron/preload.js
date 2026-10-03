@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('mybot', {
   deleteProfile: (name) => act('profiles:delete', name),
   importProfiles: (dir) => act('profiles:import', dir),
   dismissImport: () => act('profiles:dismissImport'),
+  repairPlan: (name) => ipcRenderer.invoke('profiles:repairPlan', name),
+  repairProfile: (name) => act('profiles:repair', name),
   getConfig: (ids) => ipcRenderer.invoke('config:get', ids),
   setConfig: (values) => ipcRenderer.invoke('config:set', values), // { ok, error }: the form keeps its changes
   listStrategies: () => ipcRenderer.invoke('strategies:list'),

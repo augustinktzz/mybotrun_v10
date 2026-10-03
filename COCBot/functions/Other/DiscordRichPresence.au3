@@ -22,7 +22,8 @@ Global $g_hDiscordRPCPipe = 0 ; 0 = not connected
 Global $g_hDiscordRPCTimer = 0 ; last activity sent
 Global $g_hDiscordRPCRetry = 0 ; last failed connection
 Global $g_sDiscordRPCLast = "" ; last activity sent, to skip identical updates
-Global $g_iDiscordRPCStart = 0 ; unix time the bot was started, for the elapsed counter
+Global $g_iDiscordRPCStart = 0 ; unix time the run started (pauses left out), for the elapsed counter
+Global $g_bDiscordRPCDisplayType = True ; False once Discord refused status_display_type (older Discord client)
 
 Global Const $g_iRPCOpHandshake = 0, $g_iRPCOpFrame = 1, $g_iRPCOpClose = 2
 
@@ -91,6 +92,15 @@ Func __RPCDrain()
 			DiscordRPCStop(False)
 			Return False
 		EndIf
+		; an activity Discord refused: a client that does not know status_display_type refuses the whole
+		; activity, so it is sent again without it
+		If StringInStr($sAnswer, '"evt":"ERROR"') Then
+			SetDebugLog("Discord presence: activity refused " & $sAnswer, $COLOR_DEBUG)
+			If $g_bDiscordRPCDisplayType Then
+				$g_bDiscordRPCDisplayType = False
+				DiscordRPCRefresh()
+			EndIf
+		EndIf
 	WEnd
 	Return True
 EndFunc   ;==>__RPCDrain
@@ -128,12 +138,10 @@ EndFunc   ;==>DiscordRPCAvailable
 Func DiscordRPCStart()
 	If Not $g_bDiscordRPCEnable Then Return False
 	If Not DiscordRPCAvailable() Then
-		; the option is on but the box next to it is empty or holds something else than an id: say it once,
-		; otherwise the feature stays silent and looks broken
+		; the application id is built into the bot: only a broken build gets here, say it once
 		If Not $g_bDiscordRPCIdWarned Then
 			$g_bDiscordRPCIdWarned = True
-			SetLog("Discord status: no Application ID, nothing is shown. Village > Notify, paste the ID of your" & _
-					" application from discord.com/developers/applications next to the option", $COLOR_ERROR)
+			SetLog("Discord status: the application ID of this build is not valid, nothing is shown", $COLOR_ERROR)
 		EndIf
 		Return False
 	EndIf
@@ -172,7 +180,7 @@ Func DiscordRPCStart()
 		Return False
 	EndIf
 
-	$g_iDiscordRPCStart = __RPCUnixNow()
+	$g_iDiscordRPCStart = __RPCRunStart()
 	$g_sDiscordRPCLast = ""
 	$g_hDiscordRPCRetry = 0
 	SetLog("Discord presence connected", $COLOR_SUCCESS)
@@ -188,6 +196,14 @@ Func __RPCUnixNow()
 	; FILETIME counts 100 ns ticks since 1601, 11644473600 seconds before 1970
 	Return Int(DllStructGetData($tFT, "ft") / 10000000) - 11644473600
 EndFunc   ;==>__RPCUnixNow
+
+; Unix time the run started, from the bot's own run time (pauses left out): the counter on the profile no longer
+; starts again from zero when the pipe reconnects.
+Func __RPCRunStart()
+	Local $iRun = $g_iTimePassed
+	If $g_bRunState And Not $g_bBotPaused And $g_hTimerSinceStarted <> 0 Then $iRun += Int(__TimerDiff($g_hTimerSinceStarted))
+	Return __RPCUnixNow() - Int($iRun / 1000)
+EndFunc   ;==>__RPCRunStart
 
 ; clears the status and closes the pipe. $bClear = False when Discord already hung up.
 Func DiscordRPCStop($bClear = True)
@@ -209,8 +225,10 @@ Func DiscordRPCRefresh()
 	$g_hDiscordRPCTimer = 0
 EndFunc   ;==>DiscordRPCRefresh
 
-; Sends the activity. $sDetails is the first line, $sState the second one.
-Func DiscordRPCSet($sDetails, $sState, $bForce = False)
+; Sends the activity. $sDetails is the first line, $sState the second one, $sLargeText the tooltip of the picture.
+; The application name on the profile is the one of the Discord application; status_display_type 2 makes the member
+; list show the first line instead, the bot version ("Playing MyBotRun_v12.0.2"), which follows every update.
+Func DiscordRPCSet($sDetails, $sState, $bForce = False, $sLargeText = "")
 	If Not DiscordRPCAvailable() Then Return False
 	If $g_hDiscordRPCPipe = 0 Then
 		If Not DiscordRPCStart() Then Return False
@@ -219,18 +237,29 @@ Func DiscordRPCSet($sDetails, $sState, $bForce = False)
 
 	$sDetails = __RPCField($sDetails)
 	$sState = __RPCField($sState)
-	Local $sSignature = $sDetails & "|" & $sState
+	If $sLargeText = "" Then $sLargeText = $g_sBotTitle
+	$sLargeText = __RPCField($sLargeText)
+	Local $bRunning = $g_bRunState And Not $g_bBotPaused
+	Local $sSignature = $sDetails & "|" & $sState & "|" & $sLargeText & "|" & $bRunning & "|" & $g_bDiscordRPCDisplayType
 	If Not $bForce Then
 		If $sSignature = $g_sDiscordRPCLast Then Return True ; nothing changed
 		If $g_hDiscordRPCTimer <> 0 And __TimerDiff($g_hDiscordRPCTimer) < 15000 Then Return True ; Discord rate limit
+	EndIf
+
+	; the elapsed counter follows the bot's run time; a few seconds of drift are left alone, or the counter would
+	; jitter at every update
+	If $bRunning Then
+		Local $iStart = __RPCRunStart()
+		If Abs($iStart - $g_iDiscordRPCStart) > 5 Then $g_iDiscordRPCStart = $iStart
 	EndIf
 
 	Local $sSmall = $g_bRunState ? ($g_bBotPaused ? "paused" : "running") : "idle"
 	Local $sJson = '{"cmd":"SET_ACTIVITY","nonce":"' & __RPCUnixNow() & "-" & Random(1000, 9999, 1) & '","args":{"pid":' & @AutoItPID & ',"activity":{'
 	If $sDetails <> "" Then $sJson &= '"details":"' & __RPCJson($sDetails) & '",'
 	If $sState <> "" Then $sJson &= '"state":"' & __RPCJson($sState) & '",'
-	$sJson &= '"timestamps":{"start":' & $g_iDiscordRPCStart & '},'
-	$sJson &= '"assets":{"large_image":"village","large_text":"' & __RPCJson($g_sBotTitle) & '","small_image":"' & $sSmall & '","small_text":"' & $sSmall & '"}'
+	If $g_bDiscordRPCDisplayType And $sDetails <> "" Then $sJson &= '"status_display_type":2,'
+	If $bRunning Then $sJson &= '"timestamps":{"start":' & $g_iDiscordRPCStart & '},' ; no counter while paused or stopped
+	$sJson &= '"assets":{"large_image":"village","large_text":"' & __RPCJson($sLargeText) & '","small_image":"' & $sSmall & '","small_text":"' & $sSmall & '"}'
 	Local $sButtonUrl = __RPCButtonUrl()
 	If $g_bDiscordRPCButton And $sButtonUrl <> "" Then $sJson &= ',"buttons":[{"label":"Join the server","url":"' & __RPCJson($sButtonUrl) & '"}]'
 	$sJson &= '}}}'
@@ -256,10 +285,13 @@ Func DiscordRPCTick()
 	; cheap guard so the main loop never pays for the rate limited calls
 	If $g_hDiscordRPCTimer <> 0 And __TimerDiff($g_hDiscordRPCTimer) < 15000 Then Return
 
-	Local $sDetails = ""
-	If $g_iTownHallLevel > 0 Then $sDetails = "Town Hall " & $g_iTownHallLevel
-	If $g_sProfileCurrentName <> "" Then $sDetails &= ($sDetails <> "" ? " - " : "") & $g_sProfileCurrentName
-	If $sDetails = "" Then $sDetails = "Clash of Clans"
+	; first line: the bot and its version, MyBotRun_v12.0.2 (shown in the member list, see DiscordRPCSet)
+	Local $sDetails = "MyBotRun_" & $g_sBotVersion
+
+	Local $sVillage = ""
+	If $g_iTownHallLevel > 0 Then $sVillage = "Town Hall " & $g_iTownHallLevel
+	If $g_sProfileCurrentName <> "" Then $sVillage &= ($sVillage <> "" ? " - " : "") & $g_sProfileCurrentName
+	If $sVillage = "" Then $sVillage = "Clash of Clans"
 
 	Local $sState = ""
 	If Not $g_bRunState Then
@@ -267,11 +299,11 @@ Func DiscordRPCTick()
 	ElseIf $g_bBotPaused Then
 		$sState = "Paused"
 	Else
-		$sState = "Gold " & __RPCShort($g_aiCurrentLoot[$eLootGold]) & "  Elixir " & __RPCShort($g_aiCurrentLoot[$eLootElixir])
+		$sState = ($g_iTownHallLevel > 0 ? "TH" & $g_iTownHallLevel & "  " : "") & "Gold " & __RPCShort($g_aiCurrentLoot[$eLootGold]) & "  Elixir " & __RPCShort($g_aiCurrentLoot[$eLootElixir])
 		If $g_aiCurrentLoot[$eLootDarkElixir] > 0 Then $sState &= "  DE " & __RPCShort($g_aiCurrentLoot[$eLootDarkElixir])
 	EndIf
 
-	DiscordRPCSet($sDetails, $sState)
+	DiscordRPCSet($sDetails, $sState, False, $sVillage)
 EndFunc   ;==>DiscordRPCTick
 
 ; 7028173 -> 7.0M, 154442 -> 154K
