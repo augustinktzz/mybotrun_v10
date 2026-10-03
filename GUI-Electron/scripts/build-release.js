@@ -26,7 +26,9 @@ const { writeManifest } = require('../lib/bot-install');
 const GUI_DIR = path.resolve(__dirname, '..');
 const REPO_DIR = path.resolve(GUI_DIR, '..');
 const PAYLOAD = path.join(GUI_DIR, 'payload');
-const SRC = path.join(PAYLOAD, 'src');
+// the sources are compiled in a short folder: Aut2Exe cannot open an #include whose path is longer than 260
+// characters, which a repository in a deep folder reaches ("Error opening the file")
+const SRC = IS_WINDOWS ? path.join(os.tmpdir(), 'mybot-release-src') : path.join(PAYLOAD, 'src');
 const BOT = path.join(PAYLOAD, 'bot');
 const BRIDGE = path.join(PAYLOAD, 'bridge');
 const IS_WINDOWS = process.platform === 'win32';
@@ -150,6 +152,8 @@ async function main() {
 
   step('Extracting the repository at HEAD');
   fs.rmSync(PAYLOAD, { recursive: true, force: true });
+  fs.rmSync(SRC, { recursive: true, force: true });
+  fs.mkdirSync(PAYLOAD, { recursive: true });
   fs.mkdirSync(SRC, { recursive: true });
   const tar = path.join(PAYLOAD, 'head.tar');
   git('archive', '--format=tar', '-o', tar, 'HEAD');
