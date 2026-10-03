@@ -53,7 +53,7 @@ EndFunc   ;==>BuilderBaseReport
 Func BBReadTrophies()
 	Local $sLast = "", $sNow = ""
 	For $i = 1 To 8
-		$sNow = StringRegExpReplace(getTrophyMainScreen(67, 84), "[^0-9]", "")
+		$sNow = StringRegExpReplace(__BBTrophyOcr(), "[^0-9]", "")
 		If $sNow <> "" And $sNow = $sLast Then Return Number($sNow)
 		$sLast = $sNow
 		If _Sleep(400) Then Return Number($sNow)
@@ -61,6 +61,19 @@ Func BBReadTrophies()
 	SetDebugLog("Builder base trophies did not settle, keeping the last read: " & $sNow, $COLOR_DEBUG)
 	Return Number($sNow)
 EndFunc   ;==>BBReadTrophies
+
+; The DLL coc-ms font drops digits of the builder base trophy counter since CoC 18.600: on the 2 Oct log the
+; very same captures were read '2318' -> 31 and '2294' -> 91 or 94 (27 reports), while the glyph OCR of
+; imgcv\OCR\coc-ms, which only runs as a shadow check there (shadow.txt), read the 4 digits right every time
+; and agrees with the DLL on gold and elixir. So that OCR answers here, the DLL stays the fallback.
+Func __BBTrophyOcr()
+	If Not CVOcrFontExists("coc-ms") Then Return getTrophyMainScreen(67, 84)
+	_CaptureRegion2(67, 84, 117, 100) ; the 50x16 box of getTrophyMainScreen()
+	Local $sRead = CVOcr($g_hHBitmap2, "coc-ms")
+	SetDebugLog("BB trophies, CV ocr: '" & $sRead & "'", $COLOR_DEBUG)
+	If StringRegExpReplace($sRead, "[^0-9]", "") = "" Then Return getTrophyMainScreen(67, 84)
+	Return $sRead
+EndFunc   ;==>__BBTrophyOcr
 
 Func PicBBTrophies()
 EndFunc   ;==>PicBBTrophies

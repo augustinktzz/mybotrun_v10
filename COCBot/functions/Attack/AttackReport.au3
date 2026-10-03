@@ -54,7 +54,8 @@ Func AttackReport()
 		$g_iStatsLastAttack[$eLootDarkElixir] = getResourcesLoot(320, 381 + $g_iMidOffsetY) ; same wide box as the two rows above: the digits start at x 387 and a 85 px box from 400 cut the first one
 		If _Sleep($DELAYATTACKREPORT2) Then Return
 		$g_iStatsLastAttack[$eLootTrophy] = 0 ; CoC 18.600 shows no trophy line on the end screen any more
-		SetLog("Loot: [G]: " & _NumberFormat($g_iStatsLastAttack[$eLootGold]) & " [E]: " & _NumberFormat($g_iStatsLastAttack[$eLootElixir]) & " [DE]: " & _NumberFormat($g_iStatsLastAttack[$eLootDarkElixir]) & " [T]: " & $g_iStatsLastAttack[$eLootTrophy], $COLOR_SUCCESS)
+		; no "[T]: 0" here: it read as "no trophy won" after a won battle, the league tier is logged below
+		SetLog("Loot: [G]: " & _NumberFormat($g_iStatsLastAttack[$eLootGold]) & " [E]: " & _NumberFormat($g_iStatsLastAttack[$eLootElixir]) & " [DE]: " & _NumberFormat($g_iStatsLastAttack[$eLootDarkElixir]), $COLOR_SUCCESS)
 	Else
 		; Same rows as the branch above, without the dark elixir line
 		$g_iStatsLastAttack[$eLootGold] = getResourcesLoot(320, 299 + $g_iMidOffsetY)
@@ -63,7 +64,7 @@ Func AttackReport()
 		If _Sleep($DELAYATTACKREPORT2) Then Return
 		$g_iStatsLastAttack[$eLootTrophy] = 0 ; CoC 18.600 shows no trophy line on the end screen any more
 		$g_iStatsLastAttack[$eLootDarkElixir] = ""
-		SetLog("Loot: [G]: " & _NumberFormat($g_iStatsLastAttack[$eLootGold]) & " [E]: " & _NumberFormat($g_iStatsLastAttack[$eLootElixir]) & " [T]: " & $g_iStatsLastAttack[$eLootTrophy], $COLOR_SUCCESS)
+		SetLog("Loot: [G]: " & _NumberFormat($g_iStatsLastAttack[$eLootGold]) & " [E]: " & _NumberFormat($g_iStatsLastAttack[$eLootElixir]), $COLOR_SUCCESS)
 	EndIf
 
 	; The reward cards picked during the battle are paid straight into the storages and never
@@ -184,7 +185,7 @@ Func AttackReport()
 	$AtkLogTxt &= StringFormat("%7d", $g_iStatsLastAttack[$eLootGold]) & "|"
 	$AtkLogTxt &= StringFormat("%7d", $g_iStatsLastAttack[$eLootElixir]) & "|"
 	$AtkLogTxt &= StringFormat("%5d", $g_iStatsLastAttack[$eLootDarkElixir]) & "|"
-	$AtkLogTxt &= StringFormat("%3d", $g_iStatsLastAttack[$eLootTrophy]) & "|"
+	$AtkLogTxt &= "  -|" ; TR: no trophy count on the CoC 18.600 end screen, the league is in the L. column
 	$AtkLogTxt &= StringFormat("%2d", $starsearned) & "|"
 	$AtkLogTxt &= StringFormat("%3d", $g_iPercentageDamage) & "|"
 	$AtkLogTxt &= StringFormat("%5d", $g_iStatsBonusLast[$eLootGold]) & "k|"

@@ -58,6 +58,9 @@ Func PrepareAttack($pMatchMode, $bRemaining = False) ;Assigns troops
 	For $i = 0 To UBound($g_avAttackTroops, 1) - 1
 		Local $bClearSlot = True ; by default clear the slot, if no corresponding slot is found in attackbar detection
 		If $bRemaining Then
+			; A slot left out at the start of the attack (siege kept for the castle, unit not used) stays out:
+			; only its amount would be updated, under no troop or a wrong one
+			If String($g_avAttackTroops[$i][0]) = "" Or Number($g_avAttackTroops[$i][0]) = -1 Then ContinueLoop
 			; keep initial heroes to avoid possibly "losing" them when not dropped yet
 			;Local $bSlotDetectedAgain = UBound($avAttackBar, 1) > $i And $g_avAttackTroops[$i][0] = Number($avAttackBar[$i][0]) ; wrong, as attackbar array on remain is shorter
 			Local $bDropped = Default
@@ -111,7 +114,10 @@ Func PrepareAttack($pMatchMode, $bRemaining = False) ;Assigns troops
 
 											If $g_aiAttackUseSiege[$pMatchMode] = 0 And Not ($avAttackBar[$j][0] = $eCastle) Then ; if the user wanted to drop castle and no troops were available, do not drop a siege
 												SetDebugLog("Discard use of " & GetTroopName($avAttackBar[$j][0]) & " (" & $avAttackBar[$j][0] & ")", $COLOR_ERROR)
-												ContinueLoop
+												; Clear the slot: left as it was, it kept the empty troop index of the global array,
+												; which equals $eBarb, and the left over troops step dropped the siege as a Barbarian
+												$bClearSlot = True
+												ExitLoop
 											EndIf
 
 											If $avAttackBar[$j][0] <> $eCastle Then $sLogExtension = " (level " & $g_iSiegeLevel & ")"
@@ -286,6 +292,9 @@ Func SelectCastleOrSiege(ByRef $iTroopIndex, $iX, $iCmbSiege)
 				Click($iLastX, $iLastY, 1)
 			EndIf
 			If _Sleep(750) Then Return
+		Else
+			; nothing was clicked: say it, the slot keeps the unit it shows
+			SetLog("Switch button not found under " & GetTroopName($iTroopIndex) & ", kept as it is", $COLOR_INFO)
 		EndIf
 	EndIf
 	If $g_bDebugSetLog Then SetDebugLog("Benchmark Switch Siege Detection: " & StringFormat("%.2f", _Timer_Diff($hStarttime)) & "'ms")

@@ -402,7 +402,11 @@ Func CheckDiscountPerks()
 		$g_iWallCost = $g_aiWallCost[$g_iCmbUpgradeWallsLevel] ; the cost of the level searched; the discount is applied where it is spent
 		If ProfileSwitchAccountEnabled() Then SwitchAccountVariablesReload("Save")
 	Else
-		SetLog("Cannot read builder boost", $COLOR_ERROR)
+		; 110,277 is the place of the boost on the Jun-2023 window; the Perks tab of the CoC 18.600 full screen
+		; pass window has not been measured yet. Upgrade costs then keep the last discount read (0 by default:
+		; full price, so the bot never counts on resources it does not have). The capture allows measuring it.
+		SetLog("Builder boost not read on the Perks tab (CoC 18.600 layout not measured yet), upgrade costs use " & Number($g_iBuilderBoostDiscount) & "% discount", $COLOR_WARNING)
+		SaveFailureImage("BuilderBoostPerks")
 	EndIf
 EndFunc   ;==>CheckDiscountPerks
 

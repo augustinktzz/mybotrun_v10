@@ -13,6 +13,17 @@
 ; Example .......: No
 ; ===============================================================================================================================
 #include-once
+
+; The zoom springs back for a moment when a pinch goes past its limit, so the village is measured a little
+; after the pinch. This replaces the 1 s that SearchZoomOut waited after every measurement, where it only
+; delayed the next pinch, and the 0.7 s of builder base checks that used to precede the capture.
+Global Const $g_iZoomOutPinchSettle = 500
+
+; A centering drag shorter than this does not move the village: the game takes it for a tap. Measured on
+; the logs: offsets of 7,-4 / -6,-3 / 0,2 / 2,3 stayed exactly the same after the drag, 9,8 and 13,-2 moved.
+; The offset is still stored (setVillageOffset), so the coordinates stay right without the drag.
+Global Const $g_iZoomOutMinCenterDrag = 8
+
 Func ZoomOut() ;Zooms out
 	Local $hTimer = __TimerInit()
 	$g_aiSearchZoomOutCounter[0] = 0
@@ -22,7 +33,7 @@ Func ZoomOut() ;Zooms out
 	getBSPos() ; Update $g_hAndroidWindow and Android Window Positions
 	If Not $g_bRunState Then
 		SetDebugLog("Exit ZoomOut, bot not running")
-		SetDebugLog("ZoomOut Completed(in " & Round(TimerDiff($hTimer) / 1000, 2) & " seconds)", $COLOR_INFO)
+		SetDebugLog("ZoomOut Completed(in " & Round(__TimerDiff($hTimer) / 1000, 2) & " seconds)", $COLOR_INFO)
 		Return
 	EndIf
 	Local $Result
@@ -34,14 +45,14 @@ Func ZoomOut() ;Zooms out
 			$Result = AndroidOnlyZoomOut()
 		EndIf
 		$g_bSkipFirstZoomout = True
-		SetDebugLog("ZoomOut Completed(in " & Round(TimerDiff($hTimer) / 1000, 2) & " seconds)", $COLOR_INFO)
+		SetDebugLog("ZoomOut Completed(in " & Round(__TimerDiff($hTimer) / 1000, 2) & " seconds)", $COLOR_INFO)
 		Return $Result
 	EndIf
 
 	; Android embedded, only use Android zoomout
 	$Result = AndroidOnlyZoomOut()
 	$g_bSkipFirstZoomout = True
-	SetDebugLog("ZoomOut Completed(in " & Round(TimerDiff($hTimer) / 1000, 2) & " seconds)", $COLOR_INFO)
+	SetDebugLog("ZoomOut Completed(in " & Round(__TimerDiff($hTimer) / 1000, 2) & " seconds)", $COLOR_INFO)
 	Return $Result
 EndFunc   ;==>ZoomOut
 
@@ -74,9 +85,12 @@ Func DefaultZoomOut($ZoomOutKey = "{DOWN}", $tryCtrlWheelScrollAfterCycles = 40,
 		Else
 			SetLog("Zooming Out", $COLOR_INFO)
 		EndIf
-		If _Sleep($DELAYZOOMOUT1) Then Return True
+		; the screen was just measured, the pinch has nothing to wait for (1.5 s between "Zooming Out" and
+		; the first minitouch script in every log); the key based fallback keeps its delay
+		If _Sleep($bAndroidZoomOut ? 50 : $DELAYZOOMOUT1) Then Return True
 		If $bAndroidZoomOut Then
 			AndroidZoomOut(0, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
+			If _Sleep($g_iZoomOutPinchSettle) Then Return True
 			ForceCaptureRegion()
 			$aPicture = SearchZoomOut($aCenterHomeVillageClickDrag, True, "", True)
 		EndIf
@@ -89,7 +103,11 @@ Func DefaultZoomOut($ZoomOutKey = "{DOWN}", $tryCtrlWheelScrollAfterCycles = 40,
 			EndIf
 			If $bAndroidZoomOut Then
 				AndroidZoomOut($i, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
-				If @error <> 0 Then $bAndroidZoomOut = False
+				If @error <> 0 Then
+					$bAndroidZoomOut = False
+				ElseIf _Sleep($g_iZoomOutPinchSettle) Then
+					Return True
+				EndIf
 			EndIf
 			If Not $bAndroidZoomOut Then
 				; original windows based zoom-out
@@ -152,9 +170,10 @@ Func ZoomOutCtrlWheelScroll($CenterMouseWhileZooming = True, $GlobalMouseWheel =
 			SetLog("Zooming Out", $COLOR_INFO)
 		EndIf
 
-		If _Sleep($DELAYZOOMOUT1) Then Return True
+		If _Sleep($AndroidZoomOut ? 50 : $DELAYZOOMOUT1) Then Return True ; see DefaultZoomOut
 		If $AndroidZoomOut Then
 			AndroidZoomOut(0, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
+			If _Sleep($g_iZoomOutPinchSettle) Then Return True
 			ForceCaptureRegion()
 			$aPicture = SearchZoomOut($aCenterHomeVillageClickDrag, True, "", True)
 		EndIf
@@ -168,7 +187,11 @@ Func ZoomOutCtrlWheelScroll($CenterMouseWhileZooming = True, $GlobalMouseWheel =
 			EndIf
 			If $AndroidZoomOut Then
 				AndroidZoomOut($i, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
-				If @error <> 0 Then $AndroidZoomOut = False
+				If @error <> 0 Then
+					$AndroidZoomOut = False
+				ElseIf _Sleep($g_iZoomOutPinchSettle) Then
+					ExitLoop
+				EndIf
 			EndIf
 			If Not $AndroidZoomOut Then
 				; original windows based zoom-out
@@ -268,7 +291,11 @@ Func ZoomOutCtrlClick($CenterMouseWhileZooming = False, $AlwaysControlFocus = Fa
 			EndIf
 			If $AndroidZoomOut Then
 				AndroidZoomOut($i, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
-				If @error <> 0 Then $AndroidZoomOut = False
+				If @error <> 0 Then
+					$AndroidZoomOut = False
+				ElseIf _Sleep($g_iZoomOutPinchSettle) Then
+					ExitLoop
+				EndIf
 			EndIf
 			If Not $AndroidZoomOut Then
 				; original windows based zoom-out
@@ -344,6 +371,7 @@ Func AndroidOnlyZoomOut() ;Zooms out
 		EndIf
 		If _Sleep(50) Then Return
 		AndroidZoomOut(0, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
+		If _Sleep($g_iZoomOutPinchSettle) Then Return
 		ForceCaptureRegion()
 		$aPicture = SearchZoomOut($aCenterHomeVillageClickDrag, True, "", True)
 		While StringInStr($aPicture[0], "zoomout") = 0
@@ -353,6 +381,7 @@ Func AndroidOnlyZoomOut() ;Zooms out
 			EndIf
 			If _Sleep(50) Then Return
 			AndroidZoomOut($i, Default, ($g_iAndroidZoomoutMode <> 2)) ; use new ADB zoom-out
+			If _Sleep($g_iZoomOutPinchSettle) Then Return
 			If $i > $exitCount Then Return
 			If Not $g_bRunState Then ExitLoop
 			If IsProblemAffect(True) Then  ; added to catch errors during Zoomout
@@ -419,9 +448,8 @@ Func SearchZoomOut($CenterVillageBoolOrScrollPos = $aCenterHomeVillageClickDrag,
 	;GetVillageSize(True, "stoneBlueStacks2A")
 	;GetVillageSize(True, "stoneiTools")
 
-	If $g_aiSearchZoomOutCounter[0] > 0 Then
-		If _Sleep(1000) Then Return $aResult
-	EndIf
+	; no wait here any more: the zoom loops wait $g_iZoomOutPinchSettle after each pinch, before measuring
+	If Not $g_bRunState Then Return $aResult
 
 	#cs
 			$aResult[0] = $c ; village size
@@ -464,13 +492,16 @@ Func SearchZoomOut($CenterVillageBoolOrScrollPos = $aCenterHomeVillageClickDrag,
 			$aResult[1] = $x
 			$aResult[2] = $y
 
-			If $bCenterVillage And ($x <> 0 Or $y <> 0) And ($UpdateMyVillage = False Or $x <> $g_iVILLAGE_OFFSET[0] Or $y <> $g_iVILLAGE_OFFSET[1]) And Not $g_bOnBuilderBaseEnemyVillage Then
+			; a drag too short to move the village cost 4 s for nothing (see $g_iZoomOutMinCenterDrag)
+			If $bCenterVillage And (Abs($x) >= $g_iZoomOutMinCenterDrag Or Abs($y) >= $g_iZoomOutMinCenterDrag) And ($UpdateMyVillage = False Or $x <> $g_iVILLAGE_OFFSET[0] Or $y <> $g_iVILLAGE_OFFSET[1]) And Not $g_bOnBuilderBaseEnemyVillage Then
 				If $DebugLog Then SetDebugLog("Center Village" & $sSource & " by: " & $x & ", " & $y)
+				; checked once here for the drag tests and the screen clearing below (0.4 s per check)
+				Local $bIsOnMainBase = isOnMainVillage(True)
 				; the whole drag, start and release, has to stay clear of the buttons (see IsDragSafe)
-				If IsDragSafe($stone[0], $stone[1], $x, $y) Then
+				If IsDragSafe($stone[0], $stone[1], $x, $y, $bIsOnMainBase) Then
 					$aScrollPos[0] = $stone[0]
 					$aScrollPos[1] = $stone[1]
-				ElseIf IsDragSafe($tree[0], $tree[1], $x, $y) Then
+				ElseIf IsDragSafe($tree[0], $tree[1], $x, $y, $bIsOnMainBase) Then
 					$aScrollPos[0] = $tree[0]
 					$aScrollPos[1] = $tree[1]
 				Else
@@ -478,7 +509,6 @@ Func SearchZoomOut($CenterVillageBoolOrScrollPos = $aCenterHomeVillageClickDrag,
 					$aScrollPos[1] = $aCenterHomeVillageClickDrag[1]
 				EndIf
 				If $g_bDebugImageSave Then SaveDebugPointImage("SearchZoomOut", $aScrollPos)
-				Local $bIsOnMainBase = isOnMainVillage(True)
 				If $bIsOnMainBase Then
 					ClearScreen()
 				ElseIf isOnBuilderBase(True) Then

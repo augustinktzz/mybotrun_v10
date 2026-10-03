@@ -45,12 +45,13 @@ EndFunc   ;==>IsBattleRewardPopupOpen
 ;                  Three cards sit at real x 200, 432 and 663, their icon filling roughly the centre
 ;                  of each card between y 305 and 395. Gold reads as bright yellow and elixir as
 ;                  magenta (measured 0xF615FF, 230 hits on the elixir card against 18 and 0 on the
-;                  two troop cards). Gold is preferred, elixir is taken when no gold is offered.
+;                  two troop cards). Gold is preferred, elixir is taken when no gold is offered,
+;                  dark elixir when neither is.
 ;                  The reward order is random, so the card is identified by its icon, never by rank.
 ; ===============================================================================================================================
 Func PickBattleReward()
 	Local $aiCardX[3] = [200, 432, 663]
-	Local $aiGold[3] = [0, 0, 0], $aiElixir[3] = [0, 0, 0]
+	Local $aiGold[3] = [0, 0, 0], $aiElixir[3] = [0, 0, 0], $aiDark[3] = [0, 0, 0]
 
 	; The red banner is on screen before the three cards have finished sliding in, and the logs
 	; showed the icon scan running on half drawn cards (all counts at zero, or a lone 2 to 8).
@@ -66,11 +67,14 @@ Func PickBattleReward()
 				Local $iR = Dec(StringMid($sCol, 1, 2)), $iG = Dec(StringMid($sCol, 3, 2)), $iB = Dec(StringMid($sCol, 5, 2))
 				If $iR > 200 And $iG > 140 And $iG < 235 And $iB < 110 Then $aiGold[$i] += 1
 				If $iR > 150 And $iG < 120 And $iB > 150 Then $aiElixir[$i] += 1
+				; dark elixir drop: the dark purple measured on the end of battle screen (__EndScreenHasDarkElixir)
+				If $iR > 40 And $iR < 140 And $iG > 25 And $iG < 115 And $iB > 55 And $iB < 150 And $iB > $iG + 15 And $iR > $iG + 5 Then $aiDark[$i] += 1
 			Next
 		Next
 	Next
 	SetDebugLog("Battle reward cards, gold: " & $aiGold[0] & "/" & $aiGold[1] & "/" & $aiGold[2] & _
-			", elixir: " & $aiElixir[0] & "/" & $aiElixir[1] & "/" & $aiElixir[2], $COLOR_DEBUG)
+			", elixir: " & $aiElixir[0] & "/" & $aiElixir[1] & "/" & $aiElixir[2] & _
+			", dark: " & $aiDark[0] & "/" & $aiDark[1] & "/" & $aiDark[2], $COLOR_DEBUG)
 
 	; Gold first, then elixir. A card needs a clear majority to avoid the faint tints the
 	; troop artwork carries, the elixir card measured 230 against 18 on its best rival.
@@ -90,8 +94,26 @@ Func PickBattleReward()
 		Next
 	EndIf
 
+	; Dark elixir when neither gold nor elixir is offered (2 Oct, 22:33: three scans of a panel read
+	; "gold: 1/0/0, elixir: 0/0/0" and nothing was taken). No dark elixir card was captured yet, so the
+	; bar is the one of the end screen drop (>= 60 purple samples) and the card must beat both others
+	; twice over: purple troop artwork (witch, minion) must not be taken for it.
 	If $iBest = -1 Then
-		SetLog("Battle reward offered no gold or elixir, leaving it", $COLOR_INFO)
+		For $i = 0 To 2
+			If $aiDark[$i] < 60 Then ContinueLoop
+			Local $bClear = True
+			For $j = 0 To 2
+				If $j <> $i And $aiDark[$j] * 2 > $aiDark[$i] Then $bClear = False
+			Next
+			If $bClear Then
+				$iBest = $i
+				$sWhat = "dark elixir"
+			EndIf
+		Next
+	EndIf
+
+	If $iBest = -1 Then
+		SetLog("Battle reward offered no gold, elixir or dark elixir, leaving it", $COLOR_INFO)
 		Return False
 	EndIf
 
@@ -101,8 +123,15 @@ Func PickBattleReward()
 	; offset, and it has to be read before the click because the panel closes straight after.
 	Local $sAmount = getResourcesLoot($aiCardX[$iBest] - 68, 383)
 	Local $iAmount = Number(StringRegExpReplace($sAmount, "[^0-9]", ""))
-	; A card never pays less than a few thousand, anything smaller is a glyph caught on a moving card
-	If $iAmount >= 1000 And $iAmount < 2000000 Then
+	; A card never pays less than a few thousand, anything smaller is a glyph caught on a moving card.
+	; Dark elixir pays about a hundred times less, it is only logged (the battle stats add gold and elixir).
+	If $sWhat = "dark elixir" Then
+		If $iAmount >= 10 And $iAmount < 50000 Then
+			SetLog("Taking the dark elixir battle reward: " & _NumberFormat($iAmount), $COLOR_SUCCESS)
+		Else
+			SetLog("Taking the dark elixir battle reward, amount unreadable [" & $sAmount & "]", $COLOR_INFO)
+		EndIf
+	ElseIf $iAmount >= 1000 And $iAmount < 2000000 Then
 		If $sWhat = "gold" Then
 			$g_iBattleRewardGold += $iAmount
 		Else
@@ -178,6 +207,11 @@ Func GoldElixirChangeEBO()
 
 	;CALCULATE WHICH TIMER TO USE
 	Local $x = $g_aiStopAtkNoLoot1Time[$g_iMatchMode] * 1000, $y = $g_aiStopAtkNoLoot2Time[$g_iMatchMode] * 1000, $z, $w = $g_aiStopAtkPctNoChangeTime[$g_iMatchMode] * 1000
+	; A wait of 0 s is a profile saved before its settings were read (GUI profile-repair.js puts 20 / 15 / 7
+	; back): every check then lasted the 1.5 s between two reads ("Wait: 0" on the 2 Oct 22:33 log) and a
+	; troop walking between two storages for 2 s ended the battle at 61% with gold and elixir still coming.
+	If $x <= 0 Then $x = ($g_iMatchMode = $DB ? 15000 : 20000)
+	If $y <= 0 Then $y = 7000
 	If Number($Gold1) < $g_aiStopAtkNoLoot2MinGold[$g_iMatchMode] And _
 			Number($Elixir1) < $g_aiStopAtkNoLoot2MinElixir[$g_iMatchMode] And _
 			Number($DarkElixir1) < $g_aiStopAtkNoLoot2MinDark[$g_iMatchMode] And _
@@ -369,8 +403,8 @@ Func GoldElixirChangeEBO()
 			ExitLoop
 		EndIf
 
-		;EXIT LOOP IF RESOURCES = "" ... battle end
-		If getGoldVillageSearch(48, 69 + 7) = "" And getElixirVillageSearch(48, 69 + 29 + 7) = "" Then
+		;EXIT LOOP IF RESOURCES = "" ... battle end (dark elixir still shown means the battle goes on)
+		If $DarkElixir2 = "" And getGoldVillageSearch(48, 69 + 7) = "" And getElixirVillageSearch(48, 69 + 29 + 7) = "" Then
 			ExitLoop
 		EndIf
 

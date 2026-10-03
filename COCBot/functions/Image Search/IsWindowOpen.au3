@@ -181,6 +181,8 @@ Func ClearScreen($Area = "Defaut", $MainVillage = True)
 			Case "Right"
 				ClickAway("Right")
 		EndSwitch
-		If _Sleep(1500) Then Return
+		; a tap beside the building drops the selection at once and a window closes in about 0.3 s:
+		; 1.5 s here was the "Clearing Screen" gap of 2.5 s seen 14 times an hour in the log
+		If _Sleep(800) Then Return
 	EndIf
 EndFunc   ;==>ClearScreen

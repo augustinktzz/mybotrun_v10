@@ -21,7 +21,8 @@ Func TrainIt($iIndex, $iQuantity = 1, $iSleep = 400)
 
 	For $i = 1 To 5 ; Do
 
-		Local $aTrainPos = GetTrainPos($iIndex)
+		; the first look often comes while the tab is still sliding in: only the last try reports a missing icon
+		Local $aTrainPos = GetTrainPos($iIndex, $i = 5)
 		If IsArray($aTrainPos) And $aTrainPos[0] <> -1 Then
 			$g_bAllBarracksUpgd = False
 			If _ColorCheck(_GetPixelColor($aTrainPos[0], $aTrainPos[1], $g_bCapturePixel), Hex($aTrainPos[2], 6), $aTrainPos[3]) Then
@@ -47,6 +48,7 @@ Func TrainIt($iIndex, $iQuantity = 1, $iSleep = 400)
 			If UBound($aTrainPos) > 0 And $aTrainPos[0] = -1 Then
 				If $i < 5 Then
 					ForceCaptureRegion()
+					If _Sleep(300) Then Return ; give the tab time to draw before the next look
 				Else
 					If $g_bDebugSetLogTrain Then SaveDebugImage("TroopIconNotFound_" & GetTroopName($iIndex))
 					SetLog("TrainIt troop position " & GetTroopName($iIndex) & " did not find icon", $COLOR_ERROR)
@@ -63,7 +65,7 @@ Func TrainIt($iIndex, $iQuantity = 1, $iSleep = 400)
 	Next ; Until $iErrors = 0
 EndFunc   ;==>TrainIt
 
-Func GetTrainPos(Const $iIndex)
+Func GetTrainPos(Const $iIndex, $bLogNotFound = True)
 	If $g_bDebugSetLogTrain Then SetLog("GetTrainPos($iIndex=" & $iIndex & ")", $COLOR_DEBUG)
 
 	; Get the Image path to search
@@ -72,7 +74,7 @@ Func GetTrainPos(Const $iIndex)
 		Local $asImageToUse = _FileListToArray($g_sImgTrainTroops, $sFilter, $FLTA_FILES, True)
 		If Not @error Then
 			If $g_bDebugSetLogTrain Then SetLog("$asImageToUse Troops: " & _ArrayToString($asImageToUse, "|"))
-			Return GetVariable($asImageToUse, $iIndex)
+			Return GetVariable($asImageToUse, $iIndex, $bLogNotFound)
 		Else
 			Return 0
 		EndIf
@@ -83,7 +85,7 @@ Func GetTrainPos(Const $iIndex)
 		Local $asImageToUse = _FileListToArray($g_sImgTrainSpells, $sFilter, $FLTA_FILES, True)
 		If Not @error Then
 			If $g_bDebugSetLogTrain Then SetLog("$asImageToUse Spell: " & $asImageToUse[1])
-			Return GetVariable($asImageToUse, $iIndex)
+			Return GetVariable($asImageToUse, $iIndex, $bLogNotFound)
 		Else
 			Return 0
 		EndIf
@@ -94,7 +96,7 @@ Func GetTrainPos(Const $iIndex)
 		Local $asImageToUse = _FileListToArray($g_sImgTrainSieges, $sFilter, $FLTA_FILES, True)
 		If Not @error Then
 			If $g_bDebugSetLogTrain Then SetLog("$asImageToUse Spell: " & $asImageToUse[1])
-			Return GetVariable($asImageToUse, $iIndex)
+			Return GetVariable($asImageToUse, $iIndex, $bLogNotFound)
 		Else
 			Return 0
 		EndIf
@@ -103,7 +105,7 @@ Func GetTrainPos(Const $iIndex)
 	Return 0
 EndFunc   ;==>GetTrainPos
 
-Func GetVariable(Const $asImageToUse, Const $iIndex)
+Func GetVariable(Const $asImageToUse, Const $iIndex, $bLogNotFound = True)
 	Local $aTrainPos[5] = [-1, -1, -1, -1, $eBarb]
 	; Capture the screen for comparison
 	_CaptureRegion2(20, 478 + $g_iBottomOffsetY, 848, 650 + $g_iBottomOffsetY)
@@ -150,7 +152,11 @@ Func GetVariable(Const $asImageToUse, Const $iIndex)
 	Next
 
 	If $iError = 0 Then
-		SetLog("No " & GetTroopName($iIndex) & " Icon found!", $COLOR_ERROR)
+		If $bLogNotFound Then
+			SetLog("No " & GetTroopName($iIndex) & " Icon found!", $COLOR_ERROR)
+		Else
+			SetDebugLog("No " & GetTroopName($iIndex) & " Icon found yet, looking again")
+		EndIf
 	ElseIf $iError = -1 Then
 		SetLog("TrainIt.au3 GetVariable(): ImgLoc DLL Error Occured!", $COLOR_ERROR)
 	ElseIf $iError = -2 Then

@@ -47,10 +47,16 @@ Func GetVillageSize($DebugLog = Default, $sStonePrefix = Default, $sTreePrefix =
 
 	Local $bIsOnMainBase = isOnMainVillage(True)
 
-	$g_bOnBuilderBaseEnemyVillage = isOnBuilderBaseEnemyVillage(True)
-
-	If $bOnBuilderBase = Default Then
-		$bOnBuilderBase = isOnBuilderBase(True)
+	; the three screens exclude each other: on the main village the two builder base checks only cost
+	; 0.73 s per measurement (two more captures), between "Main Village detected" and "GVZ using"
+	If $bIsOnMainBase Then
+		$g_bOnBuilderBaseEnemyVillage = False
+		If $bOnBuilderBase = Default Then $bOnBuilderBase = False
+	Else
+		$g_bOnBuilderBaseEnemyVillage = isOnBuilderBaseEnemyVillage(True)
+		If $bOnBuilderBase = Default Then
+			$bOnBuilderBase = isOnBuilderBase(True)
+		EndIf
 	EndIf
 
 	If $bOnBuilderBase Or $g_bOnBuilderBaseEnemyVillage Then
@@ -191,6 +197,7 @@ Func GetVillageSize($DebugLog = Default, $sStonePrefix = Default, $sTreePrefix =
 		$sStoneFilter = $sStonePrefix & $sScenery & "*.*"
 		If IsCustomScenery($bIsOnMainBase, "Scenery", $sScenery) Then $sStoneDir = $sDirectory2
 	EndIf
+	Local $sQuickTree = "" ; set when the stone scan was cut short by the remembered tree
 	Local $aStoneFiles = __GVZFileList($sStoneDir, $sStoneFilter)
 
 	If @error Then
@@ -242,6 +249,20 @@ Func GetVillageSize($DebugLog = Default, $sStonePrefix = Default, $sTreePrefix =
 		Else
 			;SetDebugLog("GetVillageSize ignore image " & $findImage & ", reason: " & UBound($a), $COLOR_WARNING)
 		EndIf
+
+		; Scenery unknown and the stone that matched last time (tried first) is not there: the village is most
+		; likely only scrolled, after an upgrade the game moves the camera onto the building (110 px on the
+		; 21:41 log, the stone was off screen). The other 46 stones cannot match either, that scan took 16 s,
+		; then 5 s more for the trees. So the tree that matched last time is tried now: when it is there the
+		; stone scan stops, the village is centered on that tree and measured again on the next pass.
+		If $i = 1 And $scenery[0] = 0 And $stone[0] = 0 And $aStoneFiles[0] > 1 Then
+			Local $sLastTree = __GVZLastFile($sDirectory, $sTreePrefix)
+			If $sLastTree <> "" And IsArray(__GVZFindAt(IsCustomScenery($bIsOnMainBase, "Scenery", $sScenery) ? $sDirectory2 : $sDirectory, $sLastTree, $iAdditionalX, $iAdditionalY)) Then
+				SetDebugLog("GVZ: last stone missing but last tree " & $sLastTree & " is there, other stones skipped", $COLOR_INFO)
+				$sQuickTree = $sLastTree
+				ExitLoop
+			EndIf
+		EndIf
 	Next
 
 	If $stone[0] = 0 Then
@@ -266,6 +287,11 @@ Func GetVillageSize($DebugLog = Default, $sStonePrefix = Default, $sTreePrefix =
 	If @error Then
 		SetDeBugLog("Error: Missing tree (" & @error & ")", $COLOR_ERROR)
 		Return FuncReturn($aResult)
+	EndIf
+	If $sQuickTree <> "" Then
+		; already seen above, only that one is measured (0.2 s instead of up to 47 searches)
+		Local $aOneTree[2] = [1, $sQuickTree]
+		$aTreeFiles = $aOneTree
 	EndIf
 
 	For $i = 1 To $aTreeFiles[0]
@@ -451,6 +477,12 @@ EndFunc   ;==>UpdateGlobalVillageOffset
 Func CenterVillage($iX, $iY, $iOffsetX, $iOffsetY)
 	Local $aScrollPos[2] = [0, 0]
 
+	; such a short drag does not move the village (see $g_iZoomOutMinCenterDrag), it only cost 3 s
+	If Abs($iOffsetX) < $g_iZoomOutMinCenterDrag And Abs($iOffsetY) < $g_iZoomOutMinCenterDrag Then
+		SetDebugLog("CenterVillage skipped, offset " & $iOffsetX & ", " & $iOffsetY & " too small to drag", $COLOR_INFO)
+		Return
+	EndIf
+
 	If IsDragSafe($iX, $iY, $iOffsetX, $iOffsetY) Then
 		$aScrollPos[0] = $iX
 		$aScrollPos[1] = $iY
@@ -470,14 +502,16 @@ EndFunc   ;==>CenterVillage
 ; A drag that starts at ($x, $y) and is released at ($x - $iOffsetX, $y - $iOffsetY): both ends have to be clear,
 ; a button fires on the release. A stone at (101,503) released at (80,495) landed on the War Button and opened
 ; the Clan Wars page, twelve times in a day.
-Func IsDragSafe($x, $y, $iOffsetX, $iOffsetY)
-	If Not IsCoordSafe($x, $y) Then Return False
-	Return IsCoordSafe($x - $iOffsetX, $y - $iOffsetY)
+Func IsDragSafe($x, $y, $iOffsetX, $iOffsetY, $bIsOnMainBase = Default)
+	; one main village check for both ends: each check is a 250 ms wait plus a search
+	If $bIsOnMainBase = Default Then $bIsOnMainBase = isOnMainVillage()
+	If Not IsCoordSafe($x, $y, $bIsOnMainBase) Then Return False
+	Return IsCoordSafe($x - $iOffsetX, $y - $iOffsetY, $bIsOnMainBase)
 EndFunc   ;==>IsDragSafe
 
-Func IsCoordSafe($x, $y)
+Func IsCoordSafe($x, $y, $bIsOnMainBase = Default)
 	Local $bResult = True
-	Local $bIsOnMainBase = isOnMainVillage()
+	If $bIsOnMainBase = Default Then $bIsOnMainBase = isOnMainVillage()
 
 	SetDeBugLog("Testing Coords : " & $x & "," & $y)
 
@@ -496,8 +530,7 @@ Func IsCoordSafe($x, $y)
 		$bResult = False
 	EndIf
 
-	If _Sleep(100) Then Return
-
+	; no wait: nothing is clicked here, the 100 ms only slowed every drag test and every tomb/obstacle click
 	Return $bResult
 EndFunc   ;==>IsCoordSafe
 
@@ -555,6 +588,7 @@ Func __GVZFileList($sDirectory, $sFilter)
 EndFunc   ;==>__GVZFileList
 
 Func __GVZRemember($sDirectory, $sFilter, $sFile)
+	__GVZSetLastFile($sDirectory, StringRegExpReplace($sFilter, "^(\d?[a-z]+).*$", "$1"), $sFile)
 	Local $sKey = $sDirectory & "|" & $sFilter
 	For $i = 0 To UBound($g_aGVZFileCache) - 1
 		If $g_aGVZFileCache[$i][0] <> $sKey Then ContinueLoop
@@ -575,3 +609,42 @@ Func __GVZRemember($sDirectory, $sFilter, $sFile)
 		Return
 	Next
 EndFunc   ;==>__GVZRemember
+
+; The file that matched last for a prefix (stone, tree, 2stone, 2tree) whatever the filter used then: the
+; trees are listed per scenery ("treeD*.*") once the stone is known, and all of them ("tree*.*") otherwise.
+Global $g_aGVZLastFile[0][2] ; key (directory|prefix) | file that matched last
+
+Func __GVZSetLastFile($sDirectory, $sPrefix, $sFile)
+	Local $sKey = $sDirectory & "|" & $sPrefix
+	For $i = 0 To UBound($g_aGVZLastFile) - 1
+		If $g_aGVZLastFile[$i][0] = $sKey Then
+			$g_aGVZLastFile[$i][1] = $sFile
+			Return
+		EndIf
+	Next
+	Local $n = UBound($g_aGVZLastFile)
+	ReDim $g_aGVZLastFile[$n + 1][2]
+	$g_aGVZLastFile[$n][0] = $sKey
+	$g_aGVZLastFile[$n][1] = $sFile
+EndFunc   ;==>__GVZSetLastFile
+
+Func __GVZLastFile($sDirectory, $sPrefix)
+	Local $sKey = $sDirectory & "|" & $sPrefix
+	For $i = 0 To UBound($g_aGVZLastFile) - 1
+		If $g_aGVZLastFile[$i][0] = $sKey Then Return $g_aGVZLastFile[$i][1]
+	Next
+	Return ""
+EndFunc   ;==>__GVZLastFile
+
+; Searches one stone or tree image around its reference point, in the last capture, as GetVillageSize does.
+; Returns [x, y] or 0.
+Func __GVZFindAt($sDirectory, $sFile, $iAdditionalX, $iAdditionalY)
+	Local $a = StringRegExp($sFile, ".*-(\d+)-(\d+)-(\d*,*\d+)_.*[.](xml|png|bmp)$", $STR_REGEXPARRAYMATCH)
+	If UBound($a) <> 4 Then Return 0
+	Local $x1 = $a[0] - $iAdditionalX, $y1 = $a[1] - $iAdditionalY, $x2 = $a[0] + $iAdditionalX, $y2 = $a[1] + $iAdditionalY
+	Local $sArea = Int($x1) & "," & Int($y1) & "|" & Int($x2) & "," & Int($y1) & "|" & Int($x2) & "," & Int($y2) & "|" & Int($x1) & "," & Int($y2)
+	SetDebugLog("GetVillageSize check for image " & $sFile)
+	Local $aXY = decodeSingleCoord(findImage($sFile, $sDirectory & "\" & $sFile, $sArea, 1, False))
+	If UBound($aXY) = 2 Then Return $aXY
+	Return 0
+EndFunc   ;==>__GVZFindAt

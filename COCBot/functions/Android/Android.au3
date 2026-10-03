@@ -643,7 +643,9 @@ Func FindAndroidWindowByControlClass()
 		Local $hWin = $aWinList[$i][1]
 		Local $aPos = WinGetPos($hWin)
 		If Not IsArray($aPos) Or UBound($aPos) < 4 Then ContinueLoop
-		If $aPos[2] <= 400 Or $aPos[3] <= 400 Then ContinueLoop
+		; A minimized emulator reports about 160 x 28 at -32000: it is still the emulator, and skipping it
+		; made the bot take a running BlueStacks for a closed one and reboot it
+		If ($aPos[2] <= 400 Or $aPos[3] <= 400) And BitAND(WinGetState($hWin), 16) = 0 Then ContinueLoop ; 16 = minimized
 		If ControlGetHandle2($hWin, "", $g_sAppClassInstance) = 0 Then ContinueLoop
 
 		; Confirm the owning process, this API still reports the path where WMI returns nothing
@@ -1430,6 +1432,7 @@ Func CheckAndroidRunning($bQuickCheck = True, $bStartIfRequired = True, $bStartO
 			If $hWin = 0 Then
 				OpenAndroid(True, $bStartOnlyAndroid)
 			Else
+				If $g_hAndroidWindow = 0 Then AndroidLostLog() ; the window the bot was using is gone
 				RebootAndroid()
 			EndIf
 		EndIf
@@ -1437,6 +1440,17 @@ Func CheckAndroidRunning($bQuickCheck = True, $bStartIfRequired = True, $bStartO
 	EndIf
 	Return FuncReturn(True)
 EndFunc   ;==>CheckAndroidRunning
+
+; The emulator window vanished while the bot was working in it: nothing the bot does closes it (taps go
+; through ADB, it sends no key and no close message to that window), so the emulator closed or crashed by
+; itself. Said in the log, instead of a bare "Stopping", with the usual remedy when BlueStacks 5 renders with
+; OpenGL: a CoC 18.600 window full of 3D heroes (Hero Hall) is where it went down twice in a user log.
+Func AndroidLostLog()
+	SetLog($g_sAndroidEmulator & ($g_sAndroidInstance = "" ? "" : " (" & $g_sAndroidInstance & ")") & " closed by itself (its window is gone), restarting it", $COLOR_ERROR)
+	If $g_sAndroidEmulator = "BlueStacks5" And GetBlueStacks5BackgroundMode() = $g_iAndroidBackgroundModeOpenGL Then
+		SetLog("BlueStacks 5 uses OpenGL here: if it keeps closing, set Settings > Graphics > Graphics renderer to DirectX", $COLOR_INFO)
+	EndIf
+EndFunc   ;==>AndroidLostLog
 
 Func SetScreenAndroid()
 	ResumeAndroid()
@@ -1705,6 +1719,7 @@ Func _ConnectAndroidAdb($rebootAndroidIfNeccessary = $g_bRunState, $bStartOnlyAn
 			ReleaseAdbDaemonMutex($hMutex)
 			If $rebootAndroidIfNeccessary Then
 				SetDebugLog("ConnectAndroidAdb: Reboot Android due to ADB connection problems...", $COLOR_ERROR)
+				If WinGetAndroidHandle() = 0 Then AndroidLostLog() ; ADB refused because the emulator itself is gone
 				$bRebooted = RebootAndroid()
 				If Not $bRebooted Then Return 0
 			Else
@@ -5131,8 +5146,9 @@ Func CheckEmuNewVersions()
 
 	Switch $g_sAndroidEmulator
 		Case "BlueStacks5"
-			; 5.22.262.1002 verified working with the window class based detection
-			$NewVersion = GetVersionNormalized("5.22.262.1002")
+			; 5.22.262.1002 verified working with the window class based detection, 5.22.265.1012 too
+			; (window found by its control class, ADB, minitouch and capture all working in a user log)
+			$NewVersion = GetVersionNormalized("5.22.265.1012")
 		Case "MEmu"
 			$NewVersion = GetVersionNormalized("9.0.8.0")
 		Case "Nox"

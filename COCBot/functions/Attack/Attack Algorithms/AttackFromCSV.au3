@@ -41,7 +41,9 @@ Global $g_aiDeployableLRTB = [0, $g_iGAME_WIDTH - 1, 0, 626] ; used by another i
 
 Func ConvertInternalExternArea()
 	; set the diamond shape based on reference village
-	Local $bIsOnMainBase = isOnMainVillage(True)
+	; the main village check (a capture and a 250 ms wait, after every zoom out) only matters when the
+	; tree measured last belongs to a custom scenery, IsCustomScenery() is False on any other screen
+	Local $bIsOnMainBase = IsCustomScenery(True) And isOnMainVillage(True)
 	If IsCustomScenery($bIsOnMainBase) Then
 		For $i = 0 To UBound($g_afRefCustomMainVillage) - 1
 			If $g_iTree = $g_afRefCustomMainVillage[$i][5] Then
